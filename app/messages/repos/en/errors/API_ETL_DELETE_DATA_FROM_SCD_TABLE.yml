@@ -1,0 +1,9 @@
+---
+API_ETL_DELETE_DATA_FROM_SCD_TABLE_001:
+  status: error
+  errorCode: API_ETL_DELETE_DATA_FROM_SCD_TABLE_001
+  error: 'ERROR: spaceName param not found in query'
+API_ETL_DELETE_DATA_FROM_SCD_TABLE_002:
+  status: error
+  errorCode: API_ETL_DELETE_DATA_FROM_SCD_TABLE_002
+  error: 'ERROR: delete query error'

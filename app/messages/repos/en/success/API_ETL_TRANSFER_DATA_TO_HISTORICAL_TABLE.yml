@@ -1,0 +1,4 @@
+---
+API_ETL_TRANSFER_DATA_TO_HISTORICAL_TABLE_001:
+  status: ok
+  message: 'INFO: Transfer data to a historical table on cluster done'

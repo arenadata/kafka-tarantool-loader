@@ -1,0 +1,4 @@
+---
+DROP_SPACE_ON_CLUSTER_001:
+  status: ok
+  message: 'INFO: space successfully dropped'

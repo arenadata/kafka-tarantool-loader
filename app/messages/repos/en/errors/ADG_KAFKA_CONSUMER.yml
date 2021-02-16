@@ -1,0 +1,37 @@
+---
+ADG_KAFKA_CONSUMER_006:
+  status: error
+  errorCode: ADG_KAFKA_CONSUMER_006
+  error: 'ERROR: Kafka consumer subscribing error'
+ADG_KAFKA_CONSUMER_001:
+  status: error
+  errorCode: ADG_KAFKA_CONSUMER_001
+  error: 'ERROR: Kafka consumer error message'
+ADG_KAFKA_CONSUMER_007:
+  status: error
+  errorCode: ADG_KAFKA_CONSUMER_007
+  error: 'ERROR: Kafka consumer unsubscribing error'
+ADG_KAFKA_CONSUMER_004:
+  status: error
+  errorCode: ADG_KAFKA_CONSUMER_004
+  error: 'ERROR: No consumer available'
+ADG_KAFKA_CONSUMER_008:
+  status: error
+  errorCode: ADG_KAFKA_CONSUMER_008
+  error: 'ERROR: Kafka consumer close error'
+ADG_KAFKA_CONSUMER_003:
+  status: error
+  errorCode: ADG_KAFKA_CONSUMER_003
+  error: 'ERROR: Kafka consumer commit error'
+ADG_KAFKA_CONSUMER_005:
+  status: error
+  errorCode: ADG_KAFKA_CONSUMER_005
+  error: 'ERROR: Kafka consumer creation error'
+ADG_KAFKA_CONSUMER_002:
+  status: error
+  errorCode: ADG_KAFKA_CONSUMER_002
+  error: 'ERROR: Kafka consumer polling error'
+ADG_KAFKA_CONSUMER_009:
+  status: error
+  errorCode: ADG_KAFKA_CONSUMER_009
+  error: 'ERROR: Kafka consumer message channel timeout'

@@ -1,0 +1,13 @@
+---
+ADG_OUTPUT_PROCESSOR_002:
+  status: error
+  errorCode: ADG_OUTPUT_PROCESSOR_002
+  error: 'ERROR: Send messages to kafka failed'
+ADG_OUTPUT_PROCESSOR_003:
+  status: error
+  errorCode: ADG_OUTPUT_PROCESSOR_003
+  error: 'ERROR: Only select queries allowed'
+ADG_OUTPUT_PROCESSOR_001:
+  status: error
+  errorCode: ADG_OUTPUT_PROCESSOR_001
+  error: 'ERROR: Future result error'

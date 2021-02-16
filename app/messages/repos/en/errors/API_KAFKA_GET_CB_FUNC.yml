@@ -1,0 +1,3 @@
+API_KAFKA_GET_CB_FUNC_001:
+  code: API_KAFKA_GET_CB_FUNC_001
+  message: 'ERROR: get_callback_functions error'

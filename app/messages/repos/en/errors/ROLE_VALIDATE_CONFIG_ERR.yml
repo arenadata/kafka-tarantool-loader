@@ -1,0 +1,5 @@
+---
+ROLE_VALIDATE_CONFIG_ERR_001:
+  status: error
+  errorCode: ROLE_VALIDATE_CONFIG_ERR_001
+  error: 'ERROR: validation error'

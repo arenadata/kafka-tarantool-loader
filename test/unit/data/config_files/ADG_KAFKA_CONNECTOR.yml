@@ -1,0 +1,9 @@
+---
+ADG_KAFKA_CONNECTOR_002:
+  status: error
+  errorCode: ADG_KAFKA_CONNECTOR_002
+  error: 'ERROR: Did not receive rows from input processor'
+ADG_KAFKA_CONNECTOR_001:
+  status: error
+  errorCode: ADG_KAFKA_CONNECTOR_001
+  error: 'ERROR: Commit to kafka failed'

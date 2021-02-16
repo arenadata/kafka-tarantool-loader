@@ -1,0 +1,41 @@
+memstorage.router:
+  workdir: ./tmp/db_3301
+  http_port: 8081
+  advertise_uri: "localhost:3301"
+
+memstorage.router_scheduller:
+  workdir: ./tmp/db_3302
+  http_port: 8082
+  advertise_uri: "localhost:3302"
+
+memstorage.router_processor1:
+  workdir: ./tmp/db_3303
+  http_port: 8083
+  advertise_uri: "localhost:3303"
+
+memstorage.s1-master:
+  workdir: ./tmp/db_3304
+  http_port: 8084
+  advertise_uri: "localhost:3304"
+  memtx_memory: 1500000000
+
+memstorage.router2:
+  workdir: ./tmp/db_3305
+  http_port: 8085
+  advertise_uri: "localhost:3305"
+
+memstorage.router3:
+  workdir: ./tmp/db_3306
+  http_port: 8086
+  advertise_uri: "localhost:3306"
+
+memstorage.s1-replica:
+  workdir: ./tmp/db_3307
+  http_port: 8087
+  advertise_uri: "localhost:3307"
+  memtx_memory: 1500000000
+
+memstorage.router_processor2:
+  workdir: ./tmp/db_3308
+  http_port: 8088
+  advertise_uri: "localhost:3308"

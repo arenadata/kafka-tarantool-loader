@@ -1,0 +1,6 @@
+ADG_OUTPUT_PROCESSOR_002:
+  status: ok
+  message: 'INFO: All messages to kafka sended'
+ADG_OUTPUT_PROCESSOR_001:
+  status: ok
+  message: 'INFO: Message to kafka sended'

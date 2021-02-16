@@ -1,0 +1,6 @@
+API_KAFKA_REG_CB_FUNC_001:
+  code: API_KAFKA_REG_CB_FUNC_001
+  message: 'ERROR: callbackFunctionName param not found in the query.'
+API_KAFKA_REG_CB_FUNC_002:
+  code: API_KAFKA_REG_CB_FUNC_002
+  message: 'ERROR: register_kafka_callback_function error'

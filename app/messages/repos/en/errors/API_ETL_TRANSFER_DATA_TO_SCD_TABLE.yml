@@ -1,0 +1,5 @@
+---
+API_ETL_TRANSFER_DATA_TO_SCD_TABLE_001:
+  status: error
+  errorCode: API_ETL_TRANSFER_DATA_TO_SCD_TABLE_001
+  error: 'ERROR: _stage_data_table_name param in query not found'

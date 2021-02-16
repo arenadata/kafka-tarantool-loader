@@ -1,0 +1,254 @@
+{
+  "kafka_produce":{
+    "body":{
+      "custom_properties":[
+
+
+      ],
+      "properties":[
+
+
+      ]
+
+    }
+
+  },
+  "schema":{
+    "body":{
+      "spaces":{
+        "user2":{
+          "format":[
+            {
+              "type":"unsigned",
+              "name":"id",
+              "is_nullable":false
+
+            },
+            {
+              "type":"string",
+              "name":"band_name",
+              "is_nullable":false
+
+            },
+            {
+              "type":"unsigned",
+              "name":"year",
+              "is_nullable":false
+
+            }
+
+          ],
+          "temporary":false,
+          "engine":"memtx",
+          "is_local":false,
+          "indexes":[
+            {
+              "unique":true,
+              "parts":[
+                {
+                  "path":"id",
+                  "is_nullable":false,
+                  "type":"unsigned"
+
+                }
+
+              ],
+              "name":"primary",
+              "type":"HASH"
+
+            }
+
+          ]
+
+        },
+        "USER1":{
+          "format":[
+            {
+              "is_nullable":false,
+              "name":"ID",
+              "type":"number"
+
+            },
+            {
+              "is_nullable":false,
+              "name":"FIRST_NAME",
+              "type":"string"
+
+            },
+            {
+              "is_nullable":false,
+              "name":"LAST_NAME",
+              "type":"string"
+
+            },
+            {
+              "is_nullable":false,
+              "name":"EMAIL",
+              "type":"string"
+
+            },
+            {
+              "is_nullable":true,
+              "name":"bucket_id",
+              "type":"unsigned"
+
+            }
+
+          ],
+          "temporary":false,
+          "engine":"memtx",
+          "is_local":false,
+          "sharding_key":[
+            "ID"
+
+          ],
+          "indexes":[
+            {
+              "unique":true,
+              "parts":[
+                {
+                  "path":"ID",
+                  "is_nullable":false,
+                  "type":"number"
+
+                }
+
+              ],
+              "name":"ID",
+              "type":"TREE"
+
+            },
+            {
+              "unique":false,
+              "parts":[
+                {
+                  "path":"bucket_id",
+                  "is_nullable":true,
+                  "type":"unsigned"
+
+                }
+
+              ],
+              "name":"bucket_id",
+              "type":"TREE"
+
+            }
+
+          ]
+
+        },
+        "_bucket":{
+          "format":[
+            {
+              "type":"unsigned",
+              "name":"id",
+              "is_nullable":false
+
+            },
+            {
+              "type":"string",
+              "name":"status",
+              "is_nullable":false
+
+            },
+            {
+              "type":"string",
+              "name":"destination",
+              "is_nullable":true
+
+            }
+
+          ],
+          "temporary":false,
+          "engine":"memtx",
+          "is_local":false,
+          "indexes":[
+            {
+              "unique":true,
+              "parts":[
+                {
+                  "path":"id",
+                  "is_nullable":false,
+                  "type":"unsigned"
+
+                }
+
+              ],
+              "name":"pk",
+              "type":"TREE"
+
+            },
+            {
+              "unique":false,
+              "parts":[
+                {
+                  "path":"status",
+                  "is_nullable":false,
+                  "type":"string"
+
+                }
+
+              ],
+              "name":"status",
+              "type":"TREE"
+
+            }
+
+          ]
+
+        }
+
+      }
+
+    }
+
+  },
+  "kafka_bootstrap":{
+    "body":{
+      "bootstrap_connection_string":"localhost:9092"
+
+    }
+
+  },
+  "scheduler_tasks":{
+    "body":[
+
+
+    ]
+
+  },
+  "kafka_topics":{
+    "body":[
+
+
+    ]
+
+  },
+  "kafka_consume":{
+    "body":{
+      "custom_properties":[
+
+
+      ],
+      "properties":[
+
+
+      ],
+      "topics":[
+
+
+      ]
+
+    }
+
+  },
+  "kafka_schema_registry":{
+    "body":{
+      "host":"localhost",
+      "port":"8081",
+      "key_schema_name":"AdbUploadRequest"
+
+    }
+
+  }
+}

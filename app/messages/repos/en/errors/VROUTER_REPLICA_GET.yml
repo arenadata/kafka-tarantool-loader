@@ -1,0 +1,5 @@
+---
+VROUTER_REPLICA_GET_001:
+  status: error
+  errorCode: VROUTER_REPLICA_GET_001
+  error: 'ERROR: Cannot get replicas for query'

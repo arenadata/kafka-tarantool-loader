@@ -1,0 +1,28 @@
+---
+API_DDL_TABLE_DELETE_BATCH_ADD_001:
+  code: API_DDL_TABLE_DELETE_BATCH_ADD_001
+  message: 'ERROR: tableName param not found in the query.'
+API_DDL_TABLE_DELETE_BATCH_ADD_002:
+  code: API_DDL_TABLE_DELETE_BATCH_ADD_002
+  message: 'ERROR: tableName not found on storages in cluster.'
+API_DDL_TABLE_DELETE_BATCH_ADD_003:
+  code: API_DDL_TABLE_DELETE_BATCH_ADD_003
+  message: 'ERROR: Add tables to batch error.'
+API_DDL_TABLE_DELETE_BATCH_ADD_004:
+  code: API_DDL_TABLE_DELETE_BATCH_ADD_004
+  message: 'ERROR: tableList param not found in the query.'
+API_DDL_TABLE_DELETE_BATCH_ADD_005:
+  code: API_DDL_TABLE_DELETE_BATCH_ADD_005
+  message: 'ERROR: tableList param must be array.'
+API_DDL_TABLE_DELETE_BATCH_ADD_006:
+  code: API_DDL_TABLE_DELETE_BATCH_ADD_006
+  message: 'ERROR: batchId param not found in the query.'
+API_DDL_TABLE_DELETE_BATCH_ADD_007:
+  code: API_DDL_TABLE_DELETE_BATCH_ADD_007
+  message: 'ERROR: Get tables from state storage failed.'
+API_DDL_TABLE_DELETE_BATCH_ADD_008:
+  code: API_DDL_TABLE_DELETE_BATCH_ADD_008
+  message: 'ERROR: Spaces drop error'
+API_DDL_TABLE_DELETE_BATCH_ADD_009:
+  code: API_DDL_TABLE_DELETE_BATCH_ADD_009
+  message: 'ERROR: Delete batch error.'

@@ -1,0 +1,29 @@
+---
+AVRO_SCHEMA_001:
+  status: error
+  errorCode: AVRO_SCHEMA_001
+  error: 'ERROR: Cannot obtain valid avro schema from repo'
+AVRO_SCHEMA_002:
+  status: error
+  errorCode: AVRO_SCHEMA_002
+  error: 'ERROR: Cannot compile avro schema'
+AVRO_SCHEMA_007:
+  status: error
+  errorCode: AVRO_SCHEMA_007
+  error: 'ERROR: No schema data route found for topic'
+AVRO_SCHEMA_003:
+  status: error
+  errorCode: AVRO_SCHEMA_003
+  error: 'ERROR: Cannot unflatten values'
+AVRO_SCHEMA_006:
+  status: error
+  errorCode: AVRO_SCHEMA_006
+  error: 'ERROR: Cannot flatten values'
+AVRO_SCHEMA_004:
+  status: error
+  errorCode: AVRO_SCHEMA_004
+  error: 'ERROR: Convertation to json failed'
+AVRO_SCHEMA_005:
+  status: error
+  errorCode: AVRO_SCHEMA_005
+  error: 'ERROR: Avro data is invalid'

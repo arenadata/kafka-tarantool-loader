@@ -1,0 +1,4 @@
+---
+ADG_KAFKA_CONNECTOR_001:
+  status: ok
+  message: 'INFO: Message loaded'

@@ -1,0 +1,13 @@
+---
+API_ETL_TRANSFER_DATA_TO_HISTORICAL_TABLE_001:
+  status: error
+  errorCode: API_ETL_TRANSFER_DATA_TO_HISTORICAL_TABLE_001
+  error: 'ERROR: _actual_data_table_name param in query not found'
+API_ETL_TRANSFER_DATA_TO_HISTORICAL_TABLE_003:
+  status: error
+  errorCode: API_ETL_TRANSFER_DATA_TO_HISTORICAL_TABLE_003
+  error: 'ERROR: _delta_number param in query not found'
+API_ETL_TRANSFER_DATA_TO_HISTORICAL_TABLE_002:
+  status: error
+  errorCode: API_ETL_TRANSFER_DATA_TO_HISTORICAL_TABLE_002
+  error: 'ERROR: _historical_data_table_name param in query not found'

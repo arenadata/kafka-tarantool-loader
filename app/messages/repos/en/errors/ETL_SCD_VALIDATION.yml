@@ -1,0 +1,32 @@
+ETL_SCD_VALIDATION_001:
+  status: error
+  errorCode: ETL_SCD_VALIDATION_001
+  error: 'ERROR: File etl_scd.yml not found'
+ETL_SCD_VALIDATION_002:
+  status: error
+  errorCode: ETL_SCD_VALIDATION_002
+  error: 'ERROR: ETL SCD settings must be table in etl_scd.yml'
+ETL_SCD_VALIDATION_003:
+  status: error
+  errorCode: ETL_SCD_VALIDATION_003
+  error: 'ERROR: start_field_nm key not found in etl_scd.yml'
+ETL_SCD_VALIDATION_004:
+  status: error
+  errorCode: ETL_SCD_VALIDATION_004
+  error: 'ERROR: start_field_nm value must be string in etl_scd.yml'
+ETL_SCD_VALIDATION_005:
+  status: error
+  errorCode: ETL_SCD_VALIDATION_005
+  error: 'ERROR: end_field_nm key not found in etl_scd.yml'
+ETL_SCD_VALIDATION_006:
+  status: error
+  errorCode: ETL_SCD_VALIDATION_006
+  error: 'ERROR: end_field_nm value must be string in etl_scd.yml'
+ETL_SCD_VALIDATION_007:
+  status: error
+  errorCode: ETL_SCD_VALIDATION_007
+  error: 'ERROR: op_field_nm key not found in etl_scd.yml'
+ETL_SCD_VALIDATION_008:
+  status: error
+  errorCode: ETL_SCD_VALIDATION_008
+  error: 'ERROR: op_field_nm value must be string in etl_scd.yml'

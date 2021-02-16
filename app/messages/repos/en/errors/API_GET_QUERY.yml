@@ -1,0 +1,17 @@
+---
+API_GET_QUERY_002:
+  status: error
+  errorCode: API_GET_QUERY_002
+  error: 'ERROR: _topic param in query not found'
+API_GET_QUERY_004:
+  status: error
+  errorCode: API_GET_QUERY_004
+  error: 'ERROR: _schema_name param in query not found'
+API_GET_QUERY_001:
+  status: error
+  errorCode: API_GET_QUERY_001
+  error: 'ERROR: Table param in query not found'
+API_GET_QUERY_003:
+  status: error
+  errorCode: API_GET_QUERY_003
+  error: 'ERROR: _batch_size param in query not found'

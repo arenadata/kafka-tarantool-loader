@@ -1,0 +1,13 @@
+---
+API_KAFKA_DATALOAD_001:
+  code: API_KAFKA_DATALOAD_001
+  message: 'ERROR: topicName param not found in the query.'
+API_KAFKA_DATALOAD_002:
+  code: API_KAFKA_DATALOAD_002
+  message: 'ERROR: spaces param not found in the query.'
+API_KAFKA_DATALOAD_003:
+  code: API_KAFKA_DATALOAD_003
+  message: 'ERROR: spaces param must be array.'
+API_KAFKA_DATALOAD_004:
+  code: API_KAFKA_DATALOAD_004
+  message: 'ERROR: dataload error.'

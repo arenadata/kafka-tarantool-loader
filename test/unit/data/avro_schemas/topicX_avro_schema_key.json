@@ -1,0 +1,11 @@
+{
+  "type": "record",
+  "name": "test",
+  "fields": [
+    {"name": "tableName", "type": "string"},
+    {"name": "streamNumber", "type": "int"},
+    {"name": "streamTotal", "type": "int"},
+    {"name": "chunkNumber", "type": "int"},
+    {"name": "isLastChunk", "type": "boolean"}
+  ]
+}

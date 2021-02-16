@@ -1,0 +1,13 @@
+{
+  "type": "array",
+  "items": {
+    "type": "record",
+    "name": "test",
+    "fields": [
+      {"name": "id","type": "int"},
+      {"name": "gnr","type": "string"},
+      {"name": "stu","type": "string"},
+      {"name": "ser","type": ["null", "string"]}
+    ]
+  }
+}

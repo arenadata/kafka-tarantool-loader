@@ -1,0 +1,14 @@
+#!/bin/sh
+
+# Simple pre-build script
+# Will be ran before `tarantoolctl rocks make` on application build
+# Could be useful to install non-standart rocks modules
+
+# For example:
+# tarantoolctl rocks make --chdir ./third_party/my-custom-rock-module
+
+tarantoolctl rocks install --server=https://raw.githubusercontent.com/Asmoday/rocks/master/  avro
+tarantoolctl rocks install --server=https://raw.githubusercontent.com/Asmoday/rocks/master/  kafka
+
+git clone https://github.com/Asmoday/kafka.git
+cd ./kafka && cmake . && make && cd ../

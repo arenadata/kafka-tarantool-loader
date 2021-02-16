@@ -1,0 +1,33 @@
+{
+  "type": "array",
+  "items": {
+    "type": "record",
+    "name": "row",
+    "fields": [
+      {
+        "name": "f1",
+        "type": [
+          "string",
+          "null"
+        ],
+        "default": ""
+      },
+      {
+        "name": "f2",
+        "type": [
+          "string",
+          "null"
+        ],
+        "default": ""
+      },
+      {
+        "name": "f3",
+        "type": [
+          "string",
+          "null"
+        ],
+        "default": ""
+      }
+    ]
+  }
+}

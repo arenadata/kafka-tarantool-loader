@@ -1,0 +1,13 @@
+---
+STORAGE_001:
+  status: error
+  errorCode: STORAGE_001
+  error: 'ERROR: No such space'
+STORAGE_002:
+  status: error
+  errorCode: STORAGE_002
+  error: 'ERROR: required fields could not be find in table'
+STORAGE_003:
+  status: error
+  errorCode: STORAGE_003
+  error: 'ERROR: data modification error'

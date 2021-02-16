@@ -1,0 +1,13 @@
+---
+API_DDL_QUEUE_001:
+  code: API_DDL_QUEUE_001
+  message: 'ERROR: tableList param not found in the query.'
+API_DDL_QUEUE_002:
+  code: API_DDL_QUEUE_002
+  message: 'ERROR: tableList param must be a table.'
+API_DDL_QUEUE_003:
+  code: API_DDL_QUEUE_003
+  message: 'ERROR: Add tables to ddl queue error.'
+API_DDL_QUEUE_004:
+  code: API_DDL_QUEUE_004
+  message: 'ERROR: DDL operation was not succeeded in a given timeout.'

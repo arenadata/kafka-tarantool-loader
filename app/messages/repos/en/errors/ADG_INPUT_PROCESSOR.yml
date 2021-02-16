@@ -1,0 +1,9 @@
+---
+ADG_INPUT_PROCESSOR_002:
+  status: error
+  errorCode: ADG_INPUT_PROCESSOR_002
+  error: 'ERROR: Cannot load lines to VSTORAGE'
+ADG_INPUT_PROCESSOR_001:
+  status: error
+  errorCode: ADG_INPUT_PROCESSOR_001
+  error: 'ERROR: Cannot find parse function'

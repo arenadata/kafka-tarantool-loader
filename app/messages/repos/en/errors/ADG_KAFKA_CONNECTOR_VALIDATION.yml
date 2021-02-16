@@ -1,0 +1,44 @@
+ADG_KAFKA_CONNECTOR_VALIDATION_001:
+  status: error
+  errorCode: ADG_KAFKA_CONNECTOR_VALIDATION_001
+  error: 'ERROR: File kafka_bootstrap.yml not found'
+ADG_KAFKA_CONNECTOR_VALIDATION_002:
+  status: error
+  errorCode: ADG_KAFKA_CONNECTOR_VALIDATION_002
+  error: 'ERROR: Kafka bootstrap settings must be table in kafka_bootstrap.yml'
+ADG_KAFKA_CONNECTOR_VALIDATION_003:
+  status: error
+  errorCode: ADG_KAFKA_CONNECTOR_VALIDATION_003
+  error: 'ERROR: bootstrap_connection_string key not found in kafka_bootstrap.yml'
+ADG_KAFKA_CONNECTOR_VALIDATION_004:
+  status: error
+  errorCode: ADG_KAFKA_CONNECTOR_VALIDATION_004
+  error: 'ERROR: bootstrap_connection_string value must be string in kafka_bootstrap.yml'
+ADG_KAFKA_CONNECTOR_VALIDATION_005:
+  status: error
+  errorCode: ADG_KAFKA_CONNECTOR_VALIDATION_005
+  error: 'ERROR: kafka topics in kafka_consume.yml cannot be nil'
+ADG_KAFKA_CONNECTOR_VALIDATION_006:
+  status: error
+  errorCode: ADG_KAFKA_CONNECTOR_VALIDATION_006
+  error: 'ERROR: kafka topics in kafka_topics.yml cannot be nil'
+ADG_KAFKA_CONNECTOR_VALIDATION_007:
+  status: error
+  errorCode: ADG_KAFKA_CONNECTOR_VALIDATION_007
+  error: 'ERROR: kafka topics in kafka_consume.yml must be a table'
+ADG_KAFKA_CONNECTOR_VALIDATION_008:
+  status: error
+  errorCode: ADG_KAFKA_CONNECTOR_VALIDATION_008
+  error: 'ERROR: kafka topics in kafka_topics.yml cannot must be a table'
+ADG_KAFKA_CONNECTOR_VALIDATION_009:
+  status: error
+  errorCode: ADG_KAFKA_CONNECTOR_VALIDATION_009
+  error: 'ERROR: every topic in kafka_consume.yml must have string options in kafka_topics.yml'
+ADG_KAFKA_CONNECTOR_VALIDATION_010:
+  status: error
+  errorCode: ADG_KAFKA_CONNECTOR_VALIDATION_010
+  error: 'ERROR: not found required option for topic in kafka_topics.yml'
+ADG_KAFKA_CONNECTOR_VALIDATION_011:
+  status: error
+  errorCode: ADG_KAFKA_CONNECTOR_VALIDATION_011
+  error: 'ERROR: Options for kafka connector must be maps string-string'

@@ -1,0 +1,37 @@
+---
+API_ETL_REVERSE_DATA_TO_SCD_TABLE_001:
+  status: error
+  errorCode: API_ETL_REVERSE_DATA_TO_SCD_TABLE_001
+  error: 'ERROR: stagingTableName param not found in query '
+API_ETL_REVERSE_DATA_TO_SCD_TABLE_002:
+  status: error
+  errorCode: API_ETL_REVERSE_DATA_TO_SCD_TABLE_002
+  error: 'ERROR: stagingTableName param must be string'
+API_ETL_REVERSE_DATA_TO_SCD_TABLE_003:
+  status: error
+  errorCode: API_ETL_REVERSE_DATA_TO_SCD_TABLE_003
+  error: 'ERROR: actualTableName param not found in query '
+API_ETL_REVERSE_DATA_TO_SCD_TABLE_004:
+  status: error
+  errorCode: API_ETL_REVERSE_DATA_TO_SCD_TABLE_004
+  error: 'ERROR: actualTableName param must be string'
+API_ETL_REVERSE_DATA_TO_SCD_TABLE_005:
+  status: error
+  errorCode: API_ETL_REVERSE_DATA_TO_SCD_TABLE_005
+  error: 'ERROR: historyTableName param not found in query '
+API_ETL_REVERSE_DATA_TO_SCD_TABLE_006:
+  status: error
+  errorCode: API_ETL_REVERSE_DATA_TO_SCD_TABLE_006
+  error: 'ERROR: historyTableName must be string'
+API_ETL_REVERSE_DATA_TO_SCD_TABLE_007:
+  status: error
+  errorCode: API_ETL_REVERSE_DATA_TO_SCD_TABLE_007
+  error: 'ERROR: sysCn param not found in query '
+API_ETL_REVERSE_DATA_TO_SCD_TABLE_008:
+  status: error
+  errorCode: API_ETL_REVERSE_DATA_TO_SCD_TABLE_008
+  error: 'ERROR: sysCn param must be string'
+API_ETL_REVERSE_DATA_TO_SCD_TABLE_009:
+  status: error
+  errorCode: API_ETL_REVERSE_DATA_TO_SCD_TABLE_009
+  error: 'ERROR: Reverse data error'

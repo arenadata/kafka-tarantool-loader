@@ -1,0 +1,67 @@
+{
+  "type": "record",
+  "name": "MyClass_record",
+  "namespace": "com.acme.avro",
+  "fields": [
+    {
+      "name": "f0",
+      "type": "int"
+    },
+    {
+      "name": "f1",
+      "type": "int"
+    },
+    {
+      "name": "f2",
+      "type": "int"
+    },
+    {
+      "name": "f3",
+      "type": "int"
+    },
+    {
+      "name": "f4",
+      "type": "int"
+    },
+    {
+      "name": "f5",
+      "type": "float"
+    },
+    {
+      "name": "f6",
+      "type": "float"
+    },
+    {
+      "name": "f7",
+      "type": "float"
+    },
+    {
+      "name": "f8",
+      "type": "float"
+    },
+    {
+      "name": "f9",
+      "type": "float"
+    },
+    {
+      "name": "f10",
+      "type": "string"
+    },
+    {
+      "name": "f11",
+      "type": "string"
+    },
+    {
+      "name": "f12",
+      "type": "string"
+    },
+    {
+      "name": "f13",
+      "type": "string"
+    },
+    {
+      "name": "f14",
+      "type": "string"
+    }
+  ]
+}

@@ -1,0 +1,5 @@
+---
+VSTORAGE_SQL_SELECT_001:
+  status: error
+  errorCode: VSTORAGE_SQL_SELECT_001
+  error: 'ERROR: SQL select exception'

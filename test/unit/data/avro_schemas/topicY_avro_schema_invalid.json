@@ -1,0 +1,83 @@
+{
+  "type": "array",
+  "items": {
+    "type": "record",
+    "fields": [
+      {
+        "name": "id",
+        "type": "long"
+      },
+      {
+        "name": "gnr",
+        "type": "string"
+      },
+      {
+        "name": "stu",
+        "type": "string"
+      },
+      {
+        "name": "ser",
+        "type": "string"
+      },
+      {
+        "name": "num",
+        "type": "string"
+      },
+      {
+        "name": "iss_by",
+        "type": "string"
+      },
+      {
+        "name": "iss_da",
+        "type": "int"
+      },
+      {
+        "name": "iss_plc",
+        "type": "string"
+      },
+      {
+        "name": "exp_dat",
+        "type": "int"
+      },
+      {
+        "name": "det_dat",
+        "type": "string"
+      },
+      {
+        "name": "r_obj",
+        "type": "int"
+      },
+      {
+        "name": "crt_on",
+        "type": "int"
+      },
+      {
+        "name": "upd_on",
+        "type": "int"
+      },
+      {
+        "name": "dsc",
+        "type": [
+          "string",
+          "null"
+        ]
+      },
+      {
+        "name": "iss_id",
+        "type": "string"
+      },
+      {
+        "name": "vrf_stu",
+        "type": "string"
+      },
+      {
+        "name": "vrf_on",
+        "type": "int"
+      },
+      {
+        "name": "sys_op",
+        "type": "int"
+      }
+    ]
+  }
+}

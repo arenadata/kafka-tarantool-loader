@@ -1,0 +1,13 @@
+---
+API_KAFKA_DATAUNLOAD_001:
+  code: API_KAFKA_DATAUNLOAD_001
+  message: 'ERROR: query param not found in the query.'
+API_KAFKA_DATAUNLOAD_002:
+  code: API_KAFKA_DATAUNLOAD_002
+  message: 'ERROR: topicName param not found in the query.'
+API_KAFKA_DATAUNLOAD_003:
+  code: API_KAFKA_DATAUNLOAD_003
+  message: 'ERROR: tableName param not found in the query.'
+API_KAFKA_DATAUNLOAD_004:
+  code: API_KAFKA_DATAUNLOAD_004
+  message: 'ERROR: dataunload error.'

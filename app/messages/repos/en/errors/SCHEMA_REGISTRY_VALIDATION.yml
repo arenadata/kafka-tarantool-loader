@@ -1,0 +1,24 @@
+SCHEMA_REGISTRY_VALIDATION_001:
+  status: error
+  errorCode: SCHEMA_REGISTRY_VALIDATION_001
+  error: 'ERROR: File kafka_schema_registry.yml not found'
+SCHEMA_REGISTRY_VALIDATION_002:
+  status: error
+  errorCode: SCHEMA_REGISTRY_VALIDATION_002
+  error: 'ERROR: Kafka schema registry settings must be table in kafka_schema_registry.yml'
+SCHEMA_REGISTRY_VALIDATION_003:
+  status: error
+  errorCode: SCHEMA_REGISTRY_VALIDATION_003
+  error: 'ERROR: host key not found in kafka_schema_registry.yml'
+SCHEMA_REGISTRY_VALIDATION_004:
+  status: error
+  errorCode: SCHEMA_REGISTRY_VALIDATION_004
+  error: 'ERROR: host value must be string in kafka_schema_registry.yml'
+SCHEMA_REGISTRY_VALIDATION_005:
+  status: error
+  errorCode: SCHEMA_REGISTRY_VALIDATION_005
+  error: 'ERROR: port key not found in kafka_schema_registry.yml'
+SCHEMA_REGISTRY_VALIDATION_006:
+  status: error
+  errorCode: SCHEMA_REGISTRY_VALIDATION_006
+  error: 'ERROR: port value must be number in kafka_schema_registry.yml'

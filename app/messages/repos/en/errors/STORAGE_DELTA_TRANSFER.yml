@@ -1,0 +1,13 @@
+---
+STORAGE_DELTA_TRANSFER_001:
+  status: error
+  errorCode: STORAGE_DELTA_TRANSFER_001
+  error: 'ERROR: sysFrom must be last field in PK'
+STORAGE_DELTA_TRANSFER_003:
+  status: error
+  errorCode: STORAGE_DELTA_TRANSFER_003
+  error: 'ERROR: Get hot delta extraction error'
+STORAGE_DELTA_TRANSFER_002:
+  status: error
+  errorCode: STORAGE_DELTA_TRANSFER_002
+  error: 'ERROR: Actual and Historical tables metadata does not match'

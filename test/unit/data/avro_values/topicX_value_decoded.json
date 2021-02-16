@@ -1,0 +1,4 @@
+[
+  {"id":3, "gnr":"MILITARY_ID", "stu":"N", "ser": {"string" : "ZZZZZZ"}},
+  {"id":4, "gnr":"MILITARY_ID", "stu":"N", "ser":null}
+]
