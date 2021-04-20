@@ -39,6 +39,7 @@ local get_all_metrics_handler = require('app.handlers.get_all_metrics_handler')
 local etl_handler = require('app.handlers.etl_handler')
 local kafka_handler = require('app.handlers.kafka_handler')
 local ddl_handler = require('app.handlers.ddl_handler')
+local version_handler = require('app.handlers.version_handler')
 
 local success_repository = require('app.messages.success_repository')
 local error_repository = require('app.messages.error_repository')
@@ -974,6 +975,8 @@ local function init(opts) -- luacheck: no unused args
     httpd:route({method='POST', path = 'api/etl/delete_data_from_scd_table'}, etl_handler.delete_data_from_scd_table_sql)
 
     httpd:route({method='POST', path = 'api/etl/get_scd_table_checksum'}, etl_handler.get_scd_table_checksum)
+
+    httpd:route({method='GET', path = 'versions'}, version_handler.get_version)
 
     init_kafka_routes()
     init_ddl_routes()
