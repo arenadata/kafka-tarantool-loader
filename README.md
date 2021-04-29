@@ -4,7 +4,7 @@
 Prerequisites:
 * CentOS 7
 * ``unzip``, ``git``, ``cmake``, ``librdkafka-devel``, ``openssl-devel``
-* ``tarantool``, ``tarantool-devel``, ``cartridge-cli`` ([instructions](https://www.tarantool.io/en/download/os-installation/2.2/rhel-centos-6-7/))
+* ``tarantool``, ``tarantool-devel``, ``cartridge-cli`` ([instructions](https://www.tarantool.io/en/download/os-installation/rhel-centos/))
 * ``nodejs`` >=10 ([instructions](https://github.com/nodesource/distributions#installation-instructions-1))
 * `` xz``,``xz-devel``
 * ``avro c``([instructions](https://github.com/apache/avro/blob/master/lang/c/INSTALL))
