@@ -604,7 +604,6 @@ local function reverse_history_in_scd_table(stage_data_table_name, actual_data_t
     local actual_data_pk = fun.map(function(x) return x.fieldno end,box.space[actual_data_table_name].index[0].parts):totable()
     local hist_data_pk = fun.map(function(x) return x.fieldno end,box.space[historical_data_table_name].index[0].parts):totable()
 
-
     --clear staging
     local stage_data_table = box.space[stage_data_table_name]
     local _,err_clear_stg_trunc = err_storage:pcall(
