@@ -604,16 +604,24 @@ local function reverse_history_in_scd_table(stage_data_table_name, actual_data_t
     local actual_data_pk = fun.map(function(x) return x.fieldno end,box.space[actual_data_table_name].index[0].parts):totable()
     local hist_data_pk = fun.map(function(x) return x.fieldno end,box.space[historical_data_table_name].index[0].parts):totable()
 
-
-    --clear staging and actual
+    --clear staging
     local stage_data_table = box.space[stage_data_table_name]
+    local _,err_clear_stg = err_storage:pcall(
+            function()
+                stage_data_table:truncate()
+            end
+    )
+    if err_clear_stg ~= nil then
+        log.error(err_clear_stg)
+        return nil,error_repository.get_error_code('STORAGE_003', {error = err_clear_stg})
+    end
+
+    --clear actual
     local actual_data_table = box.space[actual_data_table_name]
     local hist_data_table = box.space[historical_data_table_name]
     box.begin()
     local _,err_clear_stg_act = err_storage:pcall(
             function()
-                stage_data_table:truncate()
-
                 local sys_to_index = get_index_from_space_by_name(actual_data_table_name,etl_config.get_date_field_start_index_nm())
                 if sys_to_index == nil then
                     actual_data_table:pairs():each(function(actual_tuple)
