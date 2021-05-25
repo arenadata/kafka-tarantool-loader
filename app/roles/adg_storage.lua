@@ -606,14 +606,14 @@ local function reverse_history_in_scd_table(stage_data_table_name, actual_data_t
 
     --clear staging
     local stage_data_table = box.space[stage_data_table_name]
-    local _,err_clear_stg_trunc = err_storage:pcall(
+    local _,err_clear_stg = err_storage:pcall(
             function()
                 stage_data_table:truncate()
             end
     )
-    if err_clear_stg_trunc ~= nil then
-        log.error(err_clear_stg_trunc)
-        return nil,error_repository.get_error_code('STORAGE_003', {error = err_clear_stg_trunc})
+    if err_clear_stg ~= nil then
+        log.error(err_clear_stg)
+        return nil,error_repository.get_error_code('STORAGE_003', {error = err_clear_stg})
     end
 
     --clear actual
