@@ -1,5 +1,5 @@
 package = 'memstorage'
-version = '0.3.3-1'
+version = '0.3.3-2'
 source  = {
     url = '/dev/null',
 }
@@ -14,7 +14,7 @@ dependencies = {
     'cron-parser',
     'luacheck',
     'avro-schema',
-    'metrics == 0.1.8',
+    'metrics == 0.8.0',
     'moonwalker'
 
 
