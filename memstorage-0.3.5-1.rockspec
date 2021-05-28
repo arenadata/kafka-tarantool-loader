@@ -1,5 +1,5 @@
 package = 'memstorage'
-version = '0.3.5-1'
+version = '0.4.0-1'
 source  = {
     url = '/dev/null',
 }
@@ -9,6 +9,7 @@ dependencies = {
     'lua >= 5.1',
     'luatest',
     'cartridge == 2.3.0',
+    'crud == 0.7.0-1',
     'lulpeg == 0.1.2-1',
     'ddl',
     'cron-parser',

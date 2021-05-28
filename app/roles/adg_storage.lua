@@ -14,6 +14,7 @@
 
 local cartridge = require('cartridge')
 local prometheus = require('metrics.plugins.prometheus')
+local ddl = require('ddl')
 local schema_utils = require('app.utils.schema_utils')
 local etl_config = require('app.etl.config.etl_config')
 local config_utils = require('app.utils.config_utils')
@@ -885,7 +886,7 @@ local function init(opts) -- luacheck: no unused args
     _G.delete_data_from_scd_table_sql = delete_data_from_scd_table_sql
     _G.get_scd_table_checksum = get_scd_table_checksum
 
-
+    
     garbage_fiber = fiber.create(
             function() while true do collectgarbage('step', 20);
                 fiber.sleep(0.2) end end
@@ -938,12 +939,16 @@ return {
     role_name = role_name,
     init = init,
     stop = stop,
+    get_schema = ddl.get_schema,
     validate_config = validate_config,
     drop_space = drop_space,
     drop_spaces = drop_spaces,
     drop_spaces_with_prefix = drop_spaces_with_prefix,
     apply_config = apply_config,
-    dependencies = {'cartridge.roles.vshard-storage'},
+    dependencies = {
+        'cartridge.roles.vshard-storage',
+        'cartridge.roles.crud-storage'
+    },
     get_metric = get_metric,
     prep_sql = prep_sql,
     execute_sql = execute_sql,

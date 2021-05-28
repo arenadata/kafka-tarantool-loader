@@ -43,6 +43,8 @@ local default_consumer = nil
 local err_storage = errors.new_class("Kafka storage error")
 local topic_x_consumers = {}
 
+local cartridge_pool = require('cartridge.pool')
+local cartridge_rpc = require('cartridge.rpc')
 
 
 _G.get_messages_from_kafka = nil
@@ -755,7 +757,14 @@ local function init_metatables()
     })
 end
 
+local function get_schema()
+    for _, instance_uri in pairs(cartridge_rpc.get_candidates('app.roles.adg_storage', { leader_only = true })) do
+        return cartridge_rpc.call('app.roles.adg_storage', 'get_schema', nil, { uri = instance_uri })
+    end
+end
+
 local function init(opts)
+    rawset(_G, 'ddl', { get_schema = get_schema })
 
     _G.get_messages_from_kafka = get_messages_from_kafka
     _G.send_messages_to_kafka = send_messages_to_kafka
@@ -800,6 +809,8 @@ local function init(opts)
     return true
 end
 
+
+
 return {
     role_name = role_name,
     init = init,
@@ -809,8 +820,12 @@ return {
     get_messages_from_kafka = get_messages_from_kafka,
     send_messages_to_kafka = send_messages_to_kafka,
     get_metric = get_metric,
+    get_schema = get_schema,
     subscribe_to_topic = subscribe_to_topic,
     unsubscribe_from_topic = unsubscribe_from_topic,
     dataload_from_topic = dataload_from_topic,
-    dependencies = { 'cartridge.roles.vshard-router' }
+    dependencies = {
+        'cartridge.roles.crud-router',
+        'cartridge.roles.vshard-router'
+    }
 }

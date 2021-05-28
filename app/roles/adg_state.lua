@@ -35,6 +35,10 @@ local prometheus = require('metrics.plugins.prometheus')
 local global =  require('app.utils.global').new('adg_state')
 local fiber = require('fiber')
 local yaml = require('yaml')
+
+local cartridge_pool = require('cartridge.pool')
+local cartridge_rpc = require('cartridge.rpc')
+
 _G.update_delete_batch_storage = nil
 _G.get_tables_from_delete_batch = nil
 _G.remove_delete_batch = nil
@@ -611,7 +615,6 @@ local function apply_config(conf, opts)
 end
 
 local function stop()
-
     return true
 end
 
@@ -867,8 +870,14 @@ local function remove_delete_batch(batch_id)
     return true
 end
 
+local function get_schema()
+    for _, instance_uri in pairs(cartridge_rpc.get_candidates('app.roles.adg_storage', { leader_only = true })) do
+        return cartridge_rpc.call('app.roles.adg_storage', 'get_schema', nil, { uri = instance_uri })
+    end
+end
 
 local function init(opts)
+    rawset(_G, 'ddl', { get_schema = get_schema })
 
     if opts.is_master then
         init_space_delete_batch_storage()
@@ -905,14 +914,20 @@ local function init(opts)
     return true
 end
 
+
+
 return {
     role_name = role_name,
     init = init,
     stop = stop,
     validate_config = validate_config,
     apply_config = apply_config,
-    dependencies = {'cartridge.roles.vshard-router'},
+    dependencies = {
+        'cartridge.roles.crud-router',
+        'cartridge.roles.vshard-router'
+    },
     get_metric = get_metric,
+    get_schema = get_schema,
     update_delete_batch_storage = update_delete_batch_storage,
     get_tables_from_delete_batch = get_tables_from_delete_batch,
     remove_delete_batch = remove_delete_batch,
