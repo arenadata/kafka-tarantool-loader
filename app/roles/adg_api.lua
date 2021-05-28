@@ -29,6 +29,9 @@ local set = require('app.entities.set')
 local misc_utils = require('app.utils.misc_utils')
 local prometheus = require('metrics.plugins.prometheus')
 
+local cartridge_pool = require('cartridge.pool')
+local cartridge_rpc = require('cartridge.rpc')
+
 local role_name = 'app.roles.adg_api'
 local json = require('json')
 
@@ -926,7 +929,15 @@ local function init_ddl_routes()
     httpd:route({method='POST', path = 'api/v1/ddl/table/schema'}, ddl_handler.get_storage_space_schema)
 end
 
+local function get_schema()
+    for _, instance_uri in pairs(cartridge_rpc.get_candidates('app.roles.adg_storage', { leader_only = true })) do
+        return cartridge_rpc.call('app.roles.adg_storage', 'get_schema', nil, { uri = instance_uri })
+    end
+end
+
 local function init(opts) -- luacheck: no unused args
+    rawset(_G, 'ddl', { get_schema = get_schema })
+
     _G.set_ddl = set_ddl
     _G.get_ddl = get_ddl
     _G.query = query
@@ -1014,7 +1025,6 @@ end
 
 
 
-
 return {
     role_name = role_name,
     init = init,
@@ -1024,10 +1034,14 @@ return {
     validate_config = validate_config,
     apply_config = apply_config,
     get_metric = get_metric,
+    get_schema = get_schema,
     transfer_data_to_historical_table_on_cluster = transfer_data_to_historical_table_on_cluster,
     execute_query_for_massive_select_to_kafka = execute_query_for_massive_select_to_kafka,
     transfer_data_to_scd_table_on_cluster_cb = transfer_data_to_scd_table_on_cluster_cb,
     reverse_history_in_scd_table_on_cluster = reverse_history_in_scd_table_on_cluster,
     get_storage_space_schema = get_storage_space_schema,
-    dependencies = {'cartridge.roles.vshard-router'}
+    dependencies = {
+        'cartridge.roles.crud-router',
+        'cartridge.roles.vshard-router'
+    }
 }

@@ -33,6 +33,9 @@ local fiber = require('fiber')
 local validate_utils = require('app.utils.validate_utils')
 local yaml = require('yaml')
 
+local cartridge_pool = require('cartridge.pool')
+local cartridge_rpc = require('cartridge.rpc')
+
 local role_name = 'app.roles.adg_input_processor'
 
 _G.insert_messages_from_kafka = nil
@@ -617,7 +620,14 @@ local function get_metric()
     return metrics.export(role_name)
 end
 
+local function get_schema()
+    for _, instance_uri in pairs(cartridge_rpc.get_candidates('app.roles.adg_storage', { leader_only = true })) do
+        return cartridge_rpc.call('app.roles.adg_storage', 'get_schema', nil, { uri = instance_uri })
+    end
+end
+
 local function init(opts)
+    rawset(_G, 'ddl', { get_schema = get_schema })
 
     _G.insert_messages_from_kafka = insert_messages_from_kafka
     _G.load_csv_lines = load_csv_lines
@@ -655,7 +665,11 @@ return {
     apply_config = apply_config,
     insert_messages_from_kafka = insert_messages_from_kafka,
     insert_message_from_kafka_async = insert_message_from_kafka_async,
+    get_schema = get_schema,
     load_csv_lines = load_csv_lines,
     get_metric = get_metric,
-    dependencies = {'cartridge.roles.vshard-router'}
+    dependencies = {
+        'cartridge.roles.crud-router',
+        'cartridge.roles.vshard-router',
+    }
 }

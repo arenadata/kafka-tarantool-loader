@@ -392,7 +392,14 @@ local function get_metric()
 end
 
 
+local function get_schema()
+    for _, instance_uri in pairs(cartridge_rpc.get_candidates('app.roles.adg_storage', { leader_only = true })) do
+        return cartridge_rpc.call('app.roles.adg_storage', 'get_schema', nil, { uri = instance_uri })
+    end
+end
+
 local function init(opts)
+    rawset(_G, 'ddl', { get_schema = get_schema })
 
     _G.test_msg_to_kafka = test_msg_to_kafka
     _G.send_simple_msg_to_kafka = send_simple_msg_to_kafka
@@ -418,15 +425,13 @@ local function init(opts)
     return true
 end
 
-
-
-
 return {
     role_name = role_name,
     init = init,
     stop = stop,
     validate_config = validate_config,
     apply_config = apply_config,
+    get_schema = get_schema,
     send_simple_msg_to_kafka = send_simple_msg_to_kafka,
     test_msg_to_kafka = test_msg_to_kafka,
     send_messages_to_kafka = send_messages_to_kafka,
@@ -434,6 +439,8 @@ return {
     send_table_to_kafka = send_table_to_kafka,
     send_query_to_kafka_with_plan = send_query_to_kafka_with_plan,
     get_metric = get_metric,
-    dependencies = {'cartridge.roles.vshard-router'}
-
+    dependencies = {
+        'cartridge.roles.crud-router',
+        'cartridge.roles.vshard-router'
+    }
 }

@@ -25,6 +25,9 @@ local error_repository = require('app.messages.error_repository')
 local success_repository = require('app.messages.success_repository')
 local metrics = require('app.metrics.metrics_storage')
 
+local cartridge_pool = require('cartridge.pool')
+local cartridge_rpc = require('cartridge.rpc')
+
 local json = require('json')
 
 local role_name = 'app.roles.adg_scheduler'
@@ -107,8 +110,14 @@ local function get_metric()
     return metrics.export(role_name)
 end
 
+local function get_schema()
+    for _, instance_uri in pairs(cartridge_rpc.get_candidates('app.roles.adg_storage', { leader_only = true })) do
+        return cartridge_rpc.call('app.roles.adg_storage', 'get_schema', nil, { uri = instance_uri })
+    end
+end
 
 local function init(opts)
+    rawset(_G, 'ddl', { get_schema = get_schema })
 
     _G.event_loop_run = event_loop_run
     if opts.is_master then
@@ -132,7 +141,6 @@ end
 
 
 
-
 return {
     role_name = role_name,
     init = init,
@@ -140,6 +148,9 @@ return {
     validate_config = validate_config,
     apply_config = apply_config,
     get_metric = get_metric,
-    dependencies = {'cartridge.roles.vshard-router'}
-
+    get_schema = get_schema,
+    dependencies = {
+        'cartridge.roles.crud-router',
+        'cartridge.roles.vshard-router'
+    }
 }
