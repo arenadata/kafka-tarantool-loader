@@ -619,7 +619,7 @@ local function reverse_history_in_scd_table(stage_data_table_name, actual_data_t
     --clear actual
     local actual_data_table = box.space[actual_data_table_name]
     local hist_data_table = box.space[historical_data_table_name]
-    box.begin()
+
     local _,err_clear_stg_act = err_storage:pcall(
             function()
                 local sys_to_index = get_index_from_space_by_name(actual_data_table_name,etl_config.get_date_field_start_index_nm())
@@ -640,10 +640,8 @@ local function reverse_history_in_scd_table(stage_data_table_name, actual_data_t
     )
     if err_clear_stg_act ~= nil then
         log.error(err_clear_stg_act)
-        box.rollback()
         return nil,error_repository.get_error_code('STORAGE_003', {error = err_clear_stg_act})
     end
-    box.commit()
 
     --clear history table
     local move_hist_tuple_function = function(history_data_tbl,actual_data_tbl,hist_tuple)
