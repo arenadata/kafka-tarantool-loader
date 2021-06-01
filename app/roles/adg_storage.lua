@@ -13,6 +13,7 @@
 -- limitations under the License.
 
 local cartridge = require('cartridge')
+local prometheus = require('metrics.plugins.prometheus')
 local schema_utils = require('app.utils.schema_utils')
 local etl_config = require('app.etl.config.etl_config')
 local config_utils = require('app.utils.config_utils')
@@ -892,7 +893,8 @@ local function init(opts) -- luacheck: no unused args
 
     garbage_fiber:name('GARBAGE_COLLECTOR_FIBER')
 
-
+    local httpd = cartridge.service_get('httpd')
+    httpd:route({method='GET', path = '/metrics'}, prometheus.collect_http)
     return true
 end
 

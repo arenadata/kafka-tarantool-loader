@@ -13,6 +13,7 @@
 -- limitations under the License.
 
 local cartridge = require('cartridge')
+local prometheus = require('metrics.plugins.prometheus')
 local log = require('log')
 local checks = require('checks')
 local avro_utils = require('app.utils.avro_utils')
@@ -410,6 +411,9 @@ local function init(opts)
     garbage_fiber:name('GARBAGE_COLLECTOR_FIBER')
     
     _G.get_metric = get_metric
+    
+    local httpd = cartridge.service_get('httpd')
+    httpd:route({method='GET', path = '/metrics'}, prometheus.collect_http)
     
     return true
 end

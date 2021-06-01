@@ -1,5 +1,5 @@
 package = 'memstorage'
-version = '0.3.4-1'
+version = '0.3.5-1'
 source  = {
     url = '/dev/null',
 }

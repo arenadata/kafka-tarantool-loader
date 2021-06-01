@@ -31,6 +31,7 @@ local clock = require('clock')
 local json = require('json')
 local enums = require('app.entities.enum')
 local cartridge = require('cartridge')
+local prometheus = require('metrics.plugins.prometheus')
 local global =  require('app.utils.global').new('adg_state')
 local fiber = require('fiber')
 local yaml = require('yaml')
@@ -897,6 +898,10 @@ local function init(opts)
     _G.delayed_delete = delayed_delete
     _G.delayed_create = delayed_create
     _G.delayed_delete_prefix = delayed_delete_prefix
+
+    local httpd = cartridge.service_get('httpd')
+    httpd:route({method='GET', path = '/metrics'}, prometheus.collect_http)
+      
     return true
 end
 

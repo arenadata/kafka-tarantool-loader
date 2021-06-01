@@ -12,6 +12,8 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
+local cartridge = require('cartridge')
+local prometheus = require('metrics.plugins.prometheus')
 local errors = require('errors')
 local vshard = require('vshard')
 local log = require('log')
@@ -637,7 +639,9 @@ local function init(opts)
  
     _G.get_metric = get_metric
 
-    
+    local httpd = cartridge.service_get('httpd')
+    httpd:route({method='GET', path = '/metrics'}, prometheus.collect_http)
+
     return true
 end
 
