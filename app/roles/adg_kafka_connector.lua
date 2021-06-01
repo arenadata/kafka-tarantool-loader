@@ -22,6 +22,7 @@ local route_utils = require('app.utils.route_utils')
 local schema_utils = require('app.utils.schema_utils')
 local fiber = require('fiber')
 local cartridge = require('cartridge')
+local prometheus = require('metrics.plugins.prometheus')
 local fun = require('fun')
 local error_repository = require('app.messages.error_repository')
 local success_repository = require('app.messages.success_repository')
@@ -792,6 +793,9 @@ local function init(opts)
     _G.get_metric = get_metric
 
     local res, err = subscribe_to_all_topics()
+
+    local httpd = cartridge.service_get('httpd')
+    httpd:route({method='GET', path = '/metrics'}, prometheus.collect_http)
 
     return true
 end

@@ -27,6 +27,7 @@ local pool = require('cartridge.pool')
 local metrics = require('app.metrics.metrics_storage')
 local set = require('app.entities.set')
 local misc_utils = require('app.utils.misc_utils')
+local prometheus = require('metrics.plugins.prometheus')
 
 local role_name = 'app.roles.adg_api'
 local json = require('json')
@@ -952,6 +953,8 @@ local function init(opts) -- luacheck: no unused args
     garbage_fiber:name('GARBAGE_COLLECTOR_FIBER')
 
     local httpd = cartridge.service_get('httpd')
+
+    httpd:route({method='GET', path = '/metrics'}, prometheus.collect_http)
 
     httpd:route({method='GET', path = '/api/get_config'} ,
     cluster_config_handler.cluster_config_handler)
