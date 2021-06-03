@@ -531,6 +531,7 @@ local function transfer_stage_data_to_scd_table(stage_data_table_name, actual_da
     local hist_data_table = box.space[historical_data_table_name]
 
     local function transfer_function(stage_tuple)
+        box.begin()
         local actual_tuples = actual_data_table:select(key_from_tuple(stage_tuple,stage_data_pk))
         for _,actual_tuple in ipairs(actual_tuples) do
             if actual_tuple[etl_config.get_date_field_start_nm()] < delta_number then
@@ -547,6 +548,7 @@ local function transfer_stage_data_to_scd_table(stage_data_table_name, actual_da
             actual_data_table:put(actual_data_table:frommap(stage_tuple_map))
         end
         stage_data_table:delete(key_from_tuple(stage_tuple,stage_data_pk))
+        box.commit()
     end
 
     local res, err = err_storage:pcall(
@@ -555,7 +557,7 @@ local function transfer_stage_data_to_scd_table(stage_data_table_name, actual_da
                     space = stage_data_table;
                     actor = transfer_function;
                     pause = etl_config.get_transfer_pause_rows_cnt() or 100;
-                    txn = true;
+                    txn = false;
                 }
                 return true, nil
             end)
