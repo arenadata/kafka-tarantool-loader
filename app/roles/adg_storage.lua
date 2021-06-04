@@ -579,7 +579,6 @@ local function transfer_stage_data_to_scd_table(stage_data_table_name, actual_da
 
     if err ~= nil then
         log.error(err.trace)
-        log.error(err .. string.format(" [actual_table=%s][stage_data=%s]", actual_data_table.name, stage_data_table.name))
         return nil,error_repository.get_error_code('STORAGE_003', {error = err})
     end
     return true,nil
