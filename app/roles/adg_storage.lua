@@ -41,6 +41,7 @@ local error_repository = require('app.messages.error_repository')
 
 _G.insert_tuples = nil
 _G.drop_space = nil
+_G.truncate_space = nil
 _G.drop_spaces = nil
 _G.drop_spaces_with_prefix = nil
 _G.storage_drop_all = nil
@@ -144,6 +145,19 @@ local function drop_space(space_name)
         if not string.startswith(space_name, '_')  then
             box.space[space_name]:drop()
             box.space["_ddl_sharding_key"]:delete(space_name)
+        end
+        return true, nil
+    end)
+end
+
+---truncate_space - function to truncate space
+---@param space_name string - space name to truncate.
+---@return boolean|table - true,nil if dropped | nil,error - otherwise.
+local function truncate_space(space_name)
+    checks('string')
+    return err_storage:pcall(function()
+        if not string.startswith(space_name, '_')  then
+            box.space[space_name]:truncate()
         end
         return true, nil
     end)
@@ -848,14 +862,14 @@ local function get_scd_table_checksum(actual_data_table_name, historical_data_ta
                     return tuple[etl_config.get_date_field_start_nm()] == delta_number
                 end;
                 actor = calc_function;
-                
+
             }
         end
         if sys_to_index_history ~= nil then
             if column_list == nil then
                 result = result + sys_to_index_history:count({delta_number-1,1})
             else
-                sys_to_index_history:pairs({delta_number-1,1}):each(calc_function)   
+                sys_to_index_history:pairs({delta_number-1,1}):each(calc_function)
                 --[[moonwalker {
                     space = box.space[historical_data_table_name];
                     index = sys_to_index_history;
@@ -871,7 +885,7 @@ local function get_scd_table_checksum(actual_data_table_name, historical_data_ta
                     return tuple[etl_config.get_date_field_start_nm()] == delta_number
                 end;
                 actor = calc_function;
-                
+
             }
         end
     end)
@@ -886,6 +900,7 @@ end
 local function init(opts) -- luacheck: no unused args
     _G.insert_tuples = insert_tuples
     _G.drop_space = drop_space
+    _G.truncate_space = truncate_space
     _G.drop_spaces = drop_spaces
     _G.drop_spaces_with_prefix = drop_spaces_with_prefix
     _G.storage_drop_all = storage_drop_all
@@ -904,7 +919,7 @@ local function init(opts) -- luacheck: no unused args
     _G.delete_data_from_scd_table_sql = delete_data_from_scd_table_sql
     _G.get_scd_table_checksum = get_scd_table_checksum
 
-    
+
     garbage_fiber = fiber.create(
             function() while true do collectgarbage('step', 20);
                 fiber.sleep(0.2) end end
