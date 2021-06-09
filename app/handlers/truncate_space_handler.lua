@@ -17,13 +17,17 @@ local pool = require('cartridge.pool')
 local json = require('json')
 local log = require('log')
 
+local url_utils = require('app.utils.url_utils')
+local error_repository = require('app.messages.error_repository')
+local success_repository = require('app.messages.success_repository')
+
 local function truncate_space_on_cluster(req)
     local space_name = url_utils.url_decode(req:query_param('_space_name'))
     if space_name == nil then
         return error_repository.return_http_response('TRUNCATE_SPACE_ON_CLUSTER_001')
     end
 
-    local ok,err = _G.truncate_space_on_cluster(space_name,schema_ddl_correction)
+    local ok,err = _G.truncate_space_on_cluster(space_name)
 
     if ok then return success_repository.return_http_response('TRUNCATE_SPACE_ON_CLUSTER_001')
     else error_repository.return_http_response('TRUNCATE_SPACE_ON_CLUSTER_002', {error = err})
@@ -32,5 +36,5 @@ end
 
 
 return {
-    get_all_metrics = get_all_metrics
+    truncate_space_on_cluster = truncate_space_on_cluster
 }
