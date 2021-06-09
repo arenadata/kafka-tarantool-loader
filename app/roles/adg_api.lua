@@ -41,6 +41,7 @@ local cluster_config_handler = require('app.handlers.cluster_config_handler')
 local select_query_to_kafka_handler = require('app.handlers.select_table_to_kafka_handler')
 local get_all_metrics_handler = require('app.handlers.get_all_metrics_handler')
 local etl_handler = require('app.handlers.etl_handler')
+local truncate_space_handler = require('app.handlers.truncate_space_handler')
 local kafka_handler = require('app.handlers.kafka_handler')
 local ddl_handler = require('app.handlers.ddl_handler')
 local version_handler = require('app.handlers.version_handler')
@@ -1016,7 +1017,7 @@ local function init(opts) -- luacheck: no unused args
 
     httpd:route({method='GET', path = 'api/etl/drop_space_on_cluster'}, etl_handler.drop_space_on_cluster)
 
-    httpd:route({method='GET', path = 'api/etl/truncate_space_on_cluster'}, etl_handler.truncate_space_on_cluster)
+    httpd:route({method='GET', path = 'api/etl/truncate_space_on_cluster'}, truncate_space_handler.truncate_space_on_cluster)
 
     httpd:route({method='POST', path = 'api/etl/delete_data_from_scd_table'}, etl_handler.delete_data_from_scd_table_sql)
 
