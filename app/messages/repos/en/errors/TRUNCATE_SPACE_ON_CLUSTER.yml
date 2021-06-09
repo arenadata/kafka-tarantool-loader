@@ -3,7 +3,7 @@ TRUNCATE_SPACE_ON_CLUSTER_001:
   status: error
   errorCode: TRUNCATE_SPACE_ON_CLUSTER_001
   error: 'ERROR: _space_name param in query not found'
-DROP_SPACE_ON_CLUSTER_002:
+TRUNCATE_SPACE_ON_CLUSTER_002:
   status: error
   errorCode: TRUNCATE_SPACE_ON_CLUSTER_002
-  error: 'ERROR: drop space internal error'
+  error: 'ERROR: truncate space internal error'
