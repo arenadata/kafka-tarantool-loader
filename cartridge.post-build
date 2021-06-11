@@ -1,4 +1,7 @@
 #!/bin/sh
 
+git clone https://github.com/Asmoday/kafka.git
+cd ./kafka && cmake . && make && cd ../
+
 cp ./kafka/kafka/tntkafka.so ./.rocks/lib/tarantool/kafka/tntkafka.so
 sed -i 's/or\ schema_new\.spaces\[space_name\]\ ==\ nil/or\ schema_new\.spaces\[space_name\]\ ==\ nil\ and\ box\.space\[space_name\]\  ~=\ nil/g'  ./.rocks/share/tarantool/cartridge/ddl-manager.lua

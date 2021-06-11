@@ -1,0 +1,36 @@
+---
+    kafka_bootstrap:
+        bootstrap_connection_string: 'kafka:29092'
+    
+    kafka_consume:
+          topics: ['TEST']
+          properties:
+              group.id: 'tarantool-group-csv'
+              enable.auto.offset.store: 'false'
+              auto.offset.reset: 'latest'
+              enable.partition.eof: 'false'
+              enable.auto.commit: 'false'
+              partition.assignment.strategy: roundrobin 
+          custom_properties:
+              log_level: '7'
+              
+    kafka_produce:
+          properties:
+          custom_properties:
+            log_level: '7'
+            
+    kafka_schema_registry:
+          host: '10.92.6.7'
+          port: 8081
+          key_schema_name: 'AdbUploadRequest'
+    
+    
+    kafka_topics:
+      TEST:
+            target_table: 'env_test_staging'
+            schema_key: 'adb_upload_request'
+            schema_data: 'env_test_staging'
+            error_topic: 'err'
+            success_topic: 'suss'             
+    
+    scheduler_tasks:

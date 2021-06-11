@@ -1,0 +1,18 @@
+POST http://172.17.38.69:9195/query/execute
+Content-Type: application/json; charset=UTF-8
+
+{"requestId":"79526f64-2805-41b5-852a-5447a5ce43b4","datamartMnemonic":"","sql":"select distinct reestrid from gibddpp.vehicleregdata LIMIT 1 DATASOURCE_TYPE = 'adg'","parameters":null}
+
+###
+
+GET http://172.17.38.27:8197/metrics
+
+###
+
+POST http://localhost:8081/api/v1/ddl/table/schema
+
+{"spaces":["env_test_history","env_test_actual","env_test_staging"]}
+
+###
+
+GET http://localhost:8081/api/get_config
