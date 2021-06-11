@@ -545,39 +545,24 @@ local function transfer_stage_data_to_scd_table(stage_data_table_name, actual_da
     local hist_data_table = box.space[historical_data_table_name]
 
     local function transfer_function(stage_tuple)
-        local ok, err
-
-        --simple rerty if transaction will be aborted
-        for i = 1,3 do
-            ok, err = pcall(function()
-                box.begin()
-                local actual_tuples = actual_data_table:select(key_from_tuple(stage_tuple,stage_data_pk))
-                for _,actual_tuple in ipairs(actual_tuples) do
-                    if actual_tuple[etl_config.get_date_field_start_nm()] < delta_number then
-                        local actual_tuple_map = actual_tuple:tomap({names_only=true})
-                        actual_tuple_map[etl_config.get_date_field_end_nm()] = delta_number - 1
-                        actual_tuple_map[etl_config.get_date_field_op_nm()] = stage_tuple[etl_config.get_date_field_op_nm()]
-                        hist_data_table:put(hist_data_table:frommap(actual_tuple_map))
-                        actual_data_table:delete(key_from_tuple(actual_tuple,actual_data_pk))
-                    end
-                end
-                if stage_tuple[etl_config.get_date_field_op_nm()] ~= 1 then
-                    local stage_tuple_map = stage_tuple:tomap({names_only=true})
-                    stage_tuple_map[etl_config.get_date_field_start_nm()] = delta_number
-                    actual_data_table:put(actual_data_table:frommap(stage_tuple_map))
-                end
-                stage_data_table:delete(key_from_tuple(stage_tuple,stage_data_pk))
-                box.commit()
-            end)
-
-            if err == nil or err.code ~= box.error.TRANSACTION_CONFLICT then
-                break
+        box.begin()
+        local actual_tuples = actual_data_table:select(key_from_tuple(stage_tuple,stage_data_pk))
+        for _,actual_tuple in ipairs(actual_tuples) do
+            if actual_tuple[etl_config.get_date_field_start_nm()] < delta_number then
+                local actual_tuple_map = actual_tuple:tomap({names_only=true})
+                actual_tuple_map[etl_config.get_date_field_end_nm()] = delta_number - 1
+                actual_tuple_map[etl_config.get_date_field_op_nm()] = stage_tuple[etl_config.get_date_field_op_nm()]
+                hist_data_table:put(hist_data_table:frommap(actual_tuple_map))
+                actual_data_table:delete(key_from_tuple(actual_tuple,actual_data_pk))
             end
-              
-            i = i + 1
         end
-
-        return ok, error(err)        
+        if stage_tuple[etl_config.get_date_field_op_nm()] ~= 1 then
+            local stage_tuple_map = stage_tuple:tomap({names_only=true})
+            stage_tuple_map[etl_config.get_date_field_start_nm()] = delta_number
+            actual_data_table:put(actual_data_table:frommap(stage_tuple_map))
+        end
+        stage_data_table:delete(key_from_tuple(stage_tuple,stage_data_pk))
+        box.commit()
     end
 
     local res, err = err_storage:pcall(
