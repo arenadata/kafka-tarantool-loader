@@ -41,6 +41,7 @@ local cluster_config_handler = require('app.handlers.cluster_config_handler')
 local select_query_to_kafka_handler = require('app.handlers.select_table_to_kafka_handler')
 local get_all_metrics_handler = require('app.handlers.get_all_metrics_handler')
 local etl_handler = require('app.handlers.etl_handler')
+local truncate_space_handler = require('app.handlers.truncate_space_handler')
 local kafka_handler = require('app.handlers.kafka_handler')
 local ddl_handler = require('app.handlers.ddl_handler')
 local version_handler = require('app.handlers.version_handler')
@@ -54,6 +55,7 @@ _G.set_ddl = nil
 _G.get_ddl = nil
 _G.query = nil
 _G.drop_space_on_cluster = nil
+_G.truncate_space_on_cluster = nil
 _G.drop_all = nil
 _G.space_len = nil
 _G.load_lines = nil
@@ -143,7 +145,7 @@ end
 
 ---drop_space_on_cluster - function to drop space on cluster.
 ---@param space_name string  - space name to drop.
----@param schema_ddl_correction boolean - flag, that shows update ddl schema or not. Defualt - True.
+---@param schema_ddl_correction boolean - flag, that shows update ddl schema or not. Default - True.
 ---@return boolean | table - true,nil if dropped | false,error - otherwise.
 local function drop_space_on_cluster(space_name,schema_ddl_correction)
     checks('string','?boolean')
@@ -175,6 +177,34 @@ local function drop_space_on_cluster(space_name,schema_ddl_correction)
             return false, schema_patch_err
         end
     end
+    return true, nil
+end
+
+---truncate_space_on_cluster - function to truncate space on cluster.
+---@param space_name string  - space name to truncate.
+---@return boolean | table - true,nil if dropped | false,error - otherwise.
+local function truncate_space_on_cluster(space_name)
+    checks('string')
+    local storages =  cartridge.rpc_get_candidates('app.roles.adg_storage',{leader_only = true})
+
+    for _,cand in ipairs(storages) do
+        local conn, err = pool.connect(cand)
+        if conn == nil then
+            return false,err
+        else
+            local is_space_truncated, space_truncate_err  = conn:call(
+                'truncate_space',
+                { space_name },
+                { timeout = 30, is_async=false }
+            )
+
+            if is_space_truncated ~= true then
+                return false, space_truncate_err
+            end
+        end
+        fiber.sleep(0.01) -- Wait async replicas to process changes
+    end
+
     return true, nil
 end
 
@@ -942,6 +972,7 @@ local function init(opts) -- luacheck: no unused args
     _G.get_ddl = get_ddl
     _G.query = query
     _G.drop_space_on_cluster = drop_space_on_cluster
+    _G.truncate_space_on_cluster = truncate_space_on_cluster
     _G.drop_all = drop_all
     _G.space_len = space_len
     _G.get_metric = get_metric
@@ -985,6 +1016,8 @@ local function init(opts) -- luacheck: no unused args
     httpd:route({method='POST', path = '/api/v1/ddl/table/reverseHistoryTransfer'}, etl_handler.reverse_history_in_scd_table)
 
     httpd:route({method='GET', path = 'api/etl/drop_space_on_cluster'}, etl_handler.drop_space_on_cluster)
+
+    httpd:route({method='GET', path = 'api/etl/truncate_space_on_cluster'}, truncate_space_handler.truncate_space_on_cluster)
 
     httpd:route({method='POST', path = 'api/etl/delete_data_from_scd_table'}, etl_handler.delete_data_from_scd_table_sql)
 
@@ -1030,6 +1063,7 @@ return {
     init = init,
     stop = stop,
     drop_space_on_cluster = drop_space_on_cluster,
+    truncate_space_on_cluster = truncate_space_on_cluster,
     drop_spaces_on_cluster = drop_spaces_on_cluster,
     validate_config = validate_config,
     apply_config = apply_config,

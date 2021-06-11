@@ -1,0 +1,9 @@
+---
+TRUNCATE_SPACE_ON_CLUSTER_001:
+  status: error
+  errorCode: TRUNCATE_SPACE_ON_CLUSTER_001
+  error: 'ERROR: _space_name param in query not found'
+TRUNCATE_SPACE_ON_CLUSTER_002:
+  status: error
+  errorCode: TRUNCATE_SPACE_ON_CLUSTER_002
+  error: 'ERROR: truncate space internal error'

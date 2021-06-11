@@ -1,11 +1,11 @@
 -- Copyright 2021 Kafka-Tarantool-Loader
--- 
+--
 -- Licensed under the Apache License, Version 2.0 (the "License");
 -- you may not use this file except in compliance with the License.
 -- You may obtain a copy of the License at
--- 
+--
 --     http://www.apache.org/licenses/LICENSE-2.0
--- 
+--
 -- Unless required by applicable law or agreed to in writing, software
 -- distributed under the License is distributed on an "AS IS" BASIS,
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -24,6 +24,7 @@ local g4 = t.group('api.kafka_connector_api_test')
 local g5 = t.group('api.storage_ddl_test')
 local g6 = t.group('api.delete_scd_sql')
 local g7 = t.group('api.get_scd_table_checksum')
+local g8 = t.group('api.truncate_space_on_cluster')
 
 local checks = require('checks')
 local helper = require('test.helper.integration')
@@ -225,8 +226,6 @@ g2.test_100k_transfer_data_to_historical_table_on_cluster = function()
     t.assert_equals(cnt1_2,100000)
     t.assert_equals(cnt2_1,100000)
     t.assert_equals(cnt2_2,100000)
-
-
 end
 
 
@@ -644,7 +643,7 @@ g6.test_delete_scd_sql_on_cluster_rest  = function ()
     end
 
     datagen(storage1,1000)
-    datagen(storage2,1000) 
+    datagen(storage2,1000)
 
 
     local cnt1_before = storage1:call('storage_space_len', {'EMPLOYEES_HOT'})
@@ -744,7 +743,7 @@ g7.test_get_scd_checksum_on_cluster_w_columns = function()
     t.assert_equals(is_gen4,true)
     t.assert_equals(res4,1180041276702 * 2)
 
-end 
+end
 
 
 g7.test_get_scd_checksum_on_cluster_rest  = function ()
@@ -765,11 +764,11 @@ g7.test_get_scd_checksum_on_cluster_rest  = function ()
     assert_http_json_request('POST',
     '/api/etl/get_scd_table_checksum',
     {historicalDataTableName = 'c', sysCn = 666}, { status = 500})
-  
+
     assert_http_json_request('POST',
     '/api/etl/get_scd_table_checksum',
     {actualDataTableName = 'c', sysCn = 666}, { status = 500})
-    
+
     assert_http_json_request('POST',
     '/api/etl/get_scd_table_checksum',
     {actualDataTableName = 'c', historicalDataTableName = 'c'}, { status = 500})
@@ -785,4 +784,33 @@ g7.test_get_scd_checksum_on_cluster_rest  = function ()
     '/api/etl/get_scd_table_checksum',
     {actualDataTableName = 'EMPLOYEES_TRANSFER', historicalDataTableName = 'EMPLOYEES_TRANSFER_HIST', sysCn = 1}, { status = 200, body = {checksum = 2000}})
 
+end
+
+g8.test_truncate_existing_spaces_on_cluster = function()
+    local storage1 = cluster:server('master-1-1').net_box
+    local storage2 = cluster:server('master-2-1').net_box
+    local api = cluster:server('api-1').net_box
+
+    -- refresh net.box schema metadata
+    storage1:eval('return true')
+    storage2:eval('return true')
+
+    local function datagen(storage,number_of_rows,bucket_id)
+        for i=1, number_of_rows, 1 do
+            storage.space.TRUNCATE_TABLE:insert{i, bucket_id}
+        end
+    end
+
+    datagen(storage1,1000,1)
+    datagen(storage2,1000,2)
+
+    local res, err = api:call('truncate_space_on_cluster', {'TRUNCATE_TABLE',false})
+
+    local count_1 = storage1:call('storage_space_len', {'TRUNCATE_TABLE'})
+    local count_2 = storage1:call('storage_space_len', {'TRUNCATE_TABLE'})
+
+    t.assert_equals(err, nil)
+    t.assert_equals(res, true)
+    t.assert_equals(count_1,0)
+    t.assert_equals(count_2,0)
 end
