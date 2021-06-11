@@ -9,6 +9,3 @@
 
 tarantoolctl rocks install --server=https://raw.githubusercontent.com/Asmoday/rocks/master/  avro
 tarantoolctl rocks install --server=https://raw.githubusercontent.com/Asmoday/rocks/master/  kafka
-
-git clone https://github.com/Asmoday/kafka.git
-cd ./kafka && cmake . && make && cd ../
