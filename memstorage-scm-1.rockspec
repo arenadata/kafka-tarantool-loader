@@ -1,7 +1,8 @@
 package = 'memstorage'
-version = '0.5.2-1'
+version = 'scm-1'
 source  = {
-    url = '/dev/null',
+    branch = 'master',
+    url = 'git+https://github.com/arenadata/kafka-tarantool-loader.git'
 }
 -- Put any modules your app depends on here
 dependencies = {

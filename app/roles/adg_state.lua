@@ -55,6 +55,7 @@ _G.delayed_delete = nil
 _G.delayed_create = nil
 _G.delayed_delete_prefix = nil
 ddl_callbacks = {}
+empty_schema = {spaces={}}
 
 
 local err_state_storage = errors.new_class("State storage error")
@@ -428,6 +429,13 @@ local function ddl_queue_processor()
 
         -- getting current cluster ddl
         local current_state = yaml.decode(cartridge.get_schema())
+        
+        -- if item `schema` doesn't setup in cluser config then current state will be nil and next operations return error,
+        -- thats why if scheme not found we create empty cluster scheme
+        if current_state == nil then
+            current_state = empty_schema 
+        end
+        
         local tables_to_drop = {}
         local tables_to_create = {}
         local ddl_queue_space = box.space['_DDL_QUEUE']

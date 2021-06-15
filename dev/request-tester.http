@@ -9,10 +9,6 @@ GET http://172.17.38.27:8197/metrics
 
 ###
 
-POST http://localhost:8081/api/v1/ddl/table/schema
-
-{"spaces":["env_test_history","env_test_actual","env_test_staging"]}
+GET http://localhost:8081/api/get_config
 
 ###
-
-GET http://localhost:8081/api/get_config
