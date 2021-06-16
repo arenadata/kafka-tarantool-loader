@@ -2,52 +2,48 @@ POST http://localhost:8081/api/v1/ddl/table/queuedCreate
 
 {
     "spaces": {
-        "env_test_staging": {
-            "engine": "vinyl",
-            "is_local": false,
-            "temporary": false,
+        "adb__adg_test__env_test_actual": {
             "format": [
                 {
-                    "name": "ID",
-                    "is_nullable": false,
-                    "type": "number"
-                },
-                {
-                    "name": "gos_number",
-                    "is_nullable": false,
-                    "type": "string"
+                    "name": "id",
+                    "type": "integer",
+                    "is_nullable": false
                 },
                 {
                     "name": "bucket_id",
-                    "is_nullable": false,
-                    "type": "unsigned"
+                    "type": "unsigned",
+                    "is_nullable": false
                 },
                 {
                     "name": "sys_from",
-                    "is_nullable": false,
-                    "type": "number"
+                    "type": "number",
+                    "is_nullable": false
                 },
                 {
                     "name": "sys_to",
-                    "is_nullable": false,
-                    "type": "number"
+                    "type": "number",
+                    "is_nullable": true
                 },
                 {
                     "name": "sys_op",
-                    "is_nullable": false,
-                    "type": "number"
+                    "type": "number",
+                    "is_nullable": false
+                },
+                {
+                    "name": "gos_number",
+                    "type": "string",
+                    "is_nullable": true
                 }
             ],
-            "sharding_key": ["ID"],
+            "temporary": false,
+            "engine": "vinyl",
             "indexes": [
                 {
                     "unique": true,
-                    "type": "TREE",
-                    "name": "ID",
                     "parts": [
                         {
-                            "path": "ID",
-                            "type": "number",
+                            "path": "id",
+                            "type": "integer",
                             "is_nullable": false
                         },
                         {
@@ -55,68 +51,82 @@ POST http://localhost:8081/api/v1/ddl/table/queuedCreate
                             "type": "number",
                             "is_nullable": false
                         }
-                    ]
+                    ],
+                    "type": "TREE",
+                    "name": "id"
                 },
                 {
                     "unique": false,
+                    "parts": [
+                        {
+                            "path": "sys_from",
+                            "type": "number",
+                            "is_nullable": false
+                        }
+                    ],
                     "type": "TREE",
-                    "name": "bucket_id",
+                    "name": "x_sys_from"
+                },
+                {
+                    "unique": false,
                     "parts": [
                         {
                             "path": "bucket_id",
                             "type": "unsigned",
                             "is_nullable": false
                         }
-                    ]
+                    ],
+                    "type": "TREE",
+                    "name": "bucket_id"
                 }
+            ],
+            "is_local": false,
+            "sharding_key": [
+                "id"
             ]
         },
-        "env_test_actual": {
-            "engine": "vinyl",
-            "is_local": false,
-            "temporary": false,
+        "adb__adg_test__env_test_history": {
             "format": [
                 {
-                    "name": "ID",
-                    "is_nullable": false,
-                    "type": "number"
-                },
-                {
-                    "name": "gos_number",
-                    "is_nullable": false,
-                    "type": "string"
+                    "name": "id",
+                    "type": "integer",
+                    "is_nullable": false
                 },
                 {
                     "name": "bucket_id",
-                    "is_nullable": false,
-                    "type": "unsigned"
+                    "type": "unsigned",
+                    "is_nullable": false
                 },
                 {
                     "name": "sys_from",
-                    "is_nullable": false,
-                    "type": "number"
+                    "type": "number",
+                    "is_nullable": false
                 },
                 {
                     "name": "sys_to",
-                    "is_nullable": false,
-                    "type": "number"
+                    "type": "number",
+                    "is_nullable": true
                 },
                 {
                     "name": "sys_op",
-                    "is_nullable": false,
-                    "type": "number"
+                    "type": "number",
+                    "is_nullable": false
+                },
+                {
+                    "name": "gos_number",
+                    "type": "string",
+                    "is_nullable": true
                 }
             ],
-            "sharding_key": ["ID"],
+            "temporary": false,
+            "engine": "vinyl",
             "indexes": [
                 {
                     "unique": true,
-                    "type": "TREE",
-                    "name": "ID",
                     "parts": [
                         {
-                            "path": "ID",
-                            "type": "number",
+                            "path": "id",
+                            "type": "integer",
                             "is_nullable": false
                         },
                         {
@@ -124,99 +134,124 @@ POST http://localhost:8081/api/v1/ddl/table/queuedCreate
                             "type": "number",
                             "is_nullable": false
                         }
-                    ]
+                    ],
+                    "type": "TREE",
+                    "name": "id"
                 },
                 {
                     "unique": false,
+                    "parts": [
+                        {
+                            "path": "sys_from",
+                            "type": "number",
+                            "is_nullable": false
+                        }
+                    ],
                     "type": "TREE",
-                    "name": "bucket_id",
+                    "name": "x_sys_from"
+                },
+                {
+                    "unique": false,
+                    "parts": [
+                        {
+                            "path": "sys_to",
+                            "type": "number",
+                            "is_nullable": true
+                        },
+                        {
+                            "path": "sys_op",
+                            "type": "number",
+                            "is_nullable": false
+                        }
+                    ],
+                    "type": "TREE",
+                    "name": "x_sys_to"
+                },
+                {
+                    "unique": false,
                     "parts": [
                         {
                             "path": "bucket_id",
                             "type": "unsigned",
                             "is_nullable": false
                         }
-                    ]
+                    ],
+                    "type": "TREE",
+                    "name": "bucket_id"
                 }
+            ],
+            "is_local": false,
+            "sharding_key": [
+                "id"
             ]
         },
-        "env_test_history": {
-            "engine": "vinyl",
-            "is_local": false,
-            "temporary": false,
+        "adb__adg_test__env_test_staging": {
             "format": [
                 {
-                    "name": "ID",
-                    "is_nullable": false,
-                    "type": "number"
+                    "name": "id",
+                    "type": "integer",
+                    "is_nullable": false
                 },
                 {
                     "name": "gos_number",
-                    "is_nullable": false,
-                    "type": "string"
-                },
-                {
-                    "name": "bucket_id",
-                    "is_nullable": false,
-                    "type": "unsigned"
-                },
-                {
-                    "name": "sys_from",
-                    "is_nullable": false,
-                    "type": "number"
-                },
-                {
-                    "name": "sys_to",
-                    "is_nullable": false,
-                    "type": "number"
+                    "type": "string",
+                    "is_nullable": true
                 },
                 {
                     "name": "sys_op",
-                    "is_nullable": false,
-                    "type": "number"
+                    "type": "number",
+                    "is_nullable": false
+                },
+                {
+                    "name": "bucket_id",
+                    "type": "unsigned",
+                    "is_nullable": false
                 }
             ],
-            "sharding_key": ["ID"],
+            "temporary": false,
+            "engine": "vinyl",
             "indexes": [
                 {
                     "unique": true,
-                    "type": "TREE",
-                    "name": "ID",
                     "parts": [
                         {
-                            "path": "ID",
-                            "type": "number",
-                            "is_nullable": false
-                        },
-                        {
-                            "path": "sys_from",
-                            "type": "number",
+                            "path": "id",
+                            "type": "integer",
                             "is_nullable": false
                         }
-                    ]
+                    ],
+                    "type": "TREE",
+                    "name": "id"
                 },
                 {
                     "unique": false,
-                    "type": "TREE",
-                    "name": "bucket_id",
                     "parts": [
                         {
                             "path": "bucket_id",
                             "type": "unsigned",
                             "is_nullable": false
                         }
-                    ]
+                    ],
+                    "type": "TREE",
+                    "name": "bucket_id"
                 }
+            ],
+            "is_local": false,
+            "sharding_key": [
+                "id"
             ]
         }
     }
 }
+###
+
+GET http://localhost:8081/api/etl/transfer_data_to_scd_table?_stage_data_table_name=adb__adg_test__env_test_staging&_actual_data_table_name=adb__adg_test__env_test_actual&_historical_data_table_name=adb__adg_test__env_test_history&_delta_number=100
 
 ###
 
 POST http://localhost:8081/api/v1/ddl/table/schema
 
-{"spaces":["env_test_history","env_test_actual","env_test_staging"]}
+{"spaces":["adb__adg_test__env_test_actual","adb__adg_test__env_test_actual","adb__adg_test__env_test_staging"]}
 
 ###
 
@@ -227,7 +262,7 @@ POST http://localhost:8081/api/v1/kafka/subscription
 {
   "topicName": "TEST",
   "consumerGroupName": "tarantool",
-  "spaceNames": ["env_test_staging"],
+  "spaceNames": ["adb__adg_test__env_test_staging"],
   "maxNumberOfMessagesPerPartition": 100
 }
 
@@ -241,6 +276,8 @@ POST http://localhost:8081/api/v1/kafka/dataload
 
 DELETE  http://localhost:8081/api/v1/ddl/table/queuedDelete
 
-{"tableList":["env_test_history","env_test_actual","env_test_staging"]}
+{"tableList":["adb__adg_test__env_test_actual","adb__adg_test__env_test_actual","adb__adg_test__env_test_staging"]}
 
 ###
+
+]

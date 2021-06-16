@@ -27,9 +27,9 @@
     
     kafka_topics:
       TEST:
-            target_table: 'env_test_staging'
+            target_table: 'adb__adg_test__env_test_staging'
             schema_key: 'adb_upload_request'
-            schema_data: 'env_test_staging'
+            schema_data: 'adb__adg_test__env_test_staging'
             error_topic: 'err'
             success_topic: 'suss'             
     
