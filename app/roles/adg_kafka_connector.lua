@@ -571,7 +571,7 @@ local function dataload_from_topic_fiber(topic_name, spaces, max_number_of_messa
     local init_data = kafka_topics:get(topic_name)
 
     if init_data == nil then
-        return   {false, 'ERROR: Please subscribe first', amount = 0}
+        return   {false, error = 'ERROR: Please subscribe first', amount = 0}
     end
 
     avro_schema = avro_schema or init_data.AVRO_SCHEMA
