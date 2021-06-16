@@ -14,8 +14,7 @@ stop:
 	docker exec memstorage cartridge stop
 	
 release:
-	$(CMD) cartridge pack rpm . --version=$(shell find . -path '*.rockspec' -maxdepth 1 | sed -En 's/\.\/[a-z]*-(.*)\.[a-z]*/\1/p')
-	rm -rf kafka
+	$(CMD) cartridge pack rpm . --version=$(shell git describe --tags)
 
 clean:
 	rm -rf .rocks && rm -rf tmp && rm -rf kafka
