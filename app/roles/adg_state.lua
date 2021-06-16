@@ -55,7 +55,7 @@ _G.delayed_delete = nil
 _G.delayed_create = nil
 _G.delayed_delete_prefix = nil
 ddl_callbacks = {}
-empty_schema = {spaces={}}
+local empty_schema = {spaces={}}
 
 
 local err_state_storage = errors.new_class("State storage error")
