@@ -8,9 +8,7 @@ build:
 	$(CMD) /bin/bash -c "cartridge build; cp /kafka/kafka/tntkafka.so /memstore/.rocks/lib/tarantool/kafka/tntkafka.so;"
 
 run:
-	$(CMD) /bin/bash -c "mkdir -p /usr/share/tarantool/memstorage/conf/; \
-	ln -s /memstore/dev/kafka_config.dev.yml /usr/share/tarantool/memstorage/conf/kafka_config.yml; \
-	cartridge start --debug"
+	$(CMD) /bin/bash -c cartridge start --debug"
 
 stop:
 	docker exec memstorage cartridge stop

@@ -1,0 +1,246 @@
+POST http://localhost:8081/api/v1/ddl/table/queuedCreate
+
+{
+    "spaces": {
+        "env_test_staging": {
+            "engine": "vinyl",
+            "is_local": false,
+            "temporary": false,
+            "format": [
+                {
+                    "name": "ID",
+                    "is_nullable": false,
+                    "type": "number"
+                },
+                {
+                    "name": "gos_number",
+                    "is_nullable": false,
+                    "type": "string"
+                },
+                {
+                    "name": "bucket_id",
+                    "is_nullable": false,
+                    "type": "unsigned"
+                },
+                {
+                    "name": "sys_from",
+                    "is_nullable": false,
+                    "type": "number"
+                },
+                {
+                    "name": "sys_to",
+                    "is_nullable": false,
+                    "type": "number"
+                },
+                {
+                    "name": "sys_op",
+                    "is_nullable": false,
+                    "type": "number"
+                }
+            ],
+            "sharding_key": ["ID"],
+            "indexes": [
+                {
+                    "unique": true,
+                    "type": "TREE",
+                    "name": "ID",
+                    "parts": [
+                        {
+                            "path": "ID",
+                            "type": "number",
+                            "is_nullable": false
+                        },
+                        {
+                            "path": "sys_from",
+                            "type": "number",
+                            "is_nullable": false
+                        }
+                    ]
+                },
+                {
+                    "unique": false,
+                    "type": "TREE",
+                    "name": "bucket_id",
+                    "parts": [
+                        {
+                            "path": "bucket_id",
+                            "type": "unsigned",
+                            "is_nullable": false
+                        }
+                    ]
+                }
+            ]
+        },
+        "env_test_actual": {
+            "engine": "vinyl",
+            "is_local": false,
+            "temporary": false,
+            "format": [
+                {
+                    "name": "ID",
+                    "is_nullable": false,
+                    "type": "number"
+                },
+                {
+                    "name": "gos_number",
+                    "is_nullable": false,
+                    "type": "string"
+                },
+                {
+                    "name": "bucket_id",
+                    "is_nullable": false,
+                    "type": "unsigned"
+                },
+                {
+                    "name": "sys_from",
+                    "is_nullable": false,
+                    "type": "number"
+                },
+                {
+                    "name": "sys_to",
+                    "is_nullable": false,
+                    "type": "number"
+                },
+                {
+                    "name": "sys_op",
+                    "is_nullable": false,
+                    "type": "number"
+                }
+            ],
+            "sharding_key": ["ID"],
+            "indexes": [
+                {
+                    "unique": true,
+                    "type": "TREE",
+                    "name": "ID",
+                    "parts": [
+                        {
+                            "path": "ID",
+                            "type": "number",
+                            "is_nullable": false
+                        },
+                        {
+                            "path": "sys_from",
+                            "type": "number",
+                            "is_nullable": false
+                        }
+                    ]
+                },
+                {
+                    "unique": false,
+                    "type": "TREE",
+                    "name": "bucket_id",
+                    "parts": [
+                        {
+                            "path": "bucket_id",
+                            "type": "unsigned",
+                            "is_nullable": false
+                        }
+                    ]
+                }
+            ]
+        },
+        "env_test_history": {
+            "engine": "vinyl",
+            "is_local": false,
+            "temporary": false,
+            "format": [
+                {
+                    "name": "ID",
+                    "is_nullable": false,
+                    "type": "number"
+                },
+                {
+                    "name": "gos_number",
+                    "is_nullable": false,
+                    "type": "string"
+                },
+                {
+                    "name": "bucket_id",
+                    "is_nullable": false,
+                    "type": "unsigned"
+                },
+                {
+                    "name": "sys_from",
+                    "is_nullable": false,
+                    "type": "number"
+                },
+                {
+                    "name": "sys_to",
+                    "is_nullable": false,
+                    "type": "number"
+                },
+                {
+                    "name": "sys_op",
+                    "is_nullable": false,
+                    "type": "number"
+                }
+            ],
+            "sharding_key": ["ID"],
+            "indexes": [
+                {
+                    "unique": true,
+                    "type": "TREE",
+                    "name": "ID",
+                    "parts": [
+                        {
+                            "path": "ID",
+                            "type": "number",
+                            "is_nullable": false
+                        },
+                        {
+                            "path": "sys_from",
+                            "type": "number",
+                            "is_nullable": false
+                        }
+                    ]
+                },
+                {
+                    "unique": false,
+                    "type": "TREE",
+                    "name": "bucket_id",
+                    "parts": [
+                        {
+                            "path": "bucket_id",
+                            "type": "unsigned",
+                            "is_nullable": false
+                        }
+                    ]
+                }
+            ]
+        }
+    }
+}
+
+###
+
+POST http://localhost:8081/api/v1/ddl/table/schema
+
+{"spaces":["env_test_history","env_test_actual","env_test_staging"]}
+
+###
+
+# возможно вызывать с callback чтобы сразу запустить загрузку данных через /kafka/subscription:
+# example 3 в спецификации opeapi 
+POST http://localhost:8081/api/v1/kafka/subscription
+
+{
+  "topicName": "TEST",
+  "consumerGroupName": "tarantool",
+  "spaceNames": ["env_test_staging"],
+  "maxNumberOfMessagesPerPartition": 100
+}
+
+###
+
+POST http://localhost:8081/api/v1/kafka/dataload
+
+{"topicName":"test","spaces":["env_test_staging"]}
+
+###
+
+DELETE  http://localhost:8081/api/v1/ddl/table/queuedDelete
+
+{"tableList":["env_test_history","env_test_actual","env_test_staging"]}
+
+###
