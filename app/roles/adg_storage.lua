@@ -497,6 +497,7 @@ local function key_from_tuple(tuple, key_parts)
     return key
 end
 
+local mutex = nil
 
 ---transfer_stage_data_to_scd_table
 ---@param stage_data_table_name string - Name of the table, that contains hot data for scd processing.
@@ -506,6 +507,12 @@ end
 ---@return boolean,string|nil
 local function transfer_stage_data_to_scd_table(stage_data_table_name, actual_data_table_name,historical_data_table_name, delta_number)
     checks('string','string','string','number')
+
+    -- create mutex for once start function
+    if mutex == nil then
+        mutex = fiber.channel(1)
+    end
+    mutex:put(true)
 
     local is_stage_table_ok, err_stage = check_table_for_delta_fields(stage_data_table_name, 'stage')
     local is_data_table_ok, err_data = check_table_for_delta_fields(actual_data_table_name,'actual')
@@ -544,7 +551,7 @@ local function transfer_stage_data_to_scd_table(stage_data_table_name, actual_da
     local actual_data_table = box.space[actual_data_table_name]
     local hist_data_table = box.space[historical_data_table_name]
 
-    local function transfer_function(stage_tuple)
+    local function transfer_function(stage_tuple)    
         box.begin()
         local actual_tuples = actual_data_table:select(key_from_tuple(stage_tuple,stage_data_pk))
         for _,actual_tuple in ipairs(actual_tuples) do
@@ -580,6 +587,9 @@ local function transfer_stage_data_to_scd_table(stage_data_table_name, actual_da
         log.error(err.trace)
         return nil,error_repository.get_error_code('STORAGE_003', {error = err})
     end
+
+    -- free mutex
+    mutex:get()
     return true,nil
 end
 
