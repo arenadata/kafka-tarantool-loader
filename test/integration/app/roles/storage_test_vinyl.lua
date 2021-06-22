@@ -121,8 +121,8 @@ g2.test_one_row_transfer_data_to_historical_table = function ()
     storage.space.EMPLOYEES_TRANSFER:insert{5,1,1,1,'Test','IT','Test',300,100}
 
     local res,err = storage:call('transfer_data_to_historical_table',{'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 1} )
-    local cnt1_1 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER'})
-    local cnt1_2 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER_HIST'})
+    local cnt1_1 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
+    local cnt1_2 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
 
     t.assert_equals(err, nil)
     t.assert_equals(res, true)
@@ -131,8 +131,8 @@ g2.test_one_row_transfer_data_to_historical_table = function ()
 
 
     local res2,err2 = storage:call('transfer_data_to_historical_table',{'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 2} )
-    local cnt2_1 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER'})
-    local cnt2_2 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER_HIST'})
+    local cnt2_1 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
+    local cnt2_2 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
 
     t.assert_equals(err2, nil)
     t.assert_equals(res2, true)
@@ -140,7 +140,7 @@ g2.test_one_row_transfer_data_to_historical_table = function ()
     t.assert_equals(cnt2_2,0)
 
     storage.space.EMPLOYEES_TRANSFER:insert{1,2,1,1,'Test2','IT','Test',300,100}
-    local cnt3_1 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER'})
+    local cnt3_1 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
 
     t.assert_equals(cnt3_1,6)
 
@@ -148,16 +148,16 @@ g2.test_one_row_transfer_data_to_historical_table = function ()
     local res3,err3 = storage:call('transfer_data_to_historical_table',{'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 3} )
     t.assert_equals(err3, nil)
     t.assert_equals(res3, true)
-    local cnt3_1_1 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER'})
-    local cnt3_1_2 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER_HIST'})
+    local cnt3_1_1 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
+    local cnt3_1_2 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
     t.assert_equals(cnt3_1_1,6)
     t.assert_equals(cnt3_1_2,0)
 
 
     local res3,err3 = storage:call('transfer_data_to_historical_table',{'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 2} )
 
-    local cnt3_2 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER'})
-    local cnt3_3 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER_HIST'})
+    local cnt3_2 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
+    local cnt3_3 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
 
     local test_row3_1 =  storage.space.EMPLOYEES_TRANSFER_HIST:get{1,1}
     local test_row3_2 =  storage.space.EMPLOYEES_TRANSFER:get{1,1}
@@ -190,8 +190,8 @@ g2.test_multiple_rows_transfer_data_to_historical_table = function ()
     storage.space.EMPLOYEES_TRANSFER:insert{5,3,1,1,'Test','IT','Test',300,100}
 
     local res,err = storage:call('transfer_data_to_historical_table',{'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 2} )
-    local cnt1_1 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER'})
-    local cnt1_2 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER_HIST'})
+    local cnt1_1 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
+    local cnt1_2 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
 
     t.assert_equals(err, nil)
     t.assert_equals(res, true)
@@ -199,8 +199,8 @@ g2.test_multiple_rows_transfer_data_to_historical_table = function ()
     t.assert_equals(cnt1_2,3)
 
     local res2,err2 = storage:call('transfer_data_to_historical_table',{'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 3} )
-    local cnt2_1 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER'})
-    local cnt2_2 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER_HIST'})
+    local cnt2_1 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
+    local cnt2_2 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
 
     t.assert_equals(err2, nil)
     t.assert_equals(res2, true)
@@ -226,8 +226,8 @@ g2.test_100k_rows_transfer_data_to_historical_table = function ()
     datagen(100000,2)
 
     local res,err = storage:call('transfer_data_to_historical_table',{'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 2} )
-    local cnt1_1 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER'})
-    local cnt1_2 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER_HIST'})
+    local cnt1_1 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
+    local cnt1_2 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
 
     t.assert_equals(err, nil)
     t.assert_equals(res, true)
@@ -251,9 +251,9 @@ g2.test_1k_rows_transfer_data_scd = function()
 
     local res,err = storage:call('transfer_stage_data_to_scd_table',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 1} )
 
-    local cnt1_1 = storage:call('storage_space_len', {'EMPLOYEES_HOT'})
-    local cnt1_2 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER'})
-    local cnt1_3 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER_HIST'})
+    local cnt1_1 = storage:call('storage_space_count', {'EMPLOYEES_HOT'})
+    local cnt1_2 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
+    local cnt1_3 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
 
 
     t.assert_equals(err, nil)
@@ -269,9 +269,9 @@ g2.test_1k_rows_transfer_data_scd = function()
 
     local res,err = storage:call('transfer_stage_data_to_scd_table',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST',2} )
 
-    local cnt2_1 = storage:call('storage_space_len', {'EMPLOYEES_HOT'})
-    local cnt2_2 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER'})
-    local cnt2_3 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER_HIST'})
+    local cnt2_1 = storage:call('storage_space_count', {'EMPLOYEES_HOT'})
+    local cnt2_2 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
+    local cnt2_3 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
 
 
     t.assert_equals(err, nil)
@@ -297,9 +297,9 @@ g2.test_1k_rows_transfer_data_scd_with_changed_ids = function()
 
     local res,err = storage:call('transfer_stage_data_to_scd_table',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 1} )
 
-    local cnt1_1 = storage:call('storage_space_len', {'EMPLOYEES_HOT'})
-    local cnt1_2 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER'})
-    local cnt1_3 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER_HIST'})
+    local cnt1_1 = storage:call('storage_space_count', {'EMPLOYEES_HOT'})
+    local cnt1_2 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
+    local cnt1_3 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
 
 
     t.assert_equals(err, nil)
@@ -315,9 +315,9 @@ g2.test_1k_rows_transfer_data_scd_with_changed_ids = function()
 
     local res,err = storage:call('transfer_stage_data_to_scd_table',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST',2} )
 
-    local cnt2_1 = storage:call('storage_space_len', {'EMPLOYEES_HOT'})
-    local cnt2_2 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER'})
-    local cnt2_3 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER_HIST'})
+    local cnt2_1 = storage:call('storage_space_count', {'EMPLOYEES_HOT'})
+    local cnt2_2 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
+    local cnt2_3 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
 
 
     t.assert_equals(err, nil)
@@ -340,9 +340,9 @@ g2.test_1k_rows_transfer_data_scd_with_broken_load = function()
     datagen(1000)
     local res,err = storage:call('transfer_stage_data_to_scd_table',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST',1} )
 
-    local cnt1_1 = storage:call('storage_space_len', {'EMPLOYEES_HOT'})
-    local cnt1_2 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER'})
-    local cnt1_3 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER_HIST'})
+    local cnt1_1 = storage:call('storage_space_count', {'EMPLOYEES_HOT'})
+    local cnt1_2 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
+    local cnt1_3 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
 
 
     t.assert_equals(err, nil)
@@ -355,9 +355,9 @@ g2.test_1k_rows_transfer_data_scd_with_broken_load = function()
 
     local res,err = storage:call('transfer_stage_data_to_scd_table',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST',1} )
 
-    local cnt2_1 = storage:call('storage_space_len', {'EMPLOYEES_HOT'})
-    local cnt2_2 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER'})
-    local cnt2_3 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER_HIST'})
+    local cnt2_1 = storage:call('storage_space_count', {'EMPLOYEES_HOT'})
+    local cnt2_2 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
+    local cnt2_3 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
 
 
     t.assert_equals(err, nil)
@@ -384,9 +384,9 @@ g2.test_100k_rows_transfer_data_scd = function()
 
     local res,err = storage:call('transfer_stage_data_to_scd_table',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 1} )
 
-    local cnt1_1 = storage:call('storage_space_len', {'EMPLOYEES_HOT'})
-    local cnt1_2 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER'})
-    local cnt1_3 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER_HIST'})
+    local cnt1_1 = storage:call('storage_space_count', {'EMPLOYEES_HOT'})
+    local cnt1_2 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
+    local cnt1_3 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
 
 
     t.assert_equals(err, nil)
@@ -402,9 +402,9 @@ g2.test_100k_rows_transfer_data_scd = function()
 
     local res,err = storage:call('transfer_stage_data_to_scd_table',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST',2} )
 
-    local cnt2_1 = storage:call('storage_space_len', {'EMPLOYEES_HOT'})
-    local cnt2_2 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER'})
-    local cnt2_3 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER_HIST'})
+    local cnt2_1 = storage:call('storage_space_count', {'EMPLOYEES_HOT'})
+    local cnt2_2 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
+    local cnt2_3 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
 
 
     t.assert_equals(err, nil)
@@ -459,9 +459,9 @@ g4.test_1k_rows_rollback_w_index_wo_batch = function()
     local _,_ = storage:call('transfer_stage_data_to_scd_table',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 2} )
 
     local res,err = storage:call('reverse_history_in_scd_table',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 2, nil} )
-    local cnt1_1 = storage:call('storage_space_len', {'EMPLOYEES_HOT'})
-    local cnt1_2 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER'})
-    local cnt1_3 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER_HIST'})
+    local cnt1_1 = storage:call('storage_space_count', {'EMPLOYEES_HOT'})
+    local cnt1_2 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
+    local cnt1_3 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
     local actual_2 = storage.space.EMPLOYEES_TRANSFER:select{}
     local history_2 = storage.space.EMPLOYEES_TRANSFER_HIST:select{}
 
@@ -497,9 +497,9 @@ g4.test_1k_rows_rollback_w_index_w_batch = function()
     local _,_ = storage:call('transfer_stage_data_to_scd_table',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 2} )
 
     local res,err = storage:call('reverse_history_in_scd_table',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 2, 100} )
-    local cnt1_1 = storage:call('storage_space_len', {'EMPLOYEES_HOT'})
-    local cnt1_2 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER'})
-    local cnt1_3 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER_HIST'})
+    local cnt1_1 = storage:call('storage_space_count', {'EMPLOYEES_HOT'})
+    local cnt1_2 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
+    local cnt1_3 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
     local actual_2 = storage.space.EMPLOYEES_TRANSFER:select{}
     local history_2 = storage.space.EMPLOYEES_TRANSFER_HIST:select{}
 
@@ -535,9 +535,9 @@ g4.test_1k_rows_rollback_wo_index_wo_batch = function()
     local _,_ = storage:call('transfer_stage_data_to_scd_table',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER_2', 'EMPLOYEES_TRANSFER_HIST_2', 2} )
 
     local res,err = storage:call('reverse_history_in_scd_table',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER_2', 'EMPLOYEES_TRANSFER_HIST_2', 2, nil} )
-    local cnt1_1 = storage:call('storage_space_len', {'EMPLOYEES_HOT'})
-    local cnt1_2 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER_2'})
-    local cnt1_3 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER_HIST_2'})
+    local cnt1_1 = storage:call('storage_space_count', {'EMPLOYEES_HOT'})
+    local cnt1_2 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER_2'})
+    local cnt1_3 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST_2'})
     local actual_2 = storage.space.EMPLOYEES_TRANSFER_2:select{}
     local history_2 = storage.space.EMPLOYEES_TRANSFER_HIST_2:select{}
 
@@ -573,9 +573,9 @@ g4.test_1k_rows_rollback_wo_index_w_batch = function()
     local _,_ = storage:call('transfer_stage_data_to_scd_table',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER_2', 'EMPLOYEES_TRANSFER_HIST_2', 2} )
 
     local res,err = storage:call('reverse_history_in_scd_table',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER_2', 'EMPLOYEES_TRANSFER_HIST_2', 2, 100} )
-    local cnt1_1 = storage:call('storage_space_len', {'EMPLOYEES_HOT'})
-    local cnt1_2 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER_2'})
-    local cnt1_3 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER_HIST_2'})
+    local cnt1_1 = storage:call('storage_space_count', {'EMPLOYEES_HOT'})
+    local cnt1_2 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER_2'})
+    local cnt1_3 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST_2'})
     local actual_2 = storage.space.EMPLOYEES_TRANSFER_2:select{}
     local history_2 = storage.space.EMPLOYEES_TRANSFER_HIST_2:select{}
 
@@ -619,9 +619,9 @@ g4.test_10k_rows_rollback_w_index_w_batch = function()
 
 
     local res2,err2 = storage:call('reverse_history_in_scd_table',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 3, 1000} )
-    local cnt2_1 = storage:call('storage_space_len', {'EMPLOYEES_HOT'})
-    local cnt2_2 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER'})
-    local cnt2_3 = storage:call('storage_space_len', {'EMPLOYEES_TRANSFER_HIST'})
+    local cnt2_1 = storage:call('storage_space_count', {'EMPLOYEES_HOT'})
+    local cnt2_2 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
+    local cnt2_3 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
     local actual_2_2 = storage.space.EMPLOYEES_TRANSFER:select{}
     local history_2_2 = storage.space.EMPLOYEES_TRANSFER_HIST:select{}
 
@@ -646,7 +646,7 @@ g5.test_delete_scd_sql =  function ()
 
     datagen(10000)
 
-    local cnt_before = storage:call('storage_space_len', {'EMPLOYEES_HOT'})
+    local cnt_before = storage:call('storage_space_count', {'EMPLOYEES_HOT'})
 
     t.assert_equals(cnt_before,10000)
 
@@ -654,7 +654,7 @@ g5.test_delete_scd_sql =  function ()
 
     t.assert_equals(err_truncate, nil)
 
-    local cnt_after_truncate = storage:call('storage_space_len', {'EMPLOYEES_HOT'})
+    local cnt_after_truncate = storage:call('storage_space_count', {'EMPLOYEES_HOT'})
     t.assert_equals(cnt_after_truncate,0)
 
     datagen(100000)
@@ -662,13 +662,13 @@ g5.test_delete_scd_sql =  function ()
     local _,err_delete_half = storage:call('delete_data_from_scd_table_sql',{'EMPLOYEES_HOT', '"id" >= 50001'} )
     t.assert_equals(err_delete_half,nil)
 
-    local cnt_after_delete_half = storage:call('storage_space_len', {'EMPLOYEES_HOT'})
+    local cnt_after_delete_half = storage:call('storage_space_count', {'EMPLOYEES_HOT'})
     t.assert_equals(cnt_after_delete_half,50000)
 
     local _,err_delete_not_pk = storage:call('delete_data_from_scd_table_sql',{'EMPLOYEES_HOT', [["name" = '123']]})
     t.assert_equals(err_delete_not_pk,nil)
 
-    local cnt_after_delete_not_pk = storage:call('storage_space_len', {'EMPLOYEES_HOT'})
+    local cnt_after_delete_not_pk = storage:call('storage_space_count', {'EMPLOYEES_HOT'})
     t.assert_equals(cnt_after_delete_not_pk,0)
 end
 

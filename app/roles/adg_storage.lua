@@ -45,6 +45,7 @@ _G.truncate_space = nil
 _G.drop_spaces = nil
 _G.drop_spaces_with_prefix = nil
 _G.storage_drop_all = nil
+_G.storage_space_count = nil
 _G.storage_space_len = nil
 _G.get_metric = nil
 _G.prep_sql = nil
@@ -213,7 +214,13 @@ local function storage_drop_all()
     end)
 end
 
+-- only for vinyl tests
+local function storage_space_count(space_name)
+    checks('string')
 
+    return box.space[space_name]:count()
+end
+-- only for vinyl tests
 
 local function storage_space_len(space_name)
     checks('string')
@@ -899,6 +906,7 @@ local function init(opts) -- luacheck: no unused args
     _G.drop_spaces = drop_spaces
     _G.drop_spaces_with_prefix = drop_spaces_with_prefix
     _G.storage_drop_all = storage_drop_all
+    _G.storage_space_count = storage_space_count
     _G.storage_space_len = storage_space_len
     _G.get_metric = get_metric
     _G.prep_sql = prep_sql
