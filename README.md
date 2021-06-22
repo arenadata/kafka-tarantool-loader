@@ -23,3 +23,12 @@ cartridge pack deb adg-kafka --version=$VERSION
 cd deploy
 docker build . -t registry.gitlab.com/picodata/dockers/memstorage-builder
 ```
+## How to run tests
+Memtx
+```sh
+make test_memtx
+```
+Vinyl
+```sh
+make test_vinyl
+```

@@ -18,3 +18,12 @@ release:
 
 clean:
 	rm -rf .rocks && rm -rf tmp && rm -rf kafka
+
+test_memtx:
+	$(CMD) /bin/bash -c ".rocks/bin/luatest --coverage test/integration/app/roles/storage_test.lua"
+
+test_vinyl:
+	$(CMD) /bin/bash -c ".rocks/bin/luatest --coverage test/integration/app/roles/storage_test_vinyl.lua"
+
+test_all:
+	$(CMD) /bin/bash -c ".rocks/bin/luatest --coverage test/"

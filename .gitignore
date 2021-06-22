@@ -2,3 +2,4 @@
 .rocks
 tmp
 kafka
+luacov.stats.out
