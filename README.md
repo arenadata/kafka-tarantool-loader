@@ -1,5 +1,5 @@
 # Arenadata Grid
-## How to build
+## How to build app
 
 Prerequisites:
 * CentOS 7
@@ -17,4 +17,18 @@ cartridge pack rpm adg-kafka --version=$VERSION
 Build deb:
 ```sh
 cartridge pack deb adg-kafka --version=$VERSION
+```
+## How to build docker image
+```sh
+cd deploy
+docker build . -t registry.gitlab.com/picodata/dockers/memstorage-builder
+```
+## How to run tests
+Memtx
+```sh
+make test_memtx
+```
+Vinyl
+```sh
+make test_vinyl
 ```
