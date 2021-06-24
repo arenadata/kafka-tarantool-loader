@@ -213,11 +213,11 @@ g2.test_100k_transfer_data_to_historical_table_on_cluster = function()
 
 
     local res,err = api:call('transfer_data_to_historical_table_on_cluster',{'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 2} )
-    local cnt1_1 = storage1:call('storage_space_len', {'EMPLOYEES_TRANSFER'})
-    local cnt1_2 = storage1:call('storage_space_len', {'EMPLOYEES_TRANSFER_HIST'})
+    local cnt1_1 = storage1:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
+    local cnt1_2 = storage1:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
 
-    local cnt2_1 = storage2:call('storage_space_len', {'EMPLOYEES_TRANSFER'})
-    local cnt2_2 = storage2:call('storage_space_len', {'EMPLOYEES_TRANSFER_HIST'})
+    local cnt2_1 = storage2:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
+    local cnt2_2 = storage2:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
 
 
     t.assert_equals(err, nil)
@@ -248,13 +248,13 @@ g2.test_100k_transfer_data_to_historical_scd_on_cluster = function()
 
     local res,err = api:call('transfer_data_to_scd_table_on_cluster',{'EMPLOYEES_HOT','EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 1} )
 
-    local cnt1_1 = storage1:call('storage_space_len', {'EMPLOYEES_HOT'})
-    local cnt1_2 = storage1:call('storage_space_len', {'EMPLOYEES_TRANSFER'})
-    local cnt1_3 = storage1:call('storage_space_len', {'EMPLOYEES_TRANSFER_HIST'})
+    local cnt1_1 = storage1:call('storage_space_count', {'EMPLOYEES_HOT'})
+    local cnt1_2 = storage1:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
+    local cnt1_3 = storage1:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
 
-    local cnt2_1 = storage2:call('storage_space_len', {'EMPLOYEES_HOT'})
-    local cnt2_2 = storage2:call('storage_space_len', {'EMPLOYEES_TRANSFER'})
-    local cnt2_3 = storage2:call('storage_space_len', {'EMPLOYEES_TRANSFER_HIST'})
+    local cnt2_1 = storage2:call('storage_space_count', {'EMPLOYEES_HOT'})
+    local cnt2_2 = storage2:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
+    local cnt2_3 = storage2:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
 
 
     t.assert_equals(err, nil)
@@ -272,13 +272,13 @@ g2.test_100k_transfer_data_to_historical_scd_on_cluster = function()
 
     local res,err = api:call('transfer_data_to_scd_table_on_cluster',{'EMPLOYEES_HOT','EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 2} )
 
-    local cnt1_1 = storage1:call('storage_space_len', {'EMPLOYEES_HOT'})
-    local cnt1_2 = storage1:call('storage_space_len', {'EMPLOYEES_TRANSFER'})
-    local cnt1_3 = storage1:call('storage_space_len', {'EMPLOYEES_TRANSFER_HIST'})
+    local cnt1_1 = storage1:call('storage_space_count', {'EMPLOYEES_HOT'})
+    local cnt1_2 = storage1:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
+    local cnt1_3 = storage1:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
 
-    local cnt2_1 = storage2:call('storage_space_len', {'EMPLOYEES_HOT'})
-    local cnt2_2 = storage2:call('storage_space_len', {'EMPLOYEES_TRANSFER'})
-    local cnt2_3 = storage2:call('storage_space_len', {'EMPLOYEES_TRANSFER_HIST'})
+    local cnt2_1 = storage2:call('storage_space_count', {'EMPLOYEES_HOT'})
+    local cnt2_2 = storage2:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
+    local cnt2_3 = storage2:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
 
 
     t.assert_equals(err, nil)
@@ -318,11 +318,11 @@ g2.test_rest_api_transfer_data_to_historical_table_on_cluster = function ()
             }
             , status = 200})
 
-    local cnt1_1 = storage1:call('storage_space_len', {'EMPLOYEES_TRANSFER'})
-    local cnt1_2 = storage1:call('storage_space_len', {'EMPLOYEES_TRANSFER_HIST'})
+    local cnt1_1 = storage1:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
+    local cnt1_2 = storage1:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
 
-    local cnt2_1 = storage2:call('storage_space_len', {'EMPLOYEES_TRANSFER'})
-    local cnt2_2 = storage2:call('storage_space_len', {'EMPLOYEES_TRANSFER_HIST'})
+    local cnt2_1 = storage2:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
+    local cnt2_2 = storage2:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
 
 
     t.assert_equals(cnt1_1,1000)
@@ -589,8 +589,8 @@ g6.test_delete_scd_sql_on_cluster = function()
     datagen(storage1,1000)
     datagen(storage2,1000)
 
-    local cnt1_before = storage1:call('storage_space_len', {'EMPLOYEES_HOT'})
-    local cnt2_before = storage2:call('storage_space_len', {'EMPLOYEES_HOT'})
+    local cnt1_before = storage1:call('storage_space_count', {'EMPLOYEES_HOT'})
+    local cnt2_before = storage2:call('storage_space_count', {'EMPLOYEES_HOT'})
 
     t.assert_equals(cnt1_before,1000)
     t.assert_equals(cnt2_before,1000)
@@ -600,8 +600,8 @@ g6.test_delete_scd_sql_on_cluster = function()
 
     t.assert_equals(err_truncate, nil)
 
-    local cnt1_after_truncate = storage1:call('storage_space_len', {'EMPLOYEES_HOT'})
-    local cnt2_after_truncate = storage2:call('storage_space_len', {'EMPLOYEES_HOT'})
+    local cnt1_after_truncate = storage1:call('storage_space_count', {'EMPLOYEES_HOT'})
+    local cnt2_after_truncate = storage2:call('storage_space_count', {'EMPLOYEES_HOT'})
 
     t.assert_equals(cnt1_after_truncate,0)
     t.assert_equals(cnt2_after_truncate,0)
@@ -613,8 +613,8 @@ g6.test_delete_scd_sql_on_cluster = function()
 
     t.assert_equals(err_delete_half, nil)
 
-    local cnt1_after_half_1 = storage1:call('storage_space_len', {'EMPLOYEES_HOT'})
-    local cnt2_after_half_2 = storage2:call('storage_space_len', {'EMPLOYEES_HOT'})
+    local cnt1_after_half_1 = storage1:call('storage_space_count', {'EMPLOYEES_HOT'})
+    local cnt2_after_half_2 = storage2:call('storage_space_count', {'EMPLOYEES_HOT'})
     t.assert_equals(cnt1_after_half_1,5000)
     t.assert_equals(cnt2_after_half_2,5000)
 
@@ -623,8 +623,8 @@ g6.test_delete_scd_sql_on_cluster = function()
     t.assert_equals(err_delete_another, nil)
 
 
-    local cnt1_after_another_1 = storage1:call('storage_space_len', {'EMPLOYEES_HOT'})
-    local cnt2_after_another_2 = storage2:call('storage_space_len', {'EMPLOYEES_HOT'})
+    local cnt1_after_another_1 = storage1:call('storage_space_count', {'EMPLOYEES_HOT'})
+    local cnt2_after_another_2 = storage2:call('storage_space_count', {'EMPLOYEES_HOT'})
     t.assert_equals(cnt1_after_another_1,0)
     t.assert_equals(cnt2_after_another_2,0)
 
@@ -646,8 +646,8 @@ g6.test_delete_scd_sql_on_cluster_rest  = function ()
     datagen(storage2,1000)
 
 
-    local cnt1_before = storage1:call('storage_space_len', {'EMPLOYEES_HOT'})
-    local cnt2_before = storage2:call('storage_space_len', {'EMPLOYEES_HOT'})
+    local cnt1_before = storage1:call('storage_space_count', {'EMPLOYEES_HOT'})
+    local cnt2_before = storage2:call('storage_space_count', {'EMPLOYEES_HOT'})
 
     t.assert_equals(cnt1_before,1000)
     t.assert_equals(cnt2_before,1000)
@@ -665,8 +665,8 @@ g6.test_delete_scd_sql_on_cluster_rest  = function ()
     '/api/etl/delete_data_from_scd_table',
     {spaceName = 'EMPLOYEES_HOT',whereCondition = [["name" = '123']]}, { status = 200})
 
-    local cnt1_after_truncate = storage1:call('storage_space_len', {'EMPLOYEES_HOT'})
-    local cnt2_after_truncate = storage2:call('storage_space_len', {'EMPLOYEES_HOT'})
+    local cnt1_after_truncate = storage1:call('storage_space_count', {'EMPLOYEES_HOT'})
+    local cnt2_after_truncate = storage2:call('storage_space_count', {'EMPLOYEES_HOT'})
 
     t.assert_equals(cnt1_after_truncate,0)
     t.assert_equals(cnt2_after_truncate,0)
@@ -806,8 +806,8 @@ g8.test_truncate_existing_spaces_on_cluster = function()
 
     local res, err = api:call('truncate_space_on_cluster', {'TRUNCATE_TABLE',false})
 
-    local count_1 = storage1:call('storage_space_len', {'TRUNCATE_TABLE'})
-    local count_2 = storage1:call('storage_space_len', {'TRUNCATE_TABLE'})
+    local count_1 = storage1:call('storage_space_count', {'TRUNCATE_TABLE'})
+    local count_2 = storage1:call('storage_space_count', {'TRUNCATE_TABLE'})
 
     t.assert_equals(err, nil)
     t.assert_equals(res, true)

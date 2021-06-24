@@ -20,10 +20,10 @@ clean:
 	rm -rf .rocks && rm -rf tmp && rm -rf kafka
 
 test_memtx:
-	$(CMD) /bin/bash -c ".rocks/bin/luatest --coverage test/integration/app/roles/storage_test.lua"
+	$(CMD) /bin/bash -c "test/memtx.sh"
 
 test_vinyl:
-	$(CMD) /bin/bash -c ".rocks/bin/luatest --coverage test/integration/app/roles/storage_test_vinyl.lua"
+	$(CMD) /bin/bash -c "test/vinyl.sh"
 
 test_all:
-	$(CMD) /bin/bash -c ".rocks/bin/luatest --coverage test/"
+	$(CMD) /bin/bash -c "test/all.sh"
