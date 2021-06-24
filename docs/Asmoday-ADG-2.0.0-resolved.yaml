@@ -180,6 +180,70 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /etl/transfer_data_to_scd_table:
+    post:
+      tags:
+      - etl
+      summary: Transfer staging table data
+      description: Transfer data from staging table to actual and history tables
+      operationId: transfer_data_to_scd_table
+      parameters:
+        - in: query
+          name: _stage_data_table_name
+          schema:
+            type: string
+          required: true
+          description: Staging table name
+        - in: query
+          name: _actual_data_table_name
+          schema:
+            type: string
+          required: true
+          description: Actual table name
+        - in: query
+          name: _historical_data_table_name
+          schema:
+            type: string
+          required: true
+          description: Historical table name
+        - in: query
+          name: _delta_number
+          schema:
+            type: integer
+          required: true
+          description: Delta number
+      responses:
+        "200":
+          description: successful operation
+        "500":
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+  /etl/truncate_space_on_cluster:
+    post:
+      tags:
+      - etl
+      summary: Truncate space on cluster
+      description: Truncate space on cluster
+      operationId: truncate_space_on_cluster
+      parameters:
+        - in: query
+          name: _space_name
+          schema:
+            type: string
+          required: true
+          description: Space name
+      responses:
+        "200":
+          description: successful operation
+        "500":
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
   /kafka/subscription:
     post:
       tags:
@@ -194,27 +258,8 @@ paths:
             schema:
               $ref: '#/components/schemas/Subscription'
             examples:
-              sample-subscription1:
-                summary: Example1
-                value:
-                  topicName: topic1
-                  consumerGroupName: tarantool
-                  spaceNames:
-                  - space1
-                  - space2
-                  maxNumberOfMessagesPerPartition: 1000
-              sample-subscription2:
-                summary: Example2
-                value:
-                  topicName: topic2
-                  consumerGroupName: tarantool
-                  spaceNames:
-                  - space1
-                  maxNumberOfMessagesPerPartition: 10000
-                  avroSchema:
-                    type: long
               sample-subscription3:
-                summary: Example3
+                summary: Example
                 value:
                   topicName: topic3
                   maxNumberOfMessagesPerPartition: 100
