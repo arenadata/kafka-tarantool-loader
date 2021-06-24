@@ -515,12 +515,6 @@ local mutex = nil
 local function transfer_stage_data_to_scd_table(stage_data_table_name, actual_data_table_name,historical_data_table_name, delta_number)
     checks('string','string','string','number')
 
-    -- create mutex for once start function
-    if mutex == nil then
-        mutex = fiber.channel(1)
-    end
-    mutex:put(true)
-
     local is_stage_table_ok, err_stage = check_table_for_delta_fields(stage_data_table_name, 'stage')
     local is_data_table_ok, err_data = check_table_for_delta_fields(actual_data_table_name,'actual')
     local is_historical_table_ok, err_hist = check_table_for_delta_fields(historical_data_table_name,'history')
@@ -553,7 +547,6 @@ local function transfer_stage_data_to_scd_table(stage_data_table_name, actual_da
     local stage_data_pk = fun.map(function(x) return x.fieldno end,box.space[stage_data_table_name].index[0].parts):totable()
     local actual_data_pk = fun.map(function(x) return x.fieldno end,box.space[actual_data_table_name].index[0].parts):totable()
 
-
     local stage_data_table = box.space[stage_data_table_name]
     local actual_data_table = box.space[actual_data_table_name]
     local hist_data_table = box.space[historical_data_table_name]
@@ -579,6 +572,12 @@ local function transfer_stage_data_to_scd_table(stage_data_table_name, actual_da
         box.commit()
     end
 
+    -- create mutex for once start function
+    if mutex == nil then
+        mutex = fiber.channel(1)
+    end
+    mutex:put(true)
+
     local res, err = err_storage:pcall(
             function ()
                 moonwalker {
@@ -590,13 +589,14 @@ local function transfer_stage_data_to_scd_table(stage_data_table_name, actual_da
                 return true, nil
             end)
 
+    -- free mutex
+    mutex:get()
+    
     if err ~= nil then
         log.error(err.trace)
         return nil,error_repository.get_error_code('STORAGE_003', {error = err})
     end
 
-    -- free mutex
-    mutex:get()
     return true,nil
 end
 
