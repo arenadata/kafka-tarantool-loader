@@ -872,8 +872,15 @@ local function delete_data_from_scd_table_sql_on_cluster (space_name, where_cond
 
 end
 
-local function get_scd_table_checksum_on_cluster(actual_data_table_name, historical_data_table_name, delta_number, column_list)
-    checks('string','string','number','?table')
+--- Get checksum for a subset of data on cluster
+--- @param actual_data_table_name string - space for actual table
+--- @param historical_data_table_name string - space for history table
+--- @param delta_number number - delta (https://arenadata.atlassian.net/wiki/spaces/DTM/pages/46653935/delta)
+--- @param column_list table - optional, columns list for calculate checksum
+--- @param normalization number - optional, coefficient of increasing the possible number 
+--                                of records within the delta. (positive integer greater than or equal to 1, default 1).
+local function get_scd_table_checksum_on_cluster(actual_data_table_name, historical_data_table_name, delta_number, column_list, normalization)
+    checks('string','string','number','?table','?number')
 
     local storages =  cartridge.rpc_get_candidates('app.roles.adg_storage',{leader_only = true})
     if #storages == 0 then
@@ -893,7 +900,7 @@ local function get_scd_table_checksum_on_cluster(actual_data_table_name, histori
         else
             local future, future_err = conn:call(
                 'get_scd_table_checksum',
-                {actual_data_table_name, historical_data_table_name, delta_number, column_list},
+                {actual_data_table_name, historical_data_table_name, delta_number, column_list, normalization},
                 { is_async = true }
             )
             if future_err ~= nil then

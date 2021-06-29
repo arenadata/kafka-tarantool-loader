@@ -778,8 +778,15 @@ local function delete_data_from_scd_table_sql (space_name, where_condition)
     return execute_sql(sql)
 end
 
-local function get_scd_table_checksum(actual_data_table_name, historical_data_table_name, delta_number, column_list)
-    checks('string','string','number','?table')
+--- The function calculates a checksum within a delta_number for all of the logical tables in the datamart or for one logical table. 
+--- @param actual_data_table_name string - space for actual table
+--- @param historical_data_table_name string - space for history table
+--- @param delta_number number - delta (https://arenadata.atlassian.net/wiki/spaces/DTM/pages/46653935/delta)
+--- @param column_list table - optional, columns list for calculate checksum
+--- @param normalization number - optional, coefficient of increasing the possible number 
+----                              of records within the delta. (positive integer greater than or equal to 1, default 1).
+local function get_scd_table_checksum(actual_data_table_name, historical_data_table_name, delta_number, column_list, normalization)
+    checks('string','string','number','?table','?number')
     local delimeter = ";"
 
     local is_data_table_ok, err_data = check_table_for_delta_fields(actual_data_table_name,'actual')
@@ -805,6 +812,11 @@ local function get_scd_table_checksum(actual_data_table_name, historical_data_ta
 
     local result = 0
 
+    local norm = 1
+    if normalization ~= nil then
+        norm = normalization
+    end
+
     local sys_from_index_actual = get_index_from_space_by_name(actual_data_table_name,etl_config.get_date_field_start_index_nm())
     local sys_from_index_history = get_index_from_space_by_name(historical_data_table_name,etl_config.get_date_field_start_index_nm())
     local sys_to_index_history = get_index_from_space_by_name(historical_data_table_name,etl_config.get_date_field_end_index_nm())
@@ -818,7 +830,7 @@ local function get_scd_table_checksum(actual_data_table_name, historical_data_ta
             else table.insert(concatenate,'')
             end
         end
-        result = result + dtm_digest_utils.dtm_int32_hash(table.concat(concatenate,delimeter))
+        result = result + dtm_digest_utils.dtm_int32_hash(table.concat(concatenate,delimeter)) % norm
     end
 
     local res , err = pcall(function ()
@@ -827,13 +839,6 @@ local function get_scd_table_checksum(actual_data_table_name, historical_data_ta
                 result = result + sys_from_index_actual:count({delta_number})
             else
                 sys_from_index_actual:pairs({delta_number}):each(calc_function)
-                --[[moonwalker {
-                    space = box.space[actual_data_table_name];
-                    index = sys_from_index_actual;
-                    examine = function (tuple)
-                        return tuple[etl_config.get_date_field_start_nm()] == delta_number
-                    end;
-                    actor = calc_function;}]] --Wrong result non-unique???
             end
         else
             moonwalker {
@@ -849,13 +854,6 @@ local function get_scd_table_checksum(actual_data_table_name, historical_data_ta
                 result = result + sys_from_index_history:count({delta_number})
             else
                 sys_from_index_history:pairs({delta_number}):each(calc_function)
-                --[[moonwalker {
-                    space =  box.space[historical_data_table_name];
-                    index = sys_from_index_history;
-                    examine = function (tuple)
-                        return tuple[etl_config.get_date_field_start_nm()] == delta_number
-                    end;
-                    actor = calc_function;}]] --Wrong result  non-unique???
             end
         else
             moonwalker {
@@ -872,13 +870,6 @@ local function get_scd_table_checksum(actual_data_table_name, historical_data_ta
                 result = result + sys_to_index_history:count({delta_number-1,1})
             else
                 sys_to_index_history:pairs({delta_number-1,1}):each(calc_function)
-                --[[moonwalker {
-                    space = box.space[historical_data_table_name];
-                    index = sys_to_index_history;
-                    examine = function (tuple)
-                        return tuple[etl_config.get_date_field_end_nm()] == delta_number - 1 and tuple[etl_config.get_date_field_op_nm()] == 1
-                    end;
-                    actor = calc_function;}]] --Wrong result  non-unique???
             end
         else
             moonwalker {
