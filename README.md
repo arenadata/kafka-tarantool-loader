@@ -32,3 +32,7 @@ Vinyl
 ```sh
 make test_vinyl
 ```
+Both engines
+```sh
+make test_all
+```

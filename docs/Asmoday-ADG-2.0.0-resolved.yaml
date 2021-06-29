@@ -244,6 +244,39 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Error'
+  /etl/get_scd_table_checksum:
+    post:
+      tags:
+      - etl
+      summary: Get checksum for a subset of data
+      description: The function calculates a checksum within a delta for all of the logical tables in the datamart or for one logical table.
+      operationId: get_scd_table_checksum_on_cluster
+      requestBody:
+        description: Params for checksum calculate.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ChecksumParams'
+            examples:
+              sample-checksum:
+                summary: Example
+                value:
+                  actualDataTableName: "test"
+                  historicalDataTableName: "test" 
+                  sysCn: 0 
+                  columnList: null 
+                  normalization: null            
+        required: true
+      responses:
+        "200":
+          description: successful operation
+        "500":
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+
   /kafka/subscription:
     post:
       tags:
@@ -262,16 +295,17 @@ paths:
                 summary: Example
                 value:
                   topicName: topic3
-                  maxNumberOfMessagesPerPartition: 100
                   spaceNames:
                   - space3
-                  callbackFunctionName: transfer_data_to_scd_table_on_cluster_cb
-                  callbackFunctionParams:
-                    space: space3
-                    _stage_data_table_name: test__space3_staging
-                    _actual_data_table_name: test__space3_actual
-                    _historical_data_table_name: test__space3_history
-                    _delta_number: 40
+                  callbackFunction: 
+                    callbackFunctionName: transfer_data_to_scd_table_on_cluster_cb
+                    callbackFunctionParams:
+                      _space: "space3"
+                      _stage_data_table_name: "space3"
+                      _actual_data_table_name: "space1"
+                      _historical_data_table_name: "space2"
+                      _delta_number: 3053
+                  maxNumberOfMessagesPerPartition: 200
                   maxIdleSecondsBeforeCbCall: 100
         required: true
       responses:
@@ -703,10 +737,13 @@ components:
           format: int64
         avroSchema:
           type: object
-        callbackFunctionName:
-          type: string
-        callbackFunctionParams:
+        callbackFunction:
           type: object
+          properties:
+            callbackFunctionName:
+              type: string
+            callbackFunctionParams:
+              type: object
         maxIdleSecondsBeforeCbCall:
           type: integer
           format: int64
@@ -856,3 +893,22 @@ components:
       type: array
       items:
         $ref: '#/components/schemas/CallbackRegisterTask'
+    ChecksumParams:
+      required:
+      - actualDataTableName
+      - historicalDataTableName
+      - sysCn
+      type: object
+      properties:
+        actualDataTableName:
+          type: string
+        historicalDataTableName:
+          type: string 
+        sysCn: 
+          type: integer 
+        columnList: 
+          type: array
+          items:
+            type: string
+        normalization:
+          type: integer
