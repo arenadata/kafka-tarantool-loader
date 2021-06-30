@@ -55,5 +55,6 @@ RUN echo "---------- luacov ----------" \
 && luarocks install luacov \
 && tarantoolctl rocks install luatest
 
+ENV TARANTOOL_LOG="tmp/tarantool.log"
 VOLUME [ "/memstore" ]
 WORKDIR /memstore

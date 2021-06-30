@@ -635,7 +635,8 @@ local function subscribe_to_topic(   topic_name,
                                      avro_schema,
                                      max_number_of_messages_per_cb,
                                      max_number_of_seconds_per_cb,
-                                     cb_function_name,cb_function_param)
+                                     cb_function_name,
+                                     cb_function_param)
     checks('string','table','?string','?number','?number','?string','?table')
     local f = fiber.new(subscribe_to_topic_fiber, topic_name, spaces, avro_schema,
             max_number_of_messages_per_cb,max_number_of_seconds_per_cb,cb_function_name,cb_function_param)
