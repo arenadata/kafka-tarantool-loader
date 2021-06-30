@@ -444,6 +444,11 @@ g3.test_drop_existing_spaces_on_cluster = function()
     local api = cluster:server('api-1').net_box
 
     local res,err = api:call('drop_space_on_cluster', {'DROP_TABLE',false})
+
+    -- refresh net.box schema metadata
+    storage1:eval('return true')
+    storage2:eval('return true')
+
     t.assert_equals(res,true)
     t.assert_equals(err,nil)
     t.assert_equals(storage1.space.DROP_TABLE, nil)
@@ -468,15 +473,44 @@ g4.test_subscription_api = function()
             , status = 400})
 
     assert_http_json_request('POST',
-            '/api/v1/kafka/subscription',
-            {topicName = '123', maxNumberOfMessagesPerPartition = 10000}, { status = 200})
-
+            '/api/v1/kafka/subscription', {
+                topicName = "EMPLOYEES",
+                spaceNames = {"EMPLOYEES_HOT"},
+                avroSchema = "null",
+                maxNumberOfMessagesPerPartition = 100,
+                maxIdleSecondsBeforeCbCall = 100,
+                callbackFunction = {
+                    callbackFunctionName = "transfer_data_to_scd_table_on_cluster_cb",
+                    callbackFunctionParams = {
+                        _space = "EMPLOYEES_HOT",
+                        _stage_data_table_name = "EMPLOYEES_HOT",
+                        _actual_data_table_name = "EMPLOYEES",
+                        _historical_data_table_name = "EMPLOYEES_HIST",
+                        _delta_number = 40
+                    }
+                }
+            }
+            , { status = 200})
 
     assert_http_json_request('POST',
-            '/api/v1/kafka/subscription',
-            {topicName = '1234',
-             maxNumberOfMessagesPerPartition = 10000,
-             avroSchema =  { type = "long" }}, { status = 200})
+            '/api/v1/kafka/subscription', {
+                topicName = "EMPLOYEES",
+                spaceNames = {"EMPLOYEES_HOT"},
+                avroSchema = { type = "long" },
+                maxNumberOfMessagesPerPartition = 100,
+                maxIdleSecondsBeforeCbCall = 100,
+                callbackFunction = {
+                    callbackFunctionName = "transfer_data_to_scd_table_on_cluster_cb",
+                    callbackFunctionParams = {
+                        _space = "EMPLOYEES_HOT",
+                        _stage_data_table_name = "EMPLOYEES_HOT",
+                        _actual_data_table_name = "EMPLOYEES",
+                        _historical_data_table_name = "EMPLOYEES_HIST",
+                        _delta_number = 40
+                    }
+                }
+            }
+            , { status = 200})
 
 end
 
