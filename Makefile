@@ -19,6 +19,9 @@ release:
 clean:
 	rm -rf .rocks && rm -rf tmp && rm -rf kafka
 
+shell:
+	$(CMD) /bin/bash
+
 test_memtx:
 	$(CMD) /bin/bash -c "test/memtx.sh"
 
