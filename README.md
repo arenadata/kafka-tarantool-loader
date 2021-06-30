@@ -24,15 +24,25 @@ cd deploy
 docker build . -t registry.gitlab.com/picodata/dockers/memstorage-builder
 ```
 ## How to run tests
-Memtx
+1. Run zookeeper, kafka via docker-compose
+```sh
+make dev_deps
+```
+2. Prepare to read log via `tail -f`
+```sh
+echo '' | sudo tee tmp/tarantool.log && sudo tail -f tmp/tarantool.log
+```
+3. Run tests
+
+On memtx engine
 ```sh
 make test_memtx
 ```
-Vinyl
+On vinyl engine
 ```sh
 make test_vinyl
 ```
-Both engines
+On both engines
 ```sh
 make test_all
 ```
