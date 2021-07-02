@@ -110,88 +110,88 @@ g2.test_transformation_with_external_schema = function()
     t.assert_equals(decoded_value3,json.decode(decoded3))
 end
 
-g2.test_transformation_with_schema_in_data = function()
-    local encoded1,_ = file_utils.read_file('test/unit/data/avro_values/topicZ_value_encoded2.avro')
-    local decoded1,_ = file_utils.read_file('test/unit/data/avro_values/topicZ_value_decoded2.json')
-    local ok1, decoded_value1 = bin_avro_utils.decode(encoded1)
+-- g2.test_transformation_with_schema_in_data = function()
+--     local encoded1,_ = file_utils.read_file('test/unit/data/avro_values/topicZ_value_encoded2.avro')
+--     local decoded1,_ = file_utils.read_file('test/unit/data/avro_values/topicZ_value_decoded2.json')
+--     local ok1, decoded_value1 = bin_avro_utils.decode(encoded1)
 
-    t.assert_equals(ok1,true)
-    t.assert_equals(decoded_value1,json.decode(decoded1))
-
-
-    local encoded2,_ = file_utils.read_file('test/unit/data/avro_values/test2_value_encoded.avro')
-    local decoded2,_ = file_utils.read_file('test/unit/data/avro_values/test1_2_value_decoded.json')
-    local ok2, decoded_value2= bin_avro_utils.decode(encoded2)
-
-    t.assert_equals(ok2,true)
-    t.assert_equals(decoded_value2,json.decode(decoded2))
+--     t.assert_equals(ok1,true)
+--     t.assert_equals(decoded_value1,json.decode(decoded1))
 
 
-    local encoded3,_ = file_utils.read_file('test/unit/data/avro_values/test2_value_encoded.avro')
-    local decoded3,_ = file_utils.read_file('test/unit/data/avro_values/test1_2_value_decoded.json')
-    local ok3, decoded_value3= bin_avro_utils.decode(encoded3)
+--     local encoded2,_ = file_utils.read_file('test/unit/data/avro_values/test2_value_encoded.avro')
+--     local decoded2,_ = file_utils.read_file('test/unit/data/avro_values/test1_2_value_decoded.json')
+--     local ok2, decoded_value2= bin_avro_utils.decode(encoded2)
 
-    t.assert_equals(ok3,true)
-    t.assert_equals(decoded_value3,json.decode(decoded3))
-
-    local encoded4,_ = file_utils.read_file('test/unit/data/avro_values/topicZ_value_encoded2.avro')
-    local decoded4,_ = file_utils.read_file('test/unit/data/avro_values/topicZ_value_decoded2.json')
-    local ok4, decoded_value4 = bin_avro_utils.decode(encoded4)
-
-    t.assert_equals(ok4,true)
-    t.assert_equals(decoded_value4,json.decode(decoded4))
+--     t.assert_equals(ok2,true)
+--     t.assert_equals(decoded_value2,json.decode(decoded2))
 
 
-end
+--     local encoded3,_ = file_utils.read_file('test/unit/data/avro_values/test2_value_encoded.avro')
+--     local decoded3,_ = file_utils.read_file('test/unit/data/avro_values/test1_2_value_decoded.json')
+--     local ok3, decoded_value3= bin_avro_utils.decode(encoded3)
 
-g2.test_transformation_with_schema2_in_data = function()
-    local encoded,_ = file_utils.read_file('test/unit/data/avro_values/test3_value_encoded.avro')
-    local decoded,_ = file_utils.read_file('test/unit/data/avro_values/test1_2_value_decoded.json')
+--     t.assert_equals(ok3,true)
+--     t.assert_equals(decoded_value3,json.decode(decoded3))
 
-    local ok, decoded_value= bin_avro_utils.decode(encoded)
+--     local encoded4,_ = file_utils.read_file('test/unit/data/avro_values/topicZ_value_encoded2.avro')
+--     local decoded4,_ = file_utils.read_file('test/unit/data/avro_values/topicZ_value_decoded2.json')
+--     local ok4, decoded_value4 = bin_avro_utils.decode(encoded4)
 
-    t.assert_equals(ok,true)
-    t.assert_equals(decoded_value,json.decode(decoded))
-end
-
-g2.test_transformation_with_schema2_in_data_fast = function()
-    local encoded,_ = file_utils.read_file('test/unit/data/avro_values/test3_value_encoded.avro')
-    local decoded,_ = file_utils.read_file('test/unit/data/avro_values/test1_2_value_decoded.json')
-
-    local ok, decoded_value= bin_avro_utils.decode(encoded)
-
-    t.assert_equals(ok,true)
-    t.assert_equals(decoded_value,json.decode(decoded))
-end
-
-g2.test_large_encode_decode = function()
+--     t.assert_equals(ok4,true)
+--     t.assert_equals(decoded_value4,json.decode(decoded4))
 
 
-    local encoded = file_utils.read_file('test/unit/data/avro_values/avro1000_000_w_s.avro')
-    local schema_ok, schema = bin_avro_utils.extract_metadata(encoded)
+-- end
 
-    t.assert_equals(schema_ok,true)
+-- g2.test_transformation_with_schema2_in_data = function()
+--     local encoded,_ = file_utils.read_file('test/unit/data/avro_values/test3_value_encoded.avro')
+--     local decoded,_ = file_utils.read_file('test/unit/data/avro_values/test1_2_value_decoded.json')
 
-    local json_value = json.decode(file_utils.read_file('test/unit/data/avro_values/avro1000_000.json'))
+--     local ok, decoded_value= bin_avro_utils.decode(encoded)
 
-    local ok2,res2 = bin_avro_utils.encode(schema.value['avro.schema'],json_value,true)
+--     t.assert_equals(ok,true)
+--     t.assert_equals(decoded_value,json.decode(decoded))
+-- end
 
-    t.assert_equals(ok2,true)
+-- g2.test_transformation_with_schema2_in_data_fast = function()
+--     local encoded,_ = file_utils.read_file('test/unit/data/avro_values/test3_value_encoded.avro')
+--     local decoded,_ = file_utils.read_file('test/unit/data/avro_values/test1_2_value_decoded.json')
 
-    local ok3,res3 = bin_avro_utils.decode(res2)
+--     local ok, decoded_value= bin_avro_utils.decode(encoded)
 
-    t.assert_equals(ok3,true)
+--     t.assert_equals(ok,true)
+--     t.assert_equals(decoded_value,json.decode(decoded))
+-- end
 
-    t.assert_equals(#res3,#json_value)
+-- g2.test_large_encode_decode = function()
 
 
-    local ok4,res4 = bin_avro_utils.decode(encoded)
+--     local encoded = file_utils.read_file('test/unit/data/avro_values/avro1000_000_w_s.avro')
+--     local schema_ok, schema = bin_avro_utils.extract_metadata(encoded)
 
-    t.assert_equals(ok4,true)
+--     t.assert_equals(schema_ok,true)
 
-    t.assert_equals(1000000,#res4)
+--     local json_value = json.decode(file_utils.read_file('test/unit/data/avro_values/avro1000_000.json'))
 
-end
+--     local ok2,res2 = bin_avro_utils.encode(schema.value['avro.schema'],json_value,true)
+
+--     t.assert_equals(ok2,true)
+
+--     local ok3,res3 = bin_avro_utils.decode(res2)
+
+--     t.assert_equals(ok3,true)
+
+--     t.assert_equals(#res3,#json_value)
+
+
+--     local ok4,res4 = bin_avro_utils.decode(encoded)
+
+--     t.assert_equals(ok4,true)
+
+--     t.assert_equals(1000000,#res4)
+
+-- end
 
 local function test_decoding_perf_avro_object_container(file,row_cnt,run_cnt)
     local start_time = os.clock()
@@ -222,9 +222,9 @@ local function test_decoding_avro_single_object(run_cnt)
     return end_time - start_time <  run_cnt * 0.1
 end
 
-g3.test_perf_decoding_file_with_schema = function()
-    t.assert_equals(test_decoding_perf_avro_object_container('test/unit/data/avro_values/avro1000.avro',1000,100), true)
-end
+-- g3.test_perf_decoding_file_with_schema = function()
+--     t.assert_equals(test_decoding_perf_avro_object_container('test/unit/data/avro_values/avro1000.avro',1000,100), true)
+-- end
 
 g3.test_perf_encoding_decoding_wo_schema = function()
     t.assert_equals(test_decoding_avro_single_object(1000),true)
