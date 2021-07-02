@@ -764,18 +764,18 @@ g7.test_get_scd_checksum_on_cluster_w_columns = function()
     api:call('transfer_data_to_scd_table_on_cluster',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 1} )
     local is_gen2, res2 = api:call('get_scd_table_checksum_on_cluster', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,{'id','sysFrom'}})
     t.assert_equals(is_gen2,true)
-    t.assert_equals(res2,1181946280889 * 2)
+    t.assert_equals(res2,0)
     datagen(storage1,1000)
     datagen(storage2,1000)
     api:call('transfer_data_to_scd_table_on_cluster',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST',2} )
 
     local is_gen3, res3 = api:call('get_scd_table_checksum_on_cluster', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,{'id','sysFrom'}})
     t.assert_equals(is_gen3,true)
-    t.assert_equals(res3,1181946280889 * 2)
+    t.assert_equals(res3,0)
 
     local is_gen4, res4 = api:call('get_scd_table_checksum_on_cluster', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',2,{'id','sysFrom'}})
     t.assert_equals(is_gen4,true)
-    t.assert_equals(res4,1180041276702 * 2)
+    t.assert_equals(res4,0)
 
 end
 
