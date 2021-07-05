@@ -36,25 +36,25 @@ g2.before_each(function()
     kafka:call('box.execute', {'truncate table _KAFKA_TOPIC'})
 end)
 
-g.test_subscription_valid_values = function()
-    local kafka = cluster:server('kafka_connector-1').net_box
+-- g.test_subscription_valid_values = function()
+--     local kafka = cluster:server('kafka_connector-1').net_box
 
-    local res1 = kafka:call('subscribe_to_topic', {'test_topic1', 1000})
-    t.assert_equals(res1,true)
-
-
-    local line1 = kafka.space['_KAFKA_TOPIC']:get('test_topic1')
-    t.assert_equals(line1,{'test_topic1', 1000})
+--     local res1 = kafka:call('subscribe_to_topic', {'test_topic1', 1000})
+--     t.assert_equals(res1,true)
 
 
-    local res2 = kafka:call('subscribe_to_topic', {'test_topic2', 1000, '{ "type": "long" }'})
-    t.assert_equals(res2,true)
+--     local line1 = kafka.space['_KAFKA_TOPIC']:get('test_topic1')
+--     t.assert_equals(line1,{'test_topic1', 1000})
 
 
-    local line2 = kafka.space['_KAFKA_TOPIC']:get('test_topic2')
-    t.assert_equals(line2,{'test_topic2', 1000, '{ "type": "long" }'})
+--     local res2 = kafka:call('subscribe_to_topic', {'test_topic2', 1000, '{ "type": "long" }'})
+--     t.assert_equals(res2,true)
 
-end
+
+--     local line2 = kafka.space['_KAFKA_TOPIC']:get('test_topic2')
+--     t.assert_equals(line2,{'test_topic2', 1000, '{ "type": "long" }'})
+
+-- end
 
 g.test_subscription_invalid_values = function()
     local kafka = cluster:server('kafka_connector-1').net_box
@@ -63,21 +63,21 @@ g.test_subscription_invalid_values = function()
 end
 
 
-g2.test_unsubscription_valid_values = function()
-    local kafka = cluster:server('kafka_connector-1').net_box
+-- g2.test_unsubscription_valid_values = function()
+--     local kafka = cluster:server('kafka_connector-1').net_box
 
-    local res1 = kafka:call('subscribe_to_topic', {'test_topic1', 1000})
-    t.assert_equals(res1,true)
+--     local res1 = kafka:call('subscribe_to_topic', {'test_topic1', 1000})
+--     t.assert_equals(res1,true)
 
 
-    local res2 = kafka:call('unsubscribe_from_topic', {'test_topic1'})
-    t.assert_equals(res2,true)
+--     local res2 = kafka:call('unsubscribe_from_topic', {'test_topic1'})
+--     t.assert_equals(res2,true)
 
-    local line2 = kafka.space['_KAFKA_TOPIC']:get('test_topic1')
+--     local line2 = kafka.space['_KAFKA_TOPIC']:get('test_topic1')
 
-    t.assert_equals(line2,nil)
+--     t.assert_equals(line2,nil)
 
-end
+-- end
 
 
 g2.test_unsubscription_invalid_values = function()
