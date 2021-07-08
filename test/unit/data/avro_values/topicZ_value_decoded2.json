@@ -1,5 +1,5 @@
 [
-  {"f1":  null,"f2":  null, "f3":  null},
-  {"f1":  null,"f2":  null, "f3":  null},
-  {"f1":  "test_1","f2":  null, "f3":  "test_2"}
+  [null, null, null],
+  [null, null, null],
+  ["test_1", null, "test_2"]
 ]
