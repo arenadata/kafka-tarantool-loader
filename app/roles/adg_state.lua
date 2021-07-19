@@ -21,8 +21,8 @@ local role_name = 'app.roles.adg_state'
 local metrics = require('app.metrics.metrics_storage')
 local checks = require('checks')
 local errors = require('errors')
-local schema_utils =  require('app.utils.schema_utils')
-local misc_utils =  require('app.utils.misc_utils')
+local schema_utils = require('app.utils.schema_utils')
+local misc_utils = require('app.utils.misc_utils')
 local success_repository = require('app.messages.success_repository')
 local error_repository = require('app.messages.error_repository')
 local log = require('log')
@@ -32,9 +32,10 @@ local json = require('json')
 local enums = require('app.entities.enum')
 local cartridge = require('cartridge')
 local prometheus = require('metrics.plugins.prometheus')
-local global =  require('app.utils.global').new('adg_state')
+local global = require('app.utils.global').new('adg_state')
 local fiber = require('fiber')
 local yaml = require('yaml')
+local math = require('math')
 
 local cartridge_pool = require('cartridge.pool')
 local cartridge_rpc = require('cartridge.rpc')
@@ -55,11 +56,9 @@ _G.delayed_delete = nil
 _G.delayed_create = nil
 _G.delayed_delete_prefix = nil
 ddl_callbacks = {}
-local empty_schema = {spaces={}}
-
+local empty_schema = { spaces = {} }
 
 local err_state_storage = errors.new_class("State storage error")
-
 
 local function init_space_delete_batch_storage()
     local delete_space_batch = box.schema.space.create(
@@ -74,7 +73,7 @@ local function init_space_delete_batch_storage()
     )
 
     delete_space_batch:create_index('_DELETE_SPACE_BATCH', {
-        parts = { 'DELETE_BATCH_ID'},
+        parts = { 'DELETE_BATCH_ID' },
         type = 'HASH',
         if_not_exists = true
     })
@@ -96,19 +95,19 @@ local function init_ddl_queue_space()
                     { 'OBJ_TYPE', 'string', is_nullable = false },
                     { 'OBJ_NAME', 'string', is_nullable = false },
                     { 'DDL_TYPE', 'string', is_nullable = false },
-                    { 'DDL_PARAM', 'map', is_nullable = true}
+                    { 'DDL_PARAM', 'map', is_nullable = true }
                 }
             ,
                 if_not_exists = true
             }
     )
-    box.schema.sequence.create('DDL_QUEUE_ID', {if_not_exists = true})
+    box.schema.sequence.create('DDL_QUEUE_ID', { if_not_exists = true })
     space:create_index('ID', {
         type = 'TREE',
         unique = true,
         if_not_exists = true,
         sequence = 'DDL_QUEUE_ID',
-        parts = {{field = 'ID', type = 'unsigned'}},
+        parts = { { field = 'ID', type = 'unsigned' } },
     })
     box.commit()
 
@@ -116,27 +115,27 @@ end
 
 local function init_kafka_callbacks_logs()
 
-    local cb_function_call_log_seq = box.schema.sequence.create('KAFKA_CALLBACK_FUNCTIONS_SEQ',{if_not_exists=true})
+    local cb_function_call_log_seq = box.schema.sequence.create('KAFKA_CALLBACK_FUNCTIONS_SEQ', { if_not_exists = true })
 
     local cb_function_call_log = box.schema.space.create(
             '_KAFKA_CALLBACK_FUNCTIONS_LOG',
             {
                 format = {
-                    {'CALLBACK_LOG_ID', 'unsigned'},
-                    {'TOPIC_NAME', 'string'},
-                    {'PARTITION_NAME', 'string'},
-                    {'CALLBACK_FUNCTION_NAME', 'string'},
-                    {'CALLBACK_TIMESTAMP_START', 'number'},
-                    {'CALLBACK_TIMESTAMP_FINISH', 'number', is_nullable = true},
-                    {'CALLBACK_RESULT', 'boolean', is_nullable = true},
-                    {'CALLBACK_ERROR', 'string', is_nullable = true}
+                    { 'CALLBACK_LOG_ID', 'unsigned' },
+                    { 'TOPIC_NAME', 'string' },
+                    { 'PARTITION_NAME', 'string' },
+                    { 'CALLBACK_FUNCTION_NAME', 'string' },
+                    { 'CALLBACK_TIMESTAMP_START', 'number' },
+                    { 'CALLBACK_TIMESTAMP_FINISH', 'number', is_nullable = true },
+                    { 'CALLBACK_RESULT', 'boolean', is_nullable = true },
+                    { 'CALLBACK_ERROR', 'string', is_nullable = true }
                 }
             , if_not_exists = true
             }
     )
 
     cb_function_call_log:create_index('IX_CALLBACK_LOG_ID', {
-        parts = {'CALLBACK_LOG_ID'},
+        parts = { 'CALLBACK_LOG_ID' },
         type = 'TREE',
         if_not_exists = true
     })
@@ -144,20 +143,20 @@ local function init_kafka_callbacks_logs()
 end
 
 local function init_kafka_error_msgs()
-    local err_kafka_msg_seq = box.schema.sequence.create("KAFKA_ERRORS_SEQ", {if_not_exists=true})
+    local err_kafka_msg_seq = box.schema.sequence.create("KAFKA_ERRORS_SEQ", { if_not_exists = true })
 
     local err_kafka_err = box.schema.space.create(
             '_KAFKA_ERROR_MSG', {
                 format = {
-                    {'KAFKA_ERROR_ID', 'unsigned'},
-                    {'TOPIC_NAME', 'string'},
-                    {'PARTITION_NAME', 'string'},
-                    {'OFFSET', 'unsigned'},
-                    {'KEY', 'string', is_nullable = true},
-                    {'VALUE', 'string', is_nullable = true},
-                    {'FIBER_NAME', 'string'},
-                    {'ERROR_TIMESTAMP', 'number'},
-                    {'ERROR_MSG', 'string'}
+                    { 'KAFKA_ERROR_ID', 'unsigned' },
+                    { 'TOPIC_NAME', 'string' },
+                    { 'PARTITION_NAME', 'string' },
+                    { 'OFFSET', 'unsigned' },
+                    { 'KEY', 'string', is_nullable = true },
+                    { 'VALUE', 'string', is_nullable = true },
+                    { 'FIBER_NAME', 'string' },
+                    { 'ERROR_TIMESTAMP', 'number' },
+                    { 'ERROR_MSG', 'string' }
 
                 }
             , if_not_exists = true
@@ -165,19 +164,19 @@ local function init_kafka_error_msgs()
     )
 
     err_kafka_err:create_index('KAFKA_ERROR_ID', {
-        parts = {'KAFKA_ERROR_ID'},
+        parts = { 'KAFKA_ERROR_ID' },
         type = 'TREE',
         if_not_exists = true
     })
 
 end
 
-local function insert_kafka_callback_log(topic_name,partition_name,cb_function_name)
-    checks('string','string','string')
+local function insert_kafka_callback_log(topic_name, partition_name, cb_function_name)
+    checks('string', 'string', 'string')
     local cb_function_call_log_seq = box.sequence['KAFKA_CALLBACK_FUNCTIONS_SEQ']
 
     if cb_function_call_log_seq == nil then
-        return nil,"ERROR: KAFKA_CALLBACK_FUNCTIONS_SEQ sequence does not exists"
+        return nil, "ERROR: KAFKA_CALLBACK_FUNCTIONS_SEQ sequence does not exists"
     end
 
     local cb_function_call_log = box.space['_KAFKA_CALLBACK_FUNCTIONS_LOG']
@@ -188,7 +187,7 @@ local function insert_kafka_callback_log(topic_name,partition_name,cb_function_n
 
     local log_id = cb_function_call_log_seq:next()
 
-    local _,err = err_state_storage:pcall(
+    local _, err = err_state_storage:pcall(
             function()
                 local tuple = cb_function_call_log:frommap({
                     CALLBACK_LOG_ID = log_id,
@@ -209,14 +208,14 @@ local function insert_kafka_callback_log(topic_name,partition_name,cb_function_n
         return log_id, err
     end
 
-    return log_id,nil
+    return log_id, nil
 end
 
-local function set_kafka_callback_log_result(log_id,is_success,error_message)
-    checks('number','boolean','?string|?table')
+local function set_kafka_callback_log_result(log_id, is_success, error_message)
+    checks('number', 'boolean', '?string|?table')
 
     if type(error_message) == 'table' then
-        error_message = table.concat(error_message,';')
+        error_message = table.concat(error_message, ';')
     end
 
     local cb_function_call_log = box.space['_KAFKA_CALLBACK_FUNCTIONS_LOG']
@@ -225,13 +224,13 @@ local function set_kafka_callback_log_result(log_id,is_success,error_message)
         return false, "ERROR: _KAFKA_CALLBACK_FUNCTIONS_LOG space does not exists"
     end
 
-    cb_function_call_log:update(log_id,{
-        {'=','CALLBACK_TIMESTAMP_FINISH',clock.time()}
-    ,{'=','CALLBACK_RESULT', is_success}
-    ,{'=','CALLBACK_ERROR', error_message or box.NULL}
+    cb_function_call_log:update(log_id, {
+        { '=', 'CALLBACK_TIMESTAMP_FINISH', clock.time() }
+    , { '=', 'CALLBACK_RESULT', is_success }
+    , { '=', 'CALLBACK_ERROR', error_message or box.NULL }
     })
 
-    return true,nil
+    return true, nil
 
 end
 
@@ -245,7 +244,7 @@ local function insert_kafka_error_msg(
         error_timestamp,
         error_msg
 )
-    checks('string','string','number','?string','?string','string','number','string')
+    checks('string', 'string', 'number', '?string', '?string', 'string', 'number', 'string')
 
     local kafka_errors = box.space['_KAFKA_ERROR_MSG']
 
@@ -256,10 +255,10 @@ local function insert_kafka_error_msg(
     local error_seq = box.sequence['KAFKA_ERRORS_SEQ']
 
     if error_seq == nil then
-        return nil,"ERROR: KAFKA_ERRORS_SEQ sequence does not exists"
+        return nil, "ERROR: KAFKA_ERRORS_SEQ sequence does not exists"
     end
 
-    local _,err = err_state_storage:pcall(
+    local _, err = err_state_storage:pcall(
             function()
                 local tuple = kafka_errors:frommap({
                     KAFKA_ERROR_ID = error_seq:next(),
@@ -280,7 +279,7 @@ local function insert_kafka_error_msg(
         return false, err
     end
 
-    return true,nil
+    return true, nil
 
 end
 
@@ -296,13 +295,13 @@ local function insert_kafka_error_msgs(msgs)
     local error_seq = box.sequence['KAFKA_ERRORS_SEQ']
 
     if error_seq == nil then
-        return nil,"ERROR: KAFKA_ERRORS_SEQ sequence does not exists"
+        return nil, "ERROR: KAFKA_ERRORS_SEQ sequence does not exists"
     end
 
     box.begin()
-    local _,err = err_state_storage:pcall(
+    local _, err = err_state_storage:pcall(
             function()
-                for _,v in ipairs(msgs) do
+                for _, v in ipairs(msgs) do
                     local tuple = kafka_errors:frommap({
                         KAFKA_ERROR_ID = error_seq:next(),
                         TOPIC_NAME = v.topic_name,
@@ -327,7 +326,7 @@ local function insert_kafka_error_msgs(msgs)
     end
 
     box.commit()
-    return true,nil
+    return true, nil
 
 end
 local function init_callback_function_repo()
@@ -336,27 +335,26 @@ local function init_callback_function_repo()
             '_KAFKA_CALLBACK_FUNCTIONS',
             {
                 format = {
-                    {'CALLBACK_FUNCTION_NAME', 'string'},
-                    {'CALLBACK_FUNCTION_DESC', 'string', is_nullable = true},
-                    {'CALLBACK_FUNCTION_PARAM_SCHEMA', 'string', is_nullable = true}
+                    { 'CALLBACK_FUNCTION_NAME', 'string' },
+                    { 'CALLBACK_FUNCTION_DESC', 'string', is_nullable = true },
+                    { 'CALLBACK_FUNCTION_PARAM_SCHEMA', 'string', is_nullable = true }
                 }
             , if_not_exists = true
             }
     )
 
     callback_func:create_index('IX_KAFKA_CB_FUNCTIONS', {
-        parts = {'CALLBACK_FUNCTION_NAME'},
+        parts = { 'CALLBACK_FUNCTION_NAME' },
         type = 'HASH',
         if_not_exists = true
     })
 end
 
-
-local function register_kafka_callback_function(function_name,function_desc,function_schema)
-    checks('string','?string','?string')
+local function register_kafka_callback_function(function_name, function_desc, function_schema)
+    checks('string', '?string', '?string')
 
     --checks if schema json
-    local is_json,_ = pcall(json.decode,function_schema)
+    local is_json, _ = pcall(json.decode, function_schema)
 
     if not is_json then
         return false, "ERROR: Function schema param must be valid json"
@@ -369,7 +367,7 @@ local function register_kafka_callback_function(function_name,function_desc,func
         return false, "ERROR: _KAFKA_CALLBACK_FUNCTIONS space does not exists"
     end
 
-    local _,err = err_state_storage:pcall(
+    local _, err = err_state_storage:pcall(
             function()
                 local tuple = kafka_callback:frommap({
                     CALLBACK_FUNCTION_NAME = function_name,
@@ -415,7 +413,7 @@ local function register_scd_cb_function()
             ]
           }
          ]]
-    register_kafka_callback_function("transfer_data_to_scd_table_on_cluster_cb","desc",schema)
+    register_kafka_callback_function("transfer_data_to_scd_table_on_cluster_cb", "desc", schema)
 end
 
 local function ddl_queue_processor()
@@ -441,7 +439,7 @@ local function ddl_queue_processor()
         local ddl_queue_space = box.space['_DDL_QUEUE']
 
         box.begin()
-        for _,ddl_operation in ddl_queue_space:pairs() do
+        for _, ddl_operation in ddl_queue_space:pairs() do
             ddl_callbacks[ddl_operation['ID']]['status'] = 'processing'
             ddl_callbacks[ddl_operation['ID']]['error'] = nil
             if ddl_operation['OBJ_TYPE'] == enums.obj_type.TABLE
@@ -455,8 +453,8 @@ local function ddl_queue_processor()
                 tables_to_drop[ddl_operation['OBJ_NAME']] = ddl_operation['ID']
             elseif ddl_operation['OBJ_TYPE'] == enums.obj_type.PREFIX
                     and ddl_operation['DDL_TYPE'] == enums.ddl_type.DROP_DATABASE then
-                for space_name,_ in pairs(current_state.spaces) do
-                    if string.startswith(space_name,ddl_operation['OBJ_NAME']) then
+                for space_name, _ in pairs(current_state.spaces) do
+                    if string.startswith(space_name, ddl_operation['OBJ_NAME']) then
                         current_state.spaces[space_name] = nil
                         tables_to_drop[space_name] = ddl_operation['ID']
                     end
@@ -468,48 +466,54 @@ local function ddl_queue_processor()
 
         if misc_utils.table_length(tables_to_drop) ~= 0 or misc_utils.table_length(tables_to_create) ~= 0 then
             local tableList = {}
-            for k,_ in pairs(tables_to_drop) do
-                table.insert(tableList,k)
+            for k, _ in pairs(tables_to_drop) do
+                table.insert(tableList, k)
             end
 
             local _, err = cartridge.rpc_call('app.roles.adg_api',
                     'drop_spaces_on_cluster',
-                    { tableList,nil,false},
+                    { tableList, nil, false },
                     { leader_only = false, timeout = 30 })
 
             if err ~= nil then
                 log.error(err)
-                for _,v in pairs(tables_to_drop) do
+                for _, v in pairs(tables_to_drop) do
                     ddl_callbacks[v]['status'] = 'error'
                     ddl_callbacks[v]['error'] = err
                 end
             end
 
-            ::retry_apply_schema::
-            local is_ddl_schema_patched, schema_patch_err = cartridge.set_schema(yaml.encode(current_state))
-            if is_ddl_schema_patched == nil then
+            local retry_counter = 0;
+            local max_retry = 3;
+
+            for i = retry_counter, max_retry do
+                local is_ddl_schema_patched, schema_patch_err = cartridge.set_schema(yaml.encode(current_state))
+                if is_ddl_schema_patched ~= nil then
+                    log.info('INFO: DDL operation runs successful')
+                    for _, v in pairs(tables_to_create) do
+                        ddl_callbacks[v]['status'] = 'done'
+                        ddl_callbacks[v]['error'] = nil
+                    end
+
+                    for _, v in pairs(tables_to_drop) do
+                        ddl_callbacks[v]['status'] = 'done'
+                        ddl_callbacks[v]['error'] = nil
+                    end
+                    break
+                end
+
                 log.error(schema_patch_err)
-                for _,v in pairs(tables_to_create) do
+                for _, v in pairs(tables_to_create) do
                     ddl_callbacks[v]['status'] = 'error'
                     ddl_callbacks[v]['error'] = err
                 end
-                goto retry_apply_schema
-            else
-                log.info('INFO: DDL operation runs successful')
-                for _,v in pairs(tables_to_create) do
-                    ddl_callbacks[v]['status'] = 'done'
-                    ddl_callbacks[v]['error'] = nil
-                end
 
-                for _,v in pairs(tables_to_drop) do
-                    ddl_callbacks[v]['status'] = 'done'
-                    ddl_callbacks[v]['error'] = nil
-                end
+                fiber.sleep(math.exp(i))
             end
         end
         --wakeup
 
-        for k,v in pairs(ddl_callbacks) do
+        for k, v in pairs(ddl_callbacks) do
             if v['status'] ~= 'created' then
                 v['cond']:broadcast()
             end
@@ -533,7 +537,7 @@ local function delete_kafka_callback_function(callback_function_name)
         return false, "ERROR: _KAFKA_CALLBACK_FUNCTIONS space does not exists"
     end
 
-    local _,err = err_state_storage:pcall(
+    local _, err = err_state_storage:pcall(
             function()
                 kafka_callback:delete(callback_function_name)
                 return true
@@ -553,10 +557,9 @@ local function get_callback_functions()
 
     local result = {}
 
-    for _,v in callback_func_space:pairs() do
-        table.insert(result,v:tomap({names_only=true}))
+    for _, v in callback_func_space:pairs() do
+        table.insert(result, v:tomap({ names_only = true }))
     end
-
 
     return result, nil
 end
@@ -572,16 +575,17 @@ local function get_callback_function_schema(function_name)
     local cb_function = callback_func_space:get(function_name)
 
     if cb_function == nil then
-        return nil, string.format("ERROR: function %s does not exists",function_name)
+        return nil, string.format("ERROR: function %s does not exists", function_name)
     end
 
     return cb_function['CALLBACK_FUNCTION_PARAM_SCHEMA'], nil
 end
 
-local function validate_config(conf_new, conf_old) -- luacheck: no unused args
+local function validate_config(conf_new, conf_old)
+    -- luacheck: no unused args
 
     local new_topology = conf_new.topology
-    if  new_topology == nil or new_topology.replicasets == nil then
+    if new_topology == nil or new_topology.replicasets == nil then
         return true
     end
 
@@ -598,7 +602,7 @@ local function validate_config(conf_new, conf_old) -- luacheck: no unused args
     end
 
     if replicasets_cnt > 1 then
-        return false,'ERROR: Only one master must exists for app.roles.adg_state role'
+        return false, 'ERROR: Only one master must exists for app.roles.adg_state role'
     end
 
     return true
@@ -609,7 +613,6 @@ local function apply_config(conf, opts)
     schema_utils.init_schema_ddl()
     error_repository.init_error_repo('en')
     success_repository.init_success_repo('en')
-
 
     if opts.is_master then
         schema_utils.drop_all()
@@ -626,34 +629,37 @@ local function get_metric()
     return metrics.export(role_name)
 end
 
-local function update_delete_batch_storage(batch_id,spaces)
-    checks('string','table')
+local function update_delete_batch_storage(batch_id, spaces)
+    checks('string', 'table')
     local delete_space_batch = box.space['_DELETE_SPACE_BATCH']
 
     if delete_space_batch == nil then
         return nil, 'ERROR: _DELETE_SPACE_BATCH space not found'
     end
 
-    local res,err = err_state_storage:pcall(function ()
+    local res, err = err_state_storage:pcall(function()
         local old_spaces = delete_space_batch:get(batch_id)
 
         if old_spaces == nil then
-            local filter = fun.filter(function(v) return type(v) == 'string' end, spaces):totable()
+            local filter = fun.filter(function(v)
+                return type(v) == 'string'
+            end, spaces)      :totable()
             delete_space_batch:insert({ batch_id, filter })
         else
             local hash = {}
-            local union = fun.chain(old_spaces['DELETE_TABLE_ARRAY'],spaces)
-                             :filter(function(v) local check = hash[v]
+            local union = fun.chain(old_spaces['DELETE_TABLE_ARRAY'], spaces)
+                             :filter(function(v)
+                local check = hash[v]
                 hash[v] = true
                 return not check and type(v) == 'string' --only strings
-            end):totable()
+            end)             :totable()
 
-            delete_space_batch:update(batch_id,{{'=','DELETE_TABLE_ARRAY',union}})
+            delete_space_batch:update(batch_id, { { '=', 'DELETE_TABLE_ARRAY', union } })
         end
         return true
     end)
 
-    return res,err
+    return res, err
 end
 
 local function delayed_delete_on_cluster()
@@ -663,17 +669,15 @@ local function delayed_delete_on_cluster()
         return nil, 'ERROR: _DDL_QUEUE space not found'
     end
 
-    local res,err =  err_state_storage:pcall(function ()
+    local res, err = err_state_storage:pcall(function()
         local params = { iterator = 'EQ', limit = 10 }
         local spaces, err = space:select({}, params)
-
-
 
         if spaces == nil or err ~= nil then
             return nil, err
         else
             local tableList = {}
-            for _,v in pairs(spaces) do
+            for _, v in pairs(spaces) do
                 --- filter create and delete for one object
                 if v['OBJ_TYPE'] == 'space' then
                     table.insert(tableList, v['OBJ_NAME'])
@@ -683,7 +687,7 @@ local function delayed_delete_on_cluster()
                     'drop_spaces_on_cluster',
                     { tableList },
                     { leader_only = true, timeout = 30 })
-            for _,s in pairs(spaces) do
+            for _, s in pairs(spaces) do
                 space:delete(s[1])
                 if global.ddl_request_queue[s['OBJ_NAME']] ~= nil then
                     global.ddl_request_queue[s['OBJ_NAME']]:broadcast()
@@ -693,7 +697,7 @@ local function delayed_delete_on_cluster()
         end
     end)
 
-    return res,err
+    return res, err
 end
 
 local function delayed_delete_prefix(prefix)
@@ -708,7 +712,7 @@ local function delayed_delete_prefix(prefix)
     local tuple, err
     box.begin()
     tuple, err = space:insert(
-            {nil, enums.obj_type.PREFIX, prefix, enums.ddl_type.DROP_DATABASE,nil})
+            { nil, enums.obj_type.PREFIX, prefix, enums.ddl_type.DROP_DATABASE, nil })
     ddl_callbacks[tuple['ID']] = {}
     ddl_callbacks[tuple['ID']]['cond'] = fiber.cond()
     ddl_callbacks[tuple['ID']]['status'] = 'created'
@@ -719,12 +723,11 @@ local function delayed_delete_prefix(prefix)
 
         if not ok then
             ddl_callbacks[tuple['ID']] = nil
-            return {code = 'API_DDL_QUEUE_004', msg = 'ERROR: ddl reques timeout'}
+            return { code = 'API_DDL_QUEUE_004', msg = 'ERROR: ddl reques timeout' }
         end
 
-
         if ddl_callbacks[tuple['ID']]['status'] == 'error' then
-            return {code = 'API_DDL_QUEUE_004', msg = ddl_callbacks[tuple['ID']]['error']}
+            return { code = 'API_DDL_QUEUE_004', msg = ddl_callbacks[tuple['ID']]['error'] }
 
         end
         ddl_callbacks[tuple['ID']] = nil
@@ -736,7 +739,7 @@ local function delayed_delete_prefix(prefix)
 
     local ok, res = w:join()
     if not ok or res ~= nil then
-        return  ok, res
+        return ok, res
     end
 
     return true, nil
@@ -751,11 +754,11 @@ local function delayed_create(spaces)
         return nil, 'ERROR: _DDL_QUEUE space not found'
     end
 
-    local tuple,err
+    local tuple, err
     box.begin()
-    for k,v in pairs(spaces) do
+    for k, v in pairs(spaces) do
         tuple, err = space:insert(
-                {nil, enums.obj_type.TABLE, k, enums.ddl_type.CREATE_TABLE,v})
+                { nil, enums.obj_type.TABLE, k, enums.ddl_type.CREATE_TABLE, v })
         ddl_callbacks[tuple['ID']] = {}
         ddl_callbacks[tuple['ID']]['cond'] = fiber.cond()
         ddl_callbacks[tuple['ID']]['status'] = 'created'
@@ -766,12 +769,11 @@ local function delayed_create(spaces)
 
         if not ok then
             ddl_callbacks[tuple['ID']] = nil
-            return {code = 'API_DDL_QUEUE_004', msg = 'ERROR: ddl reques timeout'}
+            return { code = 'API_DDL_QUEUE_004', msg = 'ERROR: ddl reques timeout' }
         end
 
-
         if ddl_callbacks[tuple['ID']]['status'] == 'error' then
-            return {code = 'API_DDL_QUEUE_004', msg = ddl_callbacks[tuple['ID']]['error']}
+            return { code = 'API_DDL_QUEUE_004', msg = ddl_callbacks[tuple['ID']]['error'] }
 
         end
         ddl_callbacks[tuple['ID']] = nil
@@ -783,7 +785,7 @@ local function delayed_create(spaces)
 
     local ok, res = w:join()
     if not ok or res ~= nil then
-        return  ok, res
+        return ok, res
     end
 
     return true, nil
@@ -793,14 +795,14 @@ local function delayed_delete(spaces)
     checks('table')
 
     local space = box.space['_DDL_QUEUE']
-    local tuple,err
+    local tuple, err
     if space == nil then
         return nil, 'ERROR: _DDL_QUEUE space not found'
     end
     box.begin()
-    for _,v in pairs(spaces) do
+    for _, v in pairs(spaces) do
         tuple, err = space:insert(
-                {nil, enums.obj_type.TABLE, v, enums.ddl_type.DROP_TABLE,nil})
+                { nil, enums.obj_type.TABLE, v, enums.ddl_type.DROP_TABLE, nil })
         ddl_callbacks[tuple['ID']] = {}
         ddl_callbacks[tuple['ID']]['cond'] = fiber.cond()
         ddl_callbacks[tuple['ID']]['status'] = 'created'
@@ -811,12 +813,11 @@ local function delayed_delete(spaces)
 
         if not ok then
             ddl_callbacks[tuple['ID']] = nil
-            return {code = 'API_DDL_QUEUE_004', msg = 'ERROR: ddl reques timeout'}
+            return { code = 'API_DDL_QUEUE_004', msg = 'ERROR: ddl reques timeout' }
         end
 
-
         if ddl_callbacks[tuple['ID']]['status'] == 'error' then
-            return {code = 'API_DDL_QUEUE_004', msg = ddl_callbacks[tuple['ID']]['error']}
+            return { code = 'API_DDL_QUEUE_004', msg = ddl_callbacks[tuple['ID']]['error'] }
 
         end
         ddl_callbacks[tuple['ID']] = nil
@@ -828,7 +829,7 @@ local function delayed_delete(spaces)
 
     local ok, res = w:join()
     if not ok or res ~= nil then
-        return  ok, res
+        return ok, res
     end
 
     return true, nil
@@ -907,12 +908,10 @@ local function init(opts)
     _G.delayed_delete_prefix = delayed_delete_prefix
 
     local httpd = cartridge.service_get('httpd')
-    httpd:route({method='GET', path = '/metrics'}, prometheus.collect_http)
-      
+    httpd:route({ method = 'GET', path = '/metrics' }, prometheus.collect_http)
+
     return true
 end
-
-
 
 return {
     role_name = role_name,
