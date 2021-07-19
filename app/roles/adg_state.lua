@@ -719,25 +719,23 @@ local function delayed_delete_prefix(prefix)
 
         if not ok then
             ddl_callbacks[tuple['ID']] = nil
-            return error_repository.return_http_response('API_DDL_QUEUE_004', nil,
-                    'ERROR: ddl reques timeout')
+            return {code = 'API_DDL_QUEUE_004', msg = 'ERROR: ddl reques timeout'}
         end
 
 
         if ddl_callbacks[tuple['ID']]['status'] == 'error' then
-            return error_repository.return_http_response('API_DDL_QUEUE_004', nil,
-                    ddl_callbacks[tuple['ID']]['error'])
+            return {code = 'API_DDL_QUEUE_004', msg = ddl_callbacks[tuple['ID']]['error']}
 
         end
         ddl_callbacks[tuple['ID']] = nil
-        return true, nil
+        return nil
     end)
 
     w:name('delayed_prefix_delete')
     w:set_joinable(true)
 
     local ok, res = w:join()
-    if not ok then
+    if not ok or res ~= nil then
         return  ok, res
     end
 
@@ -813,25 +811,23 @@ local function delayed_delete(spaces)
 
         if not ok then
             ddl_callbacks[tuple['ID']] = nil
-            return error_repository.return_http_response('API_DDL_QUEUE_004', nil,
-                    'ERROR: ddl reques timeout')
+            return {code = 'API_DDL_QUEUE_004', msg = 'ERROR: ddl reques timeout'}
         end
 
 
         if ddl_callbacks[tuple['ID']]['status'] == 'error' then
-            return error_repository.return_http_response('API_DDL_QUEUE_004', nil,
-                    ddl_callbacks[tuple['ID']]['error'])
+            return {code = 'API_DDL_QUEUE_004', msg = ddl_callbacks[tuple['ID']]['error']}
 
         end
         ddl_callbacks[tuple['ID']] = nil
-        return true, nil
+        return nil
     end)
 
     w:name('delayed_delete')
     w:set_joinable(true)
 
     local ok, res = w:join()
-    if not ok then
+    if not ok or res ~= nil then
         return  ok, res
     end
 
