@@ -429,13 +429,13 @@ local function ddl_queue_processor()
 
         -- getting current cluster ddl
         local current_state = yaml.decode(cartridge.get_schema())
-        
+
         -- if item `schema` doesn't setup in cluser config then current state will be nil and next operations return error,
         -- thats why if scheme not found we create empty cluster scheme
         if current_state == nil then
-            current_state = empty_schema 
+            current_state = empty_schema
         end
-        
+
         local tables_to_drop = {}
         local tables_to_create = {}
         local ddl_queue_space = box.space['_DDL_QUEUE']
@@ -485,6 +485,7 @@ local function ddl_queue_processor()
                 end
             end
 
+            ::retry_apply_schema::
             local is_ddl_schema_patched, schema_patch_err = cartridge.set_schema(yaml.encode(current_state))
             if is_ddl_schema_patched == nil then
                 log.error(schema_patch_err)
@@ -492,6 +493,7 @@ local function ddl_queue_processor()
                     ddl_callbacks[v]['status'] = 'error'
                     ddl_callbacks[v]['error'] = err
                 end
+                goto retry_apply_schema
             else
                 log.info('INFO: DDL operation runs successful')
                 for _,v in pairs(tables_to_create) do
@@ -504,18 +506,12 @@ local function ddl_queue_processor()
                     ddl_callbacks[v]['error'] = nil
                 end
             end
+        end
+        --wakeup
 
-            --wakeup
-            for k,v in pairs(ddl_callbacks) do
-                if v['status'] ~= 'created' then
-                    v['cond']:broadcast()
-                end
-            end
-        else
-            for k,v in pairs(ddl_callbacks) do
-                if v['status'] ~= 'created' then
-                    v['cond']:broadcast()
-                end
+        for k,v in pairs(ddl_callbacks) do
+            if v['status'] ~= 'created' then
+                v['cond']:broadcast()
             end
         end
         fiber.sleep(0.5)
