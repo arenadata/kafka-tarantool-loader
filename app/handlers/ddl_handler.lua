@@ -83,6 +83,9 @@ local function queued_prefix_delete(req)
             { leader_only = true, timeout = 30 })
 
     if err ~= nil then
+        if err['code'] == 'API_DDL_QUEUE_004' then
+            return error_repository.return_http_response(err['code'], nil, err['msg'])
+        end
         return error_repository.return_http_response('API_DDL_QUEUE_003', nil, err)
     end
 
@@ -105,6 +108,9 @@ local function queued_tables_delete(req)
             { body.tableList },
             { leader_only = true, timeout = 30 })
     if err ~= nil then
+        if err['code'] == 'API_DDL_QUEUE_004' then
+            return error_repository.return_http_response(err['code'], nil, err['msg'])
+        end
         return error_repository.return_http_response('API_DDL_QUEUE_003', nil, err)
     end
 
@@ -127,6 +133,9 @@ local function queued_tables_create(req)
             { body.spaces },
             { leader_only = true, timeout = 30 })
     if err ~= nil then
+        if err['code'] == 'API_DDL_QUEUE_004' then
+            return error_repository.return_http_response(err['code'], nil, err['msg'])
+        end
         return error_repository.return_http_response('API_DDL_QUEUE_003', nil, err)
     end
 
