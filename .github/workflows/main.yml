@@ -27,11 +27,12 @@ jobs:
 
       # Runs commands for setup environment
       - name: Prepare environment
-        run: apt-get install -y git docker docker-compose
-        run: systemctl enable --now docker
-        run: docker login registry.gitlab.com -u $USER -p $TOKEN
-        run: make dev_deps
-        run: make build
+        run: | 
+          apt-get install -y git docker docker-compose
+          systemctl enable --now docker
+          docker login registry.gitlab.com -u $USER -p $TOKEN
+          make dev_deps
+          make build
 
 #      - name: Run tests
 #        run: make test_memtx
