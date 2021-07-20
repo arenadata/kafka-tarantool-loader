@@ -30,9 +30,20 @@ jobs:
         run: | 
           apt-get install -y git docker docker-compose
           systemctl enable --now docker
-          docker login registry.gitlab.com -u $USER -p $TOKEN
-          make dev_deps
-          make build
+
+      - name: Login to GitLab
+        run: docker login registry.gitlab.com -u ${{ secrets.USER }} -p ${{secrets.TOKEN }}
+#        uses: docker/login-action@v1
+#        with:
+#          registry: registry.gitlab.com
+#          username: ${{ secrets.GITLAB_USERNAME }}
+#          password: ${{ secrets.GITLAB_TOKEN }}        
+
+      - name: Get depncecies
+        run: make build
+
+      - name: Run docker-compose
+        run: make dev_deps
 
 #      - name: Run tests
 #        run: make test_memtx
