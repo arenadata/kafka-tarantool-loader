@@ -9,3 +9,4 @@
 
 tarantoolctl rocks install --server=https://raw.githubusercontent.com/Asmoday/rocks/master/  avro
 tarantoolctl rocks install --server=https://raw.githubusercontent.com/Asmoday/rocks/master/  kafka
+tarantoolctl rocks install luacov
