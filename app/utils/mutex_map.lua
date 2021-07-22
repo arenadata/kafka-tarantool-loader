@@ -1,0 +1,52 @@
+-- Copyright 2021 Kafka-Tarantool-Loader
+--
+-- Licensed under the Apache License, Version 2.0 (the "License");
+-- you may not use this file except in compliance with the License.
+-- You may obtain a copy of the License at
+--
+--     http://www.apache.org/licenses/LICENSE-2.0
+--
+-- Unless required by applicable law or agreed to in writing, software
+-- distributed under the License is distributed on an "AS IS" BASIS,
+-- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+-- See the License for the specific language governing permissions and
+-- limitations under the License.
+
+
+local fiber = require('fiber')
+
+-- class which implement map of mutex table
+local mutex_map = {
+    cache = {},
+
+    -- method lock space for writing
+    --- @param table string - space for lock
+    lock = function(self, table)
+        if self.cache[table] == nil then
+            self.cache[table] = fiber.channel(1)
+        end
+        self.cache[table]:put(true)
+    end,
+
+    -- method unlock space for writing
+    --- @param table string - space for unlock
+    unlock = function(self, table)
+        if self.cache[table] ~= nil then
+            self.cache[table]:get()
+            self.cache[table] = nil
+        end
+    end,
+
+    -- method clear cache
+    clear = function(self)
+        self.cache = {}
+    end
+}
+
+function init_mutex_map()
+    return mutex_map
+end
+
+return {
+    init_mutex_map = init_mutex_map
+}
