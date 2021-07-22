@@ -1,6 +1,14 @@
 all: build run
 
-CMD = docker run --rm -it --name memstorage -p 8081:8081 -v $(shell pwd):/memstore --network memstorage registry.gitlab.com/picodata/dockers/memstorage-builder
+DOCKER_OPTS = --rm -i
+
+IS_TTY:=$(shell [ -t 0 ] && echo 1)
+ifeq ($(IS_TTY),1)
+  DOCKER_OPTS += -t
+endif
+
+CMD = docker run ${DOCKER_OPTS} --name memstorage -p 8081:8081 -v $(shell pwd):/memstore --network memstorage picodata/memstorage-builder:latest
+
 dev_deps:
 	docker-compose -f dev/docker-compose-dev.yml up -d
 
