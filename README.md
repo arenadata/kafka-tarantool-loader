@@ -1,3 +1,5 @@
+[![Tests](https://github.com/arenadata/kafka-tarantool-loader/actions/workflows/tests.yml/badge.svg)](https://github.com/arenadata/kafka-tarantool-loader/actions/workflows/tests.yml) [![Build](https://github.com/arenadata/kafka-tarantool-loader/actions/workflows/build.yml/badge.svg)](https://github.com/arenadata/kafka-tarantool-loader/actions/workflows/build.yml)
+
 # Arenadata Grid
 ## How to build app
 
