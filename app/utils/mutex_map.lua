@@ -43,10 +43,10 @@ local mutex_map = {
     end
 }
 
-function init_mutex_map()
+function get_mutex_map()
     return mutex_map
 end
 
 return {
-    init_mutex_map = init_mutex_map
+    get_mutex_map = get_mutex_map
 }

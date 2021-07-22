@@ -914,7 +914,7 @@ local function init(opts) -- luacheck: no unused args
     _G.reverse_history_in_scd_table = reverse_history_in_scd_table
     _G.delete_data_from_scd_table_sql = delete_data_from_scd_table_sql
     _G.get_scd_table_checksum = get_scd_table_checksum
-    _G.table_mutex_map = mutex_map.init_mutex_map()
+    _G.table_mutex_map = mutex_map.get_mutex_map()
 
 
     garbage_fiber = fiber.create(
