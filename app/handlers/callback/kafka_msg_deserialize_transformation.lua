@@ -1,11 +1,11 @@
 -- Copyright 2021 Kafka-Tarantool-Loader
--- 
+--
 -- Licensed under the Apache License, Version 2.0 (the "License");
 -- you may not use this file except in compliance with the License.
 -- You may obtain a copy of the License at
--- 
+--
 --     http://www.apache.org/licenses/LICENSE-2.0
--- 
+--
 -- Unless required by applicable law or agreed to in writing, software
 -- distributed under the License is distributed on an "AS IS" BASIS,
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -19,7 +19,7 @@
 ---
 local fiber = require('fiber')
 local log = require('log')
-local checks = require('checks')
+-- local checks = require('checks')
 local clock = require('clock')
 
 local kafka_msg_deserialize_transformation = {}
@@ -100,7 +100,8 @@ local function process(kafka_msg,error_dest,fiber_name)
     if kafka_msg == nil then
         return nil
     else
-        local deserialize_msg = { msg = { topic = kafka_msg:topic(), partition = kafka_msg:partition(), offset = kafka_msg:offset(), key = kafka_msg:key()}, raw_msg = kafka_msg}
+        local deserialize_msg = { msg = { topic = kafka_msg:topic(), partition = kafka_msg:partition(), offset = kafka_msg:offset(),
+                                          key = kafka_msg:key()}, raw_msg = kafka_msg}
         local enrich_msg = enrich_msg_with_subscribe_metadata(deserialize_msg,error_dest,fiber_name)
         return enrich_msg
     end

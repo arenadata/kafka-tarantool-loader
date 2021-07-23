@@ -38,3 +38,7 @@ test_vinyl:
 
 test_all:
 	$(CMD) /bin/bash -c "test/all.sh"
+
+lint:
+	$(CMD) /bin/bash -c ".rocks/bin/luacheck app/ test/"
+

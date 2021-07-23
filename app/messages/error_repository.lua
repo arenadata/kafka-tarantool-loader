@@ -1,11 +1,11 @@
 -- Copyright 2021 Kafka-Tarantool-Loader
--- 
+--
 -- Licensed under the Apache License, Version 2.0 (the "License");
 -- you may not use this file except in compliance with the License.
 -- You may obtain a copy of the License at
--- 
+--
 --     http://www.apache.org/licenses/LICENSE-2.0
--- 
+--
 -- Unless required by applicable law or agreed to in writing, software
 -- distributed under the License is distributed on an "AS IS" BASIS,
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,7 +17,7 @@ local log = require('log')
 local message_utils = require('app.messages.utils.message_utils')
 local file_utils = require('app.utils.file_utils')
 local repository_utils = require('app.messages.utils.repository_utils')
-local fio = require('fio')
+-- local fio = require('fio')
 local json = require('json')
 
 ---@type table -that contains error operations messages.

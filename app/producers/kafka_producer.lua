@@ -1,11 +1,11 @@
 -- Copyright 2021 Kafka-Tarantool-Loader
--- 
+--
 -- Licensed under the Apache License, Version 2.0 (the "License");
 -- you may not use this file except in compliance with the License.
 -- You may obtain a copy of the License at
--- 
+--
 --     http://www.apache.org/licenses/LICENSE-2.0
--- 
+--
 -- Unless required by applicable law or agreed to in writing, software
 -- distributed under the License is distributed on an "AS IS" BASIS,
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -18,9 +18,9 @@
 ---
 local checks = require('checks')
 local log = require('log')
-local misc_utils = require('app.utils.misc_utils')
+-- local misc_utils = require('app.utils.misc_utils')
 local tnt_kafka = require('kafka')
-local fiber = require('fiber')
+-- local fiber = require('fiber')
 --- Producer
 ---
 ---
@@ -90,6 +90,7 @@ function kafka_producer.close(self)
     checks('table')
     log.info("INFO: closing producer")
     local  res,err = pcall(self.producer.close,self.producer)
+-- luacheck: ignore self
     self = nil
     return res,err
 end

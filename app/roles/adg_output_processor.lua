@@ -1,11 +1,11 @@
 -- Copyright 2021 Kafka-Tarantool-Loader
--- 
+--
 -- Licensed under the Apache License, Version 2.0 (the "License");
 -- you may not use this file except in compliance with the License.
 -- You may obtain a copy of the License at
--- 
+--
 --     http://www.apache.org/licenses/LICENSE-2.0
--- 
+--
 -- Unless required by applicable law or agreed to in writing, software
 -- distributed under the License is distributed on an "AS IS" BASIS,
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -67,6 +67,7 @@ local function stop()
     return true
 end
 
+-- luacheck: ignore conf_old
 local function validate_config(conf_new, conf_old)
     if type(box.cfg) ~= 'function' and not box.cfg.read_only then
         local schema_registry_opts = yaml.decode(conf_new['kafka_schema_registry.yml'] or [[]]) or {['host'] = 'localhost',['port'] = 8081}
@@ -225,6 +226,7 @@ local function send_query_to_kafka_with_plan(replica_uuid,plan,stream_number,str
         end
         local is_message_sended, message_send_err = send_simple_msg_to_kafka(topic_name,key,data)
 
+-- luacheck: ignore futures_send
         futures_send = futures_send + 1
 
         if is_message_sended then
@@ -247,10 +249,13 @@ local function send_query_to_kafka(topic_name, query, opts)
 
     local batch_size = opts['batch_size'] or 1000
     local schema_name = opts['schema_name'] or nil
+-- luacheck: ignore schema
     local schema = nil
-    local ok,methods = nil,nil
+-- luacheck: ignore ok
+    local ok, methods = nil,nil
+-- luacheck: ignore is_generate data
     local is_generate, data = nil, nil
-    
+
     if schema_name ~= nil then
         schema = avro_schema_utils.get_schema(schema_name)
 
@@ -290,7 +295,7 @@ local function send_query_to_kafka(topic_name, query, opts)
     end
 
 
-    
+
     local stream_query = query .. ' order by 1 limit ? offset ?'
 
 
@@ -322,7 +327,7 @@ local function send_query_to_kafka(topic_name, query, opts)
             end
             future:wait_result(360)
             local res, err = future:result()
-            
+
             if res == nil then
                 return false, error_repository.get_error_code('ADG_OUTPUT_PROCESSOR_001', {desc=err,
                                                                                         stream_number=stream_number,
@@ -332,7 +337,7 @@ local function send_query_to_kafka(topic_name, query, opts)
 
             --Remove bucket_id
             if schema_name ~= nil then
-                local ok,bucket_id_c = pcall(sql_select.get_bucket_id_column_number(res[1]))
+                local _, bucket_id_c = pcall(sql_select.get_bucket_id_column_number(res[1]))
                 if bucket_id_c ~= nil then
                     for _,v in ipairs(res[1]['rows']) do
                         v[bucket_id_c] = nil
@@ -375,8 +380,10 @@ end
 local function send_table_to_kafka(topic_name,table,filter,opts)
     local ok,err
     if filter == nil then
-         ok,err = send_query_to_kafka(topic_name,string.format('select * from %s',table),opts)
-    else  ok,err = send_query_to_kafka(topic_name,string.format('select * from %s where %s',table,filter),opts) --TODO SQL injections ????????????
+        ok, err = send_query_to_kafka(topic_name, string.format('select * from %s', table), opts)
+    else
+-- luacheck: max line length 180
+        ok, err = send_query_to_kafka(topic_name,string.format('select * from %s where %s', table, filter), opts) --TODO SQL injections ????????????
     end
 
     return ok,err
@@ -393,6 +400,7 @@ end
 
 
 local function get_schema()
+-- luacheck: ignore cartridge_rpc
     for _, instance_uri in pairs(cartridge_rpc.get_candidates('app.roles.adg_storage', { leader_only = true })) do
         return cartridge_rpc.call('app.roles.adg_storage', 'get_schema', nil, { uri = instance_uri })
     end
@@ -407,7 +415,7 @@ local function init(opts)
     _G.send_table_to_kafka = send_table_to_kafka
     _G.send_query_to_kafka_with_plan = send_query_to_kafka_with_plan
 
-    if opts.is_master then
+    if opts.is_master then -- luacheck: ignore 542
     end
 
     garbage_fiber = fiber.create(
@@ -416,12 +424,12 @@ local function init(opts)
     )
 
     garbage_fiber:name('GARBAGE_COLLECTOR_FIBER')
-    
+
     _G.get_metric = get_metric
-    
+
     local httpd = cartridge.service_get('httpd')
     httpd:route({method='GET', path = '/metrics'}, prometheus.collect_http)
-    
+
     return true
 end
 

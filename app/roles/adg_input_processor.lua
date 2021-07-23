@@ -1,11 +1,11 @@
 -- Copyright 2021 Kafka-Tarantool-Loader
--- 
+--
 -- Licensed under the Apache License, Version 2.0 (the "License");
 -- you may not use this file except in compliance with the License.
 -- You may obtain a copy of the License at
--- 
+--
 --     http://www.apache.org/licenses/LICENSE-2.0
--- 
+--
 -- Unless required by applicable law or agreed to in writing, software
 -- distributed under the License is distributed on an "AS IS" BASIS,
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -33,7 +33,7 @@ local fiber = require('fiber')
 local validate_utils = require('app.utils.validate_utils')
 local yaml = require('yaml')
 
-local cartridge_pool = require('cartridge.pool')
+-- local cartridge_pool = require('cartridge.pool')
 local cartridge_rpc = require('cartridge.rpc')
 
 local role_name = 'app.roles.adg_input_processor'
@@ -43,7 +43,7 @@ _G.load_csv_lines = nil
 _G.get_metric = nil
 _G.insert_message_from_kafka_async = nil
 
-local misc_utils = require('app.utils.misc_utils')
+-- local misc_utils = require('app.utils.misc_utils')
 
 local metrics = require('app.metrics.metrics_storage')
 
@@ -56,10 +56,11 @@ local function stop()
     return true
 end
 
-
+-- luacheck: ignore conf_old
 local function validate_config(conf_new, conf_old)
     if type(box.cfg) ~= 'function' and not box.cfg.read_only then
         local kafka_topics = yaml.decode(conf_new['kafka_topics.yml'] or [[]]) or {}
+-- luacheck: max line length 180
         local kafka_consumers = yaml.decode(conf_new['kafka_consume.yml'] or [[]]) or {['topics'] = {}, ['properties'] = {}, ['custom_properties'] = {}}
 
         local is_topic_defs_ok, topic_defs_err = validate_utils.check_topic_definition(kafka_consumers['topics'],kafka_topics)
@@ -215,8 +216,8 @@ local function load_csv_lines(space_name, lines)
     return true
 end
 
-
-local function parse_csv(topic,value)
+-- luacheck: ignore topic value
+local function parse_csv(topic, value)
     -- TODO multiple string parse
     --return string.split(value:gsub('%"',''),',')
 end
@@ -262,7 +263,7 @@ local function parse_avro(schema,value)
 
     log.info('INFO: Avro data validated against schema')
 
-    
+
 
     local methods = schema_cache[key] or nil
 
@@ -279,10 +280,10 @@ local function parse_avro(schema,value)
         end
         log.info('INFO: Avro schema successfully compiled')
         schema_cache[key] = methods
-    end 
+    end
 
 
-    
+
     local is_generate, data = schema_cache[key].flatten(normalized_data) --MSG Pack????
     if not is_generate then
         return false, error_repository.get_error_code('AVRO_SCHEMA_006', {error=data})
@@ -293,10 +294,11 @@ end
 
 
 local function prepare_kafka_message_for_insert(topic,data,parse_function)
+-- luacheck: ignore result
     local result = {}
 
     local is_data_schema_ok, data_schema = avro_schema_utils.get_data_schema(topic)
-    
+
     if not is_data_schema_ok then
         return false, data_schema
     end
@@ -427,7 +429,8 @@ local function load_value_to_storage(value,spaces)
     return is_all_loaded,result
 end
 
-local function insert_messages_from_kafka(messages,parse_key_function_str,parse_value_function_str,spaces,avro_schema)
+-- luacheck: ignore parse_key_function_str
+local function insert_messages_from_kafka(messages, parse_key_function_str, parse_value_function_str, spaces,avro_schema)
     checks('table','string','string','table','?string')
     local loaded_msg = 0
     for _,v in ipairs(messages) do
@@ -455,6 +458,7 @@ local function insert_messages_from_kafka(messages,parse_key_function_str,parse_
 
         if not is_value_loaded then
             -- for each space. {space = {result = true|false, desc = {error = error, amount}}}
+-- luacheck: ignore k
             local loaded_rows_cnt = fun.map(function(k,v) return v.desc.amount end, loaded_value):sum() --loaded rows
             local concatenate_error = fun.filter(function(k,v) return not v.result end,loaded_value) --filter errors
                                          :map(function(k,v) return k .. ': ' .. tostring(v.desc.error) end)    --extract error
@@ -501,6 +505,7 @@ local function insert_message_from_kafka_async(message,parse_key_function_str,pa
 
         if not is_value_loaded then
             -- for each space. {space = {result = true|false, desc = {error = error, amount}}}
+-- luacheck: ignore k
             local loaded_rows_cnt = fun.map(function(k,v) return v.desc.amount end, loaded_value):sum() --loaded rows
             local concatenate_error = fun.filter(function(k,v) return not v.result end,loaded_value) --filter errors
                                          :map(function(k,v) return k .. ': ' .. tostring(v.desc.error) end)    --extract error
@@ -513,10 +518,11 @@ local function insert_message_from_kafka_async(message,parse_key_function_str,pa
 
 end
 
+-- luacheck: ignore insert_messages_from_kafka_old
 local function insert_messages_from_kafka_old(messages,parse_key_function_str,parse_value_function_str)
     checks('table','string','string')
 
-    local parse_key_function = get_function_by_name(parse_key_function_str)
+--    local parse_key_function = get_function_by_name(parse_key_function_str)
     local parse_value_function = get_function_by_name(parse_value_function_str)
 
     local parsing_result = {}
@@ -592,6 +598,7 @@ local function insert_messages_from_kafka_old(messages,parse_key_function_str,pa
 
 
     local valid_messages = fun.filter(
+-- luacheck: ignore k
         function(k,v)
             return v['result'] == true
         end, parsing_result
@@ -632,7 +639,7 @@ local function init(opts)
     _G.insert_messages_from_kafka = insert_messages_from_kafka
     _G.load_csv_lines = load_csv_lines
     _G.insert_message_from_kafka_async = insert_message_from_kafka_async
-    if opts.is_master then
+    if opts.is_master then -- luacheck: ignore 542
     end
 
     garbage_fiber = fiber.create(
@@ -646,7 +653,7 @@ local function init(opts)
     )
     cache_clear_fiber:name('CLEAR_CACHE_FIBER')
 
- 
+
     _G.get_metric = get_metric
 
     local httpd = cartridge.service_get('httpd')

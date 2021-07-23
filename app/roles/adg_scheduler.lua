@@ -1,11 +1,11 @@
 -- Copyright 2021 Kafka-Tarantool-Loader
--- 
+--
 -- Licensed under the Apache License, Version 2.0 (the "License");
 -- you may not use this file except in compliance with the License.
 -- You may obtain a copy of the License at
--- 
+--
 --     http://www.apache.org/licenses/LICENSE-2.0
--- 
+--
 -- Unless required by applicable law or agreed to in writing, software
 -- distributed under the License is distributed on an "AS IS" BASIS,
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -25,10 +25,10 @@ local error_repository = require('app.messages.error_repository')
 local success_repository = require('app.messages.success_repository')
 local metrics = require('app.metrics.metrics_storage')
 
-local cartridge_pool = require('cartridge.pool')
+-- local cartridge_pool = require('cartridge.pool')
 local cartridge_rpc = require('cartridge.rpc')
 
-local json = require('json')
+-- local json = require('json')
 
 local role_name = 'app.roles.adg_scheduler'
 
@@ -45,10 +45,10 @@ local function stop()
     return true
 end
 
-
+-- luacheck: ignore conf_old
 local function validate_config(conf_new, conf_old)
     if type(box.cfg) ~= 'function' and not box.cfg.read_only then
-        if conf_new.schema ~= nil then
+        if conf_new.schema ~= nil then -- luacheck: ignore 542
         end
     end
     return true
@@ -57,14 +57,16 @@ end
 
 local function apply_config(conf, opts) -- luacheck: no unused args
     if opts.is_master and  pcall(vshard.storage.info) == false then
-        schema_utils.drop_all() 
-        if conf.schema ~= nil then
+        schema_utils.drop_all()
+        if conf.schema ~= nil then -- luacheck: ignore 542
         end
     end
     if schedule_fiber ~= nil and schedule_fiber:status() ~= 'dead' then
         schedule_fiber:cancel()
     end
     scheduler_utils.init_scheduler_tasks()
+
+-- luacheck: ignore event_loop_run
     schedule_fiber = fiber.create(event_loop_run)
     if schedule_fiber ~= nil and schedule_fiber:status() ~= 'dead' then
         schedule_fiber:name('SCHEDULER_FIBER')
@@ -120,9 +122,9 @@ local function init(opts)
     rawset(_G, 'ddl', { get_schema = get_schema })
 
     _G.event_loop_run = event_loop_run
-    if opts.is_master then
+    if opts.is_master then -- luacheck: ignore 542
     end
-    
+
 
     garbage_fiber = fiber.create(
         function() while true do collectgarbage('step', 20);
@@ -135,7 +137,7 @@ local function init(opts)
 
     local httpd = cartridge.service_get('httpd')
     httpd:route({method='GET', path = '/metrics'}, prometheus.collect_http)
-    
+
     return true
 end
 

@@ -1,11 +1,11 @@
 -- Copyright 2021 Kafka-Tarantool-Loader
--- 
+--
 -- Licensed under the Apache License, Version 2.0 (the "License");
 -- you may not use this file except in compliance with the License.
 -- You may obtain a copy of the License at
--- 
+--
 --     http://www.apache.org/licenses/LICENSE-2.0
--- 
+--
 -- Unless required by applicable law or agreed to in writing, software
 -- distributed under the License is distributed on an "AS IS" BASIS,
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -37,7 +37,7 @@ local fiber = require('fiber')
 local yaml = require('yaml')
 local math = require('math')
 
-local cartridge_pool = require('cartridge.pool')
+-- local cartridge_pool = require('cartridge.pool')
 local cartridge_rpc = require('cartridge.rpc')
 
 _G.update_delete_batch_storage = nil
@@ -114,7 +114,7 @@ local function init_ddl_queue_space()
 end
 
 local function init_kafka_callbacks_logs()
-
+-- luacheck: ignore cb_function_call_log_seq
     local cb_function_call_log_seq = box.schema.sequence.create('KAFKA_CALLBACK_FUNCTIONS_SEQ', { if_not_exists = true })
 
     local cb_function_call_log = box.schema.space.create(
@@ -143,6 +143,7 @@ local function init_kafka_callbacks_logs()
 end
 
 local function init_kafka_error_msgs()
+-- luacheck: ignore err_kafka_msg_seq
     local err_kafka_msg_seq = box.schema.sequence.create("KAFKA_ERRORS_SEQ", { if_not_exists = true })
 
     local err_kafka_err = box.schema.space.create(
@@ -513,7 +514,7 @@ local function ddl_queue_processor()
         end
         --wakeup
 
-        for k, v in pairs(ddl_callbacks) do
+        for _, v in pairs(ddl_callbacks) do
             if v['status'] ~= 'created' then
                 v['cond']:broadcast()
             end
@@ -581,6 +582,7 @@ local function get_callback_function_schema(function_name)
     return cb_function['CALLBACK_FUNCTION_PARAM_SCHEMA'], nil
 end
 
+-- luacheck: ignore conf_old
 local function validate_config(conf_new, conf_old)
     -- luacheck: no unused args
 
@@ -608,6 +610,7 @@ local function validate_config(conf_new, conf_old)
     return true
 end
 
+-- luacheck: ignore conf
 local function apply_config(conf, opts)
 
     schema_utils.init_schema_ddl()
@@ -709,6 +712,7 @@ local function delayed_delete_prefix(prefix)
         return nil, 'ERROR: _DDL_QUEUE space not found'
     end
 
+-- luacheck: ignore err
     local tuple, err
     box.begin()
     tuple, err = space:insert(
@@ -754,6 +758,7 @@ local function delayed_create(spaces)
         return nil, 'ERROR: _DDL_QUEUE space not found'
     end
 
+-- luacheck: ignore err
     local tuple, err
     box.begin()
     for k, v in pairs(spaces) do
@@ -795,6 +800,7 @@ local function delayed_delete(spaces)
     checks('table')
 
     local space = box.space['_DDL_QUEUE']
+-- luacheck: ignore err
     local tuple, err
     if space == nil then
         return nil, 'ERROR: _DDL_QUEUE space not found'

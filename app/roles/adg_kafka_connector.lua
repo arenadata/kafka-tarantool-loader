@@ -1,11 +1,11 @@
 -- Copyright 2021 Kafka-Tarantool-Loader
--- 
+--
 -- Licensed under the Apache License, Version 2.0 (the "License");
 -- you may not use this file except in compliance with the License.
 -- You may obtain a copy of the License at
--- 
+--
 --     http://www.apache.org/licenses/LICENSE-2.0
--- 
+--
 -- Unless required by applicable law or agreed to in writing, software
 -- distributed under the License is distributed on an "AS IS" BASIS,
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -26,7 +26,7 @@ local prometheus = require('metrics.plugins.prometheus')
 local fun = require('fun')
 local error_repository = require('app.messages.error_repository')
 local success_repository = require('app.messages.success_repository')
-local misc_utils = require('app.utils.misc_utils')
+-- local misc_utils = require('app.utils.misc_utils')
 local validate_utils = require('app.utils.validate_utils')
 local json = require('json')
 local vshard = require('vshard')
@@ -34,16 +34,16 @@ local metrics = require('app.metrics.metrics_storage')
 local errors = require('errors')
 local yaml = require('yaml')
 local role_name = 'app.roles.adg_kafka_connector'
-local last_topics = {}
+local last_topics = {}  -- luacheck: ignore last_topics
 local garbage_fiber = nil
-local is_consumer_config_change = false
-local is_producer_config_change = false
+local is_consumer_config_change = false -- luacheck: ignore is_consumer_config_change
+local is_producer_config_change = false-- luacheck: ignore is_producer_config_change
 local producer = nil
 local default_consumer = nil
 local err_storage = errors.new_class("Kafka storage error")
 local topic_x_consumers = {}
 
-local cartridge_pool = require('cartridge.pool')
+-- local cartridge_pool = require('cartridge.pool')
 local cartridge_rpc = require('cartridge.rpc')
 
 
@@ -78,6 +78,7 @@ local function validate_config(conf_new, conf_old)
         end
 
         local kafka_topics = yaml.decode(conf_new['kafka_topics.yml'] or [[]]) or {}
+-- luacheck: max line length 180
         local kafka_consumers = yaml.decode(conf_new['kafka_consume.yml'] or [[]]) or { ['topics'] = {}, ['properties'] = {}, ['custom_properties'] = {} }
         local kafka_producers = yaml.decode(conf_new['kafka_produce.yml'] or [[]]) or { ['properties'] = {}, ['custom_properties'] = {} }
 
@@ -122,7 +123,7 @@ local function apply_config(conf, opts)
     -- luacheck: no unused args
     if opts.is_master and pcall(vshard.storage.info) == false then
         schema_utils.drop_all()
-        if conf.schema ~= nil then
+        if conf.schema ~= nil then -- luacheck: ignore 542
         end
     end
     kafka_utils.init_kafka_opts()
@@ -154,6 +155,7 @@ local function extract_last_messages_from_batch(batch)
 
 end
 
+-- luacheck: ignore create_messages_hash_map
 local function create_messages_hash_map(messages)
     local res = {}
     for _, v in ipairs(messages) do
@@ -163,11 +165,12 @@ local function create_messages_hash_map(messages)
 end
 
 --TODO Refactor
+-- luacheck: ignore extract_last_valid_messages_from_proccessing
 local function extract_last_valid_messages_from_proccessing(batch)
     checks('table')
     local keys = {}
 
-    for k, v in pairs(batch) do
+    for _, v in pairs(batch) do
         local l = v['topic'] .. ':' .. v['partition']
         if keys[l] == nil then
             keys[l] = { v }
@@ -176,7 +179,7 @@ local function extract_last_valid_messages_from_proccessing(batch)
         end
     end
 
-    for k, v in pairs(keys) do
+    for _, v in pairs(keys) do
         table.sort(v, function(a, b)
             return a['offset'] < b['offset']
         end)
@@ -184,7 +187,7 @@ local function extract_last_valid_messages_from_proccessing(batch)
 
     local res = {}
 
-    for k, v in pairs(keys) do
+    for _, v in pairs(keys) do
         if #v == 1 and v[1]['result'] == true then
             table.insert(res, v[1]['topic'] .. ':' .. tostring(v[1]['partition']) .. ':' .. tostring(v[1]['offset']))
         end
@@ -196,6 +199,7 @@ local function extract_last_valid_messages_from_proccessing(batch)
                 local cur_value = v[i]
 
                 if prev_value['result'] == true and cur_value['result'] == false then
+-- luacheck: max line length 180
                     table.insert(res, prev_value['topic'] .. ':' .. tostring(prev_value['partition']) .. ':' .. tostring(prev_value['offset']))
                 end
 
@@ -248,8 +252,9 @@ local function get_messages_from_kafka()
 
             if return_values == nil then
                 --TODO Send messages to kafka
-                for k, v in ipairs(serialized_kafka_msgs) do
+                for _, v in ipairs(serialized_kafka_msgs) do
                     metrics.kafka_messages_total_counter:inc(1, { status = 'error' })
+-- luacheck: ignore send_messages_to_kafka
                     local rpc_send_ok_ok, rpc_send_ok_err = send_messages_to_kafka(
                         route_utils.get_topic_error()[v['topic']],
                         { key = v['key'], value = error_repository.get_error_code('ADG_KAFKA_CONNECTOR_002', {
@@ -267,7 +272,8 @@ local function get_messages_from_kafka()
             end
 
             local valid_messages, not_valid_messages = fun.partition(
-                    function(k, v)
+-- luacheck: ignore k
+                function(k, v)
                         return v['result'] == true
                     end, return_values
             )
@@ -280,6 +286,7 @@ local function get_messages_from_kafka()
                     local kafka_msg_errors = json.decode(v['error'])
                     kafka_msg_errors.opts['source'] = v['topic']
                     kafka_msg_errors.opts['destination'] = v['space']
+-- luacheck: ignore send_messages_to_kafka
                     local rpc_send_ok_ok, rpc_send_ok_err = send_messages_to_kafka(
                         route_utils.get_topic_error()[v['topic']],
                         { [1] = { key = v['key'], value = json.encode(kafka_msg_errors) } },
@@ -297,6 +304,7 @@ local function get_messages_from_kafka()
                 log.info('Sending success msg to kafka')
                 for k, v in pairs(fun.tomap(valid_messages)) do
                     metrics.kafka_messages_total_counter:inc(1, { status = 'success' })
+-- luacheck: ignore send_messages_to_kafka
                     local rpc_send_ok_ok, rpc_send_ok_err = send_messages_to_kafka(
                         route_utils.get_topic_success()[v['topic']],
                         { [1] = { key = v['key'], value = success_repository.get_success_code('ADG_KAFKA_CONNECTOR_001', {
@@ -334,6 +342,7 @@ local function get_messages_from_kafka()
     end
 end
 
+-- luacheck: ignore opts
 local function send_messages_to_kafka(topic_name, messages, opts)
     local is_send, err = producer:produce_async(topic_name,messages)
     return is_send, err
@@ -583,7 +592,7 @@ local function dataload_from_topic_fiber(topic_name, spaces, max_number_of_messa
     if not msg_polled then
         return {false, error = msgs, amount = 0 }
     end
-    local consumed_msg = 0
+--    local consumed_msg = 0
     if msgs.amount > 0 then
         local serialized_kafka_msgs = fun.map(function(v) return v:value() end,msgs.result):totable()
         local msg_with_max_offset = fun.max_by(function (a,b) if a:offset() > b:offset() then return a else return b end end,
@@ -617,6 +626,7 @@ local function dataload_from_topic_fiber(topic_name, spaces, max_number_of_messa
 
 end
 
+-- luacheck: ignore subscribe_to_topic_old
 local function subscribe_to_topic_old(topic_name, max_number_of_messages, avro_schema)
     checks('string', 'number', '?string')
     local f = fiber.new(subscribe_to_topic_fiber_old, topic_name, max_number_of_messages, avro_schema)
@@ -786,10 +796,10 @@ local function init(opts)
 
     garbage_fiber:name('GARBAGE_COLLECTOR_FIBER')
 
-    local is_producer_ok
+    local is_producer_ok -- luacheck: ignore is_producer_ok
     is_producer_ok, producer = kafka_producer.init(kafka_utils.get_brokers()):build()
 
-    local is_default_consumer_ok
+    local is_default_consumer_ok -- luacheck: ignore is_default_consumer_ok
     is_default_consumer_ok, default_consumer =  kafka_consumer.init(kafka_utils.get_brokers()):set_options(
             kafka_utils.get_options()
     ):build()
@@ -802,7 +812,7 @@ local function init(opts)
 
     _G.get_metric = get_metric
 
-    local res, err = subscribe_to_all_topics()
+    local _, _ = subscribe_to_all_topics()
 
     local httpd = cartridge.service_get('httpd')
     httpd:route({method='GET', path = '/metrics'}, prometheus.collect_http)
