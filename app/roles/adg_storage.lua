@@ -16,6 +16,7 @@ local cartridge = require('cartridge')
 local prometheus = require('metrics.plugins.prometheus')
 local ddl = require('ddl')
 local schema_utils = require('app.utils.schema_utils')
+local mutex_map = require('app.utils.mutex_map')
 local etl_config = require('app.etl.config.etl_config')
 local config_utils = require('app.utils.config_utils')
 local yaml = require('yaml')
@@ -60,6 +61,7 @@ _G.transfer_stage_data_to_scd_table = nil
 _G.reverse_history_in_scd_table = nil
 _G.delete_data_from_scd_table_sql =  nil
 _G.get_scd_table_checksum = nil
+_G.table_mutex_map = nil
 
 local err_storage = errors.new_class("Storage error")
 
@@ -504,8 +506,6 @@ local function key_from_tuple(tuple, key_parts)
     return key
 end
 
-local mutex = nil
-
 ---transfer_stage_data_to_scd_table
 ---@param stage_data_table_name string - Name of the table, that contains hot data for scd processing.
 ---@param actual_data_table_name string - Name of the table, that contains actual data for scd processing.
@@ -572,11 +572,11 @@ local function transfer_stage_data_to_scd_table(stage_data_table_name, actual_da
         box.commit()
     end
 
-    -- create mutex for once start function
-    if mutex == nil then
-        mutex = fiber.channel(1)
-    end
-    mutex:put(true)
+    -- create mutex for each space than blocking concurrency write operation in special space
+    -- instead of blocking all write operations
+    table_mutex_map:lock(stage_data_table)
+    table_mutex_map:lock(actual_data_table)
+    table_mutex_map:lock(hist_data_table)
 
     local res, err = err_storage:pcall(
             function ()
@@ -589,9 +589,11 @@ local function transfer_stage_data_to_scd_table(stage_data_table_name, actual_da
                 return true, nil
             end)
 
-    -- free mutex
-    mutex:get()
-    
+    -- free mutex for each space
+    table_mutex_map:unlock(stage_data_table)
+    table_mutex_map:unlock(actual_data_table)
+    table_mutex_map:unlock(hist_data_table)
+
     if err ~= nil then
         log.error(err.trace)
         return nil,error_repository.get_error_code('STORAGE_003', {error = err})
@@ -912,6 +914,7 @@ local function init(opts) -- luacheck: no unused args
     _G.reverse_history_in_scd_table = reverse_history_in_scd_table
     _G.delete_data_from_scd_table_sql = delete_data_from_scd_table_sql
     _G.get_scd_table_checksum = get_scd_table_checksum
+    _G.table_mutex_map = mutex_map.get_mutex_map()
 
 
     garbage_fiber = fiber.create(
@@ -927,6 +930,7 @@ local function init(opts) -- luacheck: no unused args
 end
 
 local function stop()
+    table_mutex_map:clear()
     garbage_fiber:cancel()
     return true
 end
