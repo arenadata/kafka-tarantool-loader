@@ -1,11 +1,11 @@
 -- Copyright 2021 Kafka-Tarantool-Loader
--- 
+--
 -- Licensed under the Apache License, Version 2.0 (the "License");
 -- you may not use this file except in compliance with the License.
 -- You may obtain a copy of the License at
--- 
+--
 --     http://www.apache.org/licenses/LICENSE-2.0
--- 
+--
 -- Unless required by applicable law or agreed to in writing, software
 -- distributed under the License is distributed on an "AS IS" BASIS,
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -294,6 +294,7 @@ local function check_table_for_delta_fields(space_name, table_type)
     -- Check is all required fields exists in space
     local required_fields = nil
     if table_type == 'history' then
+-- luacheck: max line length 180
         required_fields = set.Set({etl_config.get_date_field_end_nm(), etl_config.get_date_field_start_nm(), etl_config.get_date_field_op_nm()})
     elseif table_type == 'actual' then
         required_fields = set.Set({etl_config.get_date_field_start_nm(), etl_config.get_date_field_op_nm()})
@@ -365,10 +366,13 @@ local function check_tables_for_delta(actual_data_table_name,historical_data_tab
 
 
     if not all_fields_ok then
-        return all_fields_ok, error_repository.get_error_code('STORAGE_DELTA_TRANSFER_002', {actual_fields = actual_data_fields, hist_fields = hist_data_fields})
+        return all_fields_ok, error_repository.get_error_code('STORAGE_DELTA_TRANSFER_002', 
+                                                             {actual_fields = actual_data_fields, hist_fields = hist_data_fields})
     end
 
+-- luacheck: max line length 180
     local actual_data_pk_fields = fun.map(function(x) return actual_data_fields[x.fieldno] end,box.space[actual_data_table_name].index[0].parts):totable()
+-- luacheck: max line length 180
     local hist_data_pk_fields = fun.map(function(x) return hist_data_fields[x.fieldno] end,box.space[historical_data_table_name].index[0].parts):totable()
 
     local hist_data_pk_fields_set = set.Set(hist_data_pk_fields)
@@ -380,7 +384,8 @@ local function check_tables_for_delta(actual_data_table_name,historical_data_tab
     if all_pk_fields_ok then
         return all_pk_fields_ok,nil
         else
-        return all_fields_ok, error_repository.get_error_code('STORAGE_DELTA_TRANSFER_002', {actual_data_pk_fields = actual_data_pk_fields, hist_data_pk_fields = hist_data_pk_fields})
+        return all_fields_ok, error_repository.get_error_code('STORAGE_DELTA_TRANSFER_002', 
+                                                              {actual_data_pk_fields = actual_data_pk_fields, hist_data_pk_fields = hist_data_pk_fields})
     end
 
 end
@@ -421,6 +426,7 @@ local function transfer_data_to_historical_table(actual_data_table_name,historic
 
     --Get primary key
     local actual_data_pk = fun.map(function(x) return x.fieldno end,box.space[actual_data_table_name].index[0].parts):totable()
+-- luacheck: max line length 180
     local actual_data_pk_fields = fun.map(function(x) return actual_table_meta[x.fieldno] end,box.space[actual_data_table_name].index[0].parts):totable()
     --remove etl_config.get_date_field_start_nm()
     actual_data_pk_fields[#actual_data_pk_fields] = nil
@@ -551,7 +557,7 @@ local function transfer_stage_data_to_scd_table(stage_data_table_name, actual_da
     local actual_data_table = box.space[actual_data_table_name]
     local hist_data_table = box.space[historical_data_table_name]
 
-    local function transfer_function(stage_tuple)    
+    local function transfer_function(stage_tuple)
         box.begin()
         local actual_tuples = actual_data_table:select(key_from_tuple(stage_tuple,stage_data_pk))
         for _,actual_tuple in ipairs(actual_tuples) do
@@ -591,7 +597,7 @@ local function transfer_stage_data_to_scd_table(stage_data_table_name, actual_da
 
     -- free mutex
     mutex:get()
-    
+
     if err ~= nil then
         log.error(err.trace)
         return nil,error_repository.get_error_code('STORAGE_003', {error = err})
@@ -600,7 +606,8 @@ local function transfer_stage_data_to_scd_table(stage_data_table_name, actual_da
     return true,nil
 end
 
-local function reverse_history_in_scd_table(stage_data_table_name, actual_data_table_name,historical_data_table_name, delta_number,batch_size)
+-- luacheck: max line length 180
+local function reverse_history_in_scd_table(stage_data_table_name, actual_data_table_name, historical_data_table_name, delta_number, batch_size)
     checks('string','string','string','number','?number')
 
     local is_stage_table_ok, err_stage = check_table_for_delta_fields(stage_data_table_name, 'stage')
@@ -778,12 +785,12 @@ local function delete_data_from_scd_table_sql (space_name, where_condition)
     return execute_sql(sql)
 end
 
---- The function calculates a checksum within a delta_number for all of the logical tables in the datamart or for one logical table. 
+--- The function calculates a checksum within a delta_number for all of the logical tables in the datamart or for one logical table.
 --- @param actual_data_table_name string - space for actual table
 --- @param historical_data_table_name string - space for history table
 --- @param delta_number number - delta (https://arenadata.atlassian.net/wiki/spaces/DTM/pages/46653935/delta)
 --- @param column_list table - optional, columns list for calculate checksum
---- @param normalization number - optional, coefficient of increasing the possible number 
+--- @param normalization number - optional, coefficient of increasing the possible number
 ----                              of records within the delta. (positive integer greater than or equal to 1, default 1).
 local function get_scd_table_checksum(actual_data_table_name, historical_data_table_name, delta_number, column_list, normalization)
     checks('string','string','number','?table','?number')

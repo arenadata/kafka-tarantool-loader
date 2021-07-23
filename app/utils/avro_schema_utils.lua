@@ -1,11 +1,11 @@
 -- Copyright 2021 Kafka-Tarantool-Loader
--- 
+--
 -- Licensed under the Apache License, Version 2.0 (the "License");
 -- you may not use this file except in compliance with the License.
 -- You may obtain a copy of the License at
--- 
+--
 --     http://www.apache.org/licenses/LICENSE-2.0
--- 
+--
 -- Unless required by applicable law or agreed to in writing, software
 -- distributed under the License is distributed on an "AS IS" BASIS,
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -72,7 +72,7 @@ local function get_schema_from_schema_registry(server,port,schema_name,version)
     log.info('INFO: Send get request to ' .. server .. ':' .. tostring(port))
     log.info('INFO: Trying to  obtain schema ' .. schema_name .. ' ,version ' .. version)
     local response = require('http.client').get(url,{timeout=0.5}) --TODO Optimization Http requests
-    
+
     if(response['status'] ~= 200) then
         log.error(response['body'])
         return false,json.decode(response['body'])
@@ -152,7 +152,7 @@ local function extract_fields(fields)
             end
         end
         end
-        
+
         table.insert(format,format_row)
     end
     return format

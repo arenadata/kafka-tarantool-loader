@@ -1,11 +1,11 @@
 -- Copyright 2021 Kafka-Tarantool-Loader
--- 
+--
 -- Licensed under the Apache License, Version 2.0 (the "License");
 -- you may not use this file except in compliance with the License.
 -- You may obtain a copy of the License at
--- 
+--
 --     http://www.apache.org/licenses/LICENSE-2.0
--- 
+--
 -- Unless required by applicable law or agreed to in writing, software
 -- distributed under the License is distributed on an "AS IS" BASIS,
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -60,6 +60,7 @@ end
 local function validate_config(conf_new, conf_old)
     if type(box.cfg) ~= 'function' and not box.cfg.read_only then
         local kafka_topics = yaml.decode(conf_new['kafka_topics.yml'] or [[]]) or {}
+-- luacheck: max line length 180
         local kafka_consumers = yaml.decode(conf_new['kafka_consume.yml'] or [[]]) or {['topics'] = {}, ['properties'] = {}, ['custom_properties'] = {}}
 
         local is_topic_defs_ok, topic_defs_err = validate_utils.check_topic_definition(kafka_consumers['topics'],kafka_topics)
@@ -262,7 +263,7 @@ local function parse_avro(schema,value)
 
     log.info('INFO: Avro data validated against schema')
 
-    
+
 
     local methods = schema_cache[key] or nil
 
@@ -279,10 +280,10 @@ local function parse_avro(schema,value)
         end
         log.info('INFO: Avro schema successfully compiled')
         schema_cache[key] = methods
-    end 
+    end
 
 
-    
+
     local is_generate, data = schema_cache[key].flatten(normalized_data) --MSG Pack????
     if not is_generate then
         return false, error_repository.get_error_code('AVRO_SCHEMA_006', {error=data})
@@ -296,7 +297,7 @@ local function prepare_kafka_message_for_insert(topic,data,parse_function)
     local result = {}
 
     local is_data_schema_ok, data_schema = avro_schema_utils.get_data_schema(topic)
-    
+
     if not is_data_schema_ok then
         return false, data_schema
     end
@@ -646,7 +647,7 @@ local function init(opts)
     )
     cache_clear_fiber:name('CLEAR_CACHE_FIBER')
 
- 
+
     _G.get_metric = get_metric
 
     local httpd = cartridge.service_get('httpd')

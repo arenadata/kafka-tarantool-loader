@@ -1,11 +1,11 @@
 -- Copyright 2021 Kafka-Tarantool-Loader
--- 
+--
 -- Licensed under the Apache License, Version 2.0 (the "License");
 -- you may not use this file except in compliance with the License.
 -- You may obtain a copy of the License at
--- 
+--
 --     http://www.apache.org/licenses/LICENSE-2.0
--- 
+--
 -- Unless required by applicable law or agreed to in writing, software
 -- distributed under the License is distributed on an "AS IS" BASIS,
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -57,7 +57,7 @@ end
 
 local function apply_config(conf, opts) -- luacheck: no unused args
     if opts.is_master and  pcall(vshard.storage.info) == false then
-        schema_utils.drop_all() 
+        schema_utils.drop_all()
         if conf.schema ~= nil then
         end
     end
@@ -122,7 +122,7 @@ local function init(opts)
     _G.event_loop_run = event_loop_run
     if opts.is_master then
     end
-    
+
 
     garbage_fiber = fiber.create(
         function() while true do collectgarbage('step', 20);
@@ -135,7 +135,7 @@ local function init(opts)
 
     local httpd = cartridge.service_get('httpd')
     httpd:route({method='GET', path = '/metrics'}, prometheus.collect_http)
-    
+
     return true
 end
 

@@ -1,11 +1,11 @@
 -- Copyright 2021 Kafka-Tarantool-Loader
--- 
+--
 -- Licensed under the Apache License, Version 2.0 (the "License");
 -- you may not use this file except in compliance with the License.
 -- You may obtain a copy of the License at
--- 
+--
 --     http://www.apache.org/licenses/LICENSE-2.0
--- 
+--
 -- Unless required by applicable law or agreed to in writing, software
 -- distributed under the License is distributed on an "AS IS" BASIS,
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -597,7 +597,8 @@ local function transfer_data_to_scd_table_on_cluster(stage_data_table_name,actua
     return true, nil
 end
 
-local function reverse_history_in_scd_table_on_cluster(stage_data_table_name, actual_data_table_name,historical_data_table_name, delta_number,batch_size)
+local function reverse_history_in_scd_table_on_cluster(stage_data_table_name, actual_data_table_name,
+                                                       historical_data_table_name, delta_number, batch_size)
     checks('string','string','string','number','?number')
 
     local storages =  cartridge.rpc_get_candidates('app.roles.adg_storage',{leader_only = true}) --TODO Move to single function
@@ -667,7 +668,8 @@ local function transfer_data_to_scd_table_on_cluster_cb(params)
         local actual_data_table_name = params['_actual_data_table_name']
         local historical_data_table_name = params['_historical_data_table_name']
         local delta_number = params['_delta_number']
-        local res,err = transfer_data_to_scd_table_on_cluster(stage_data_table_name,actual_data_table_name,historical_data_table_name,delta_number)
+        local res,err = transfer_data_to_scd_table_on_cluster(stage_data_table_name, actual_data_table_name, 
+                                                              historical_data_table_name, delta_number)
 
         if res ~= true then
             log.error(err)
@@ -877,9 +879,10 @@ end
 --- @param historical_data_table_name string - space for history table
 --- @param delta_number number - delta (https://arenadata.atlassian.net/wiki/spaces/DTM/pages/46653935/delta)
 --- @param column_list table - optional, columns list for calculate checksum
---- @param normalization number - optional, coefficient of increasing the possible number 
+--- @param normalization number - optional, coefficient of increasing the possible number
 --                                of records within the delta. (positive integer greater than or equal to 1, default 1).
-local function get_scd_table_checksum_on_cluster(actual_data_table_name, historical_data_table_name, delta_number, column_list, normalization)
+local function get_scd_table_checksum_on_cluster(actual_data_table_name, historical_data_table_name, 
+                                                 delta_number, column_list, normalization)
     checks('string','string','number','?table','?number')
 
     local storages =  cartridge.rpc_get_candidates('app.roles.adg_storage',{leader_only = true})

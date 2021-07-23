@@ -1,11 +1,11 @@
 -- Copyright 2021 Kafka-Tarantool-Loader
--- 
+--
 -- Licensed under the Apache License, Version 2.0 (the "License");
 -- you may not use this file except in compliance with the License.
 -- You may obtain a copy of the License at
--- 
+--
 --     http://www.apache.org/licenses/LICENSE-2.0
--- 
+--
 -- Unless required by applicable law or agreed to in writing, software
 -- distributed under the License is distributed on an "AS IS" BASIS,
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -250,7 +250,7 @@ local function send_query_to_kafka(topic_name, query, opts)
     local schema = nil
     local ok,methods = nil,nil
     local is_generate, data = nil, nil
-    
+
     if schema_name ~= nil then
         schema = avro_schema_utils.get_schema(schema_name)
 
@@ -290,7 +290,7 @@ local function send_query_to_kafka(topic_name, query, opts)
     end
 
 
-    
+
     local stream_query = query .. ' order by 1 limit ? offset ?'
 
 
@@ -322,7 +322,7 @@ local function send_query_to_kafka(topic_name, query, opts)
             end
             future:wait_result(360)
             local res, err = future:result()
-            
+
             if res == nil then
                 return false, error_repository.get_error_code('ADG_OUTPUT_PROCESSOR_001', {desc=err,
                                                                                         stream_number=stream_number,
@@ -375,8 +375,10 @@ end
 local function send_table_to_kafka(topic_name,table,filter,opts)
     local ok,err
     if filter == nil then
-         ok,err = send_query_to_kafka(topic_name,string.format('select * from %s',table),opts)
-    else  ok,err = send_query_to_kafka(topic_name,string.format('select * from %s where %s',table,filter),opts) --TODO SQL injections ????????????
+        ok, err = send_query_to_kafka(topic_name, string.format('select * from %s', table), opts)
+    else  
+-- luacheck: max line length 180
+        ok, err = send_query_to_kafka(topic_name,string.format('select * from %s where %s', table, filter), opts) --TODO SQL injections ????????????
     end
 
     return ok,err
@@ -416,12 +418,12 @@ local function init(opts)
     )
 
     garbage_fiber:name('GARBAGE_COLLECTOR_FIBER')
-    
+
     _G.get_metric = get_metric
-    
+
     local httpd = cartridge.service_get('httpd')
     httpd:route({method='GET', path = '/metrics'}, prometheus.collect_http)
-    
+
     return true
 end
 

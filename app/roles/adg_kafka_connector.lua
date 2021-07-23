@@ -1,11 +1,11 @@
 -- Copyright 2021 Kafka-Tarantool-Loader
--- 
+--
 -- Licensed under the Apache License, Version 2.0 (the "License");
 -- you may not use this file except in compliance with the License.
 -- You may obtain a copy of the License at
--- 
+--
 --     http://www.apache.org/licenses/LICENSE-2.0
--- 
+--
 -- Unless required by applicable law or agreed to in writing, software
 -- distributed under the License is distributed on an "AS IS" BASIS,
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -78,6 +78,7 @@ local function validate_config(conf_new, conf_old)
         end
 
         local kafka_topics = yaml.decode(conf_new['kafka_topics.yml'] or [[]]) or {}
+-- luacheck: max line length 180
         local kafka_consumers = yaml.decode(conf_new['kafka_consume.yml'] or [[]]) or { ['topics'] = {}, ['properties'] = {}, ['custom_properties'] = {} }
         local kafka_producers = yaml.decode(conf_new['kafka_produce.yml'] or [[]]) or { ['properties'] = {}, ['custom_properties'] = {} }
 
@@ -196,6 +197,7 @@ local function extract_last_valid_messages_from_proccessing(batch)
                 local cur_value = v[i]
 
                 if prev_value['result'] == true and cur_value['result'] == false then
+-- luacheck: max line length 180
                     table.insert(res, prev_value['topic'] .. ':' .. tostring(prev_value['partition']) .. ':' .. tostring(prev_value['offset']))
                 end
 

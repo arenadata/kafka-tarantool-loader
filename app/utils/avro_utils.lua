@@ -1,11 +1,11 @@
 -- Copyright 2021 Kafka-Tarantool-Loader
--- 
+--
 -- Licensed under the Apache License, Version 2.0 (the "License");
 -- you may not use this file except in compliance with the License.
 -- You may obtain a copy of the License at
--- 
+--
 --     http://www.apache.org/licenses/LICENSE-2.0
--- 
+--
 -- Unless required by applicable law or agreed to in writing, software
 -- distributed under the License is distributed on an "AS IS" BASIS,
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -22,11 +22,11 @@ local function check_avro_schema_compatibility(old_schema, new_schema, opts)
         is_downgrade = '?boolean'
     })
     local downgrade_string = nil
-    
+
     if opts['is_downgrade'] == true then
         downgrade_string = 'downgrade'
     end
-    
+
     local ok = avro_schema.are_compatible(old_schema,new_schema,downgrade_string)
     return ok
 
@@ -51,7 +51,7 @@ local function compile_avro_schema(schema)
     end
 
     local ok, methods = avro_schema.compile(schema)
-    
+
     return ok,methods
 
 end

@@ -96,6 +96,7 @@ end
 
 g.test_simple_insert_query = function ()
     local storage = cluster:server('master-1-1').net_box
+-- luacheck: max line length 160
     --[[
     local net_box = cluster:server('api-1').net_box
     local res, err = net_box:call(
@@ -184,8 +185,8 @@ end
 g.test_api_get_config = function()
     local net_box = cluster:server('api-1').net_box
 
-    local res = assert_http_json_request('GET', '/api/get_config', nil, {body = file_utils.read_file('/test/integration/data/api/get_config_response.json'),
-                                                                         status = 200})
+    local res = assert_http_json_request('GET', '/api/get_config', nil, 
+                    {body = file_utils.read_file('/test/integration/data/api/get_config_response.json'), status = 200})
 
 end
 
@@ -311,6 +312,7 @@ g2.test_rest_api_transfer_data_to_historical_table_on_cluster = function ()
 
 
     local res = assert_http_json_request('GET',
+-- luacheck: max line length 180
             '/api/etl/transfer_data_to_historical_table?_actual_data_table_name=EMPLOYEES_TRANSFER&_historical_data_table_name=EMPLOYEES_TRANSFER_HIST&_delta_number=2',
             nil, {body = {
                 message = "INFO: Transfer data to a historical table on cluster done",
@@ -355,6 +357,7 @@ g2.test_rest_api_error_transfer_data_to_historical_table_on_cluster = function (
             , status = 400})
 
     local res = assert_http_json_request('GET',
+-- luacheck: max line length 180
             '/api/etl/transfer_data_to_historical_table?_actual_data_table_name=EMPLOYEES_TRANSFER&_historical_data_table_name=EMPLOYEES_TRANSFER_HIST',
             nil, {body = {
                 error = "ERROR: _delta_number param in query not found",
@@ -385,6 +388,7 @@ end
 g2.test_rest_api_error_transfer_data_to_scd_table_on_cluster = function ()
 
     local res = assert_http_json_request('GET',
+-- luacheck: max line length 180
             '/api/etl/transfer_data_to_scd_table?_stage_data_table_name=EMPLOYEES_HOT&_historical_data_table_name=EMPLOYEES_TRANSFER_HIST&_delta_number=2',
             nil, {body = {
                 error = "ERROR: _actual_data_table_name param in query not found",
@@ -403,6 +407,7 @@ g2.test_rest_api_error_transfer_data_to_scd_table_on_cluster = function ()
             , status = 400})
 
     local res = assert_http_json_request('GET',
+-- luacheck: max line length 200
             '/api/etl/transfer_data_to_scd_table?_stage_data_table_name=EMPLOYEES_HOT&_actual_data_table_name=EMPLOYEES_TRANSFER&_historical_data_table_name=EMPLOYEES_TRANSFER_HIST',
             nil, {body = {
                 error = "ERROR: _delta_number param in query not found",
@@ -815,8 +820,9 @@ g7.test_get_scd_checksum_on_cluster_rest  = function ()
     api:call('transfer_data_to_scd_table_on_cluster',{'EMPLOYEES_HOT','EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 1})
 
     assert_http_json_request('POST',
-    '/api/etl/get_scd_table_checksum',
-    {actualDataTableName = 'EMPLOYEES_TRANSFER', historicalDataTableName = 'EMPLOYEES_TRANSFER_HIST', sysCn = 1}, { status = 200, body = {checksum = 2000}})
+        '/api/etl/get_scd_table_checksum',
+        { actualDataTableName = 'EMPLOYEES_TRANSFER', historicalDataTableName = 'EMPLOYEES_TRANSFER_HIST', sysCn = 1}, 
+        { status = 200, body = {checksum = 2000} })
 
 end
 

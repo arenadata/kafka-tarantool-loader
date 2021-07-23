@@ -1,12 +1,12 @@
 #!/usr/bin/env tarantool
 -- Copyright 2021 Kafka-Tarantool-Loader
--- 
+--
 -- Licensed under the Apache License, Version 2.0 (the "License");
 -- you may not use this file except in compliance with the License.
 -- You may obtain a copy of the License at
--- 
+--
 --     http://www.apache.org/licenses/LICENSE-2.0
--- 
+--
 -- Unless required by applicable law or agreed to in writing, software
 -- distributed under the License is distributed on an "AS IS" BASIS,
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -184,9 +184,11 @@ local mysql = locale({
 
     variable = V"space"^0 * C(V "name"),
 
-    literal_value = V"space"^0 * (V "numeric_literal" + V "string_literal" + P "NULL" + P "CURRENT_TIME" + P "CURRENT_DATE" + P "CURRENT_TIMESTAMP"),  -- see http://dev.mysql.com/doc/refman/5.5/en/literals.html
+    literal_value = V"space"^0 * (V "numeric_literal" + V "string_literal" + P "NULL" + P "CURRENT_TIME" + 
+                    P "CURRENT_DATE" + P "CURRENT_TIMESTAMP"),  -- see http://dev.mysql.com/doc/refman/5.5/en/literals.html
     numeric_literal = (V "digit"^1) / tonumber,  -- not enough, see http://dev.mysql.com/doc/refman/5.5/en/number-literals.html
     string_literal = ( P "_" * V "charset_name" + caseless "n" )^-1 * V "real_string_literal",
+-- luacheck: max line length 180
     real_string_literal = P '"' * C(( 1 - P '"' )^0) * P '"' + P "'" * C(( 1 - P "'" )^0) * P "'",  -- not enough, see http://dev.mysql.com/doc/refman/5.5/en/string-literals.html
     charset_name = C(V "name"),
 
