@@ -520,7 +520,9 @@ local function transfer_data_to_historical_table_on_cluster(actual_data_table_na
     end
 
     for _,future in ipairs(futures) do
-        future:wait_result(3600)
+        -- TODO: extract wait time to config
+        -- wait 1 day for transfer data
+        future:wait_result(86400)
         local res, err = future:result()
         if res == nil then
             return nil, error_repository.get_error_code(
