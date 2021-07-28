@@ -112,7 +112,7 @@ g.test_subscribe_unsubscribe_simple = function()
     local staging_rec_count_s1 = storage1:call('storage_space_count', { 'EMPLOYEES_HOT' })
     local staging_rec_count_s2 = storage2:call('storage_space_count', { 'EMPLOYEES_HOT' })
 
-    while staging_rec_count_s1 == 0 and staging_rec_count_s2 == 0 do
+    while staging_rec_count_s1 == 0 or staging_rec_count_s2 == 0 do
         staging_rec_count_s2 = storage2:call('storage_space_count', { 'EMPLOYEES_HOT' })
         staging_rec_count_s1 = storage1:call('storage_space_count', { 'EMPLOYEES_HOT' })
     end
@@ -128,7 +128,7 @@ g.test_subscribe_unsubscribe_simple = function()
             nil,
             { status = 200 })
 
-    -- if add pause in api query sequence, when code working correct
+    -- if add pause in api query sequence, when code works correct
     --fiber.sleep(10)
     assert_http_json_request('POST',
             '/api/v1/ddl/table/reverseHistoryTransfer',
