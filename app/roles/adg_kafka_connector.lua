@@ -26,7 +26,6 @@ local prometheus = require('metrics.plugins.prometheus')
 local fun = require('fun')
 local error_repository = require('app.messages.error_repository')
 local success_repository = require('app.messages.success_repository')
-local misc_utils = require('app.utils.misc_utils')
 local validate_utils = require('app.utils.validate_utils')
 local json = require('json')
 local vshard = require('vshard')
@@ -43,7 +42,6 @@ local default_consumer = nil
 local err_storage = errors.new_class("Kafka storage error")
 local topic_x_consumers = {}
 
-local cartridge_pool = require('cartridge.pool')
 local cartridge_rpc = require('cartridge.rpc')
 
 
@@ -152,67 +150,6 @@ local function extract_last_messages_from_batch(batch)
     end
     return result
 
-end
-
-local function create_messages_hash_map(messages)
-    local res = {}
-    for _, v in ipairs(messages) do
-        res[v:topic() .. ':' .. tostring(v:partition()) .. ':' .. tostring(v:offset())] = v
-    end
-    return res
-end
-
---TODO Refactor
-local function extract_last_valid_messages_from_proccessing(batch)
-    checks('table')
-    local keys = {}
-
-    for k, v in pairs(batch) do
-        local l = v['topic'] .. ':' .. v['partition']
-        if keys[l] == nil then
-            keys[l] = { v }
-        else
-            table.insert(keys[l], v)
-        end
-    end
-
-    for k, v in pairs(keys) do
-        table.sort(v, function(a, b)
-            return a['offset'] < b['offset']
-        end)
-    end
-
-    local res = {}
-
-    for k, v in pairs(keys) do
-        if #v == 1 and v[1]['result'] == true then
-            table.insert(res, v[1]['topic'] .. ':' .. tostring(v[1]['partition']) .. ':' .. tostring(v[1]['offset']))
-        end
-
-        if #v > 1 then
-            local true_sign = true
-            for i = 2, #v, 1 do
-                local prev_value = v[i - 1]
-                local cur_value = v[i]
-
-                if prev_value['result'] == true and cur_value['result'] == false then
-                    table.insert(res, prev_value['topic'] .. ':' .. tostring(prev_value['partition']) .. ':' .. tostring(prev_value['offset']))
-                end
-
-                if cur_value['result'] == false or (i == 2 and prev_value['result'] == false) then
-                    true_sign = false
-                end
-
-                if true_sign == true and i == #v then
-                    table.insert(res, cur_value['topic'] .. ':' .. tostring(cur_value['partition']) .. ':' .. tostring(cur_value['offset']))
-                end
-            end
-
-        end
-
-    end
-
-    return res
 end
 
 local function serialize_kafka_messages(batch)
@@ -341,92 +278,6 @@ end
 
 local function get_metric()
     return metrics.export(role_name)
-end
-
-local function subscribe_to_topic_fiber_old(topic_name, max_number_of_messages, avro_schema)
-    checks('string', 'number', '?string')
-    local kafka_topics = box.space['_KAFKA_TOPIC']
-
-    if kafka_topics == nil then
-        return  false, error_repository.get_error_code('STORAGE_001', { table = '_KAFKA_TOPIC' })
-    end
-
-    box.begin()
-    local res, err = err_storage:pcall(
-            function()
-
-                local cnt = kafka_topics:count(topic_name)
-
-                kafka_topics:put(kafka_topics:frommap({ TOPIC_NAME = topic_name,
-                                                        MAX_NUMBER_OF_MESSAGES_PER_PARTITION = max_number_of_messages,
-                                                        AVRO_SCHEMA = avro_schema }))
-                if cnt == 1 and topic_x_consumers[topic_name] ~= nil then
-                    return false
-                end
-
-                return true
-            end)
-
-    if res == false then
-        return  true, nil
-    end
-
-    if err ~= nil then
-        box.rollback()
-        return  false, error_repository.get_error_code('STORAGE_003', { error = err })
-    end
-
-    box.commit()
-    --[[
-    local rebalance_callback = function(msg)
-        log.info("INFO: got rebalance msg: %s", json.encode(msg))
-        local current_time = os.clock()
-
-        if msg.assigned ~= nil then
-            for k, v in pairs(_G.rebalance_subscriptions) do
-                if current_time >= k then
-                    v:signal()
-                end
-            end
-        end
-
-        if msg.revoked ~= nil then
-            for k, v in pairs(_G.rebalance_unsubscriptions) do
-                if current_time >= k then
-                    v:signal()
-                end
-            end
-        end
-    end
-
-
-    local is_consumer_created, consumer = kafka_consumer.init(kafka_utils.get_brokers()):set_options(
-            kafka_utils.get_options()
-    ):set_rebalance_callback(rebalance_callback):build()
-   ]]
-    local is_consumer_created, consumer = kafka_consumer.init(kafka_utils.get_brokers()):set_options(
-            kafka_utils.get_options()
-    ):build()
-    if not is_consumer_created then
-        return  false, consumer
-    end
-
-    local is_subscribed, subscribe_err = consumer:subscribe({ topic_name })
-
-    if not is_subscribed then
-        return  false, subscribe_err
-    end
-
-    topic_x_consumers[topic_name] = consumer
-    fiber.sleep(5)
-    --wait for rebalance msg
-    --[[local current_time = os.clock()
-    local cond_object = fiber.cond()
-    _G.rebalance_subscriptions[current_time] = cond_object
-    cond_object:wait(30) --TODO move to parameters
-
-    _G.rebalance_subscriptions[current_time] = nil]]
-    return  true, nil
 end
 
 local function subscribe_to_topic_fiber(topic_name,
@@ -615,19 +466,6 @@ local function dataload_from_topic_fiber(topic_name, spaces, max_number_of_messa
 
 
 
-end
-
-local function subscribe_to_topic_old(topic_name, max_number_of_messages, avro_schema)
-    checks('string', 'number', '?string')
-    local f = fiber.new(subscribe_to_topic_fiber_old, topic_name, max_number_of_messages, avro_schema)
-    f:name('s_' .. topic_name:sub(1, 10) .. '_' .. max_number_of_messages)
-    f:set_joinable(true)
-    local is_fiber_ok, res = f:join()
-    if is_fiber_ok then
-        return res
-    else
-        return  is_fiber_ok, res
-    end
 end
 
 local function subscribe_to_topic(   topic_name,
