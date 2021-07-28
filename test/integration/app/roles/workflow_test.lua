@@ -110,7 +110,9 @@ g.test_subscribe_unsubscribe_flow = function()
         log.error(string.format("got error '%s' while sending value '%s'", err, message))
         return
     end
-    fiber.sleep(5)
+
+    -- timeout for success uploading data from kafka to staging table in background task
+    fiber.sleep(10)
 
     local staging_rec_count_s1 = storage1:call('storage_space_count', { 'EMPLOYEES_HOT' })
     local staging_rec_count_s2 = storage2:call('storage_space_count', { 'EMPLOYEES_HOT' })
@@ -137,6 +139,9 @@ g.test_subscribe_unsubscribe_flow = function()
                 sysCn = 1
             },
             { status = 200 })
+
+    staging_rec_count_s1 = storage1:call('storage_space_count', { 'EMPLOYEES_HOT' })
+    staging_rec_count_s2 = storage2:call('storage_space_count', { 'EMPLOYEES_HOT' })
 
     t.assert_equals(staging_rec_count_s1, 0)
     t.assert_equals(staging_rec_count_s2, 0)

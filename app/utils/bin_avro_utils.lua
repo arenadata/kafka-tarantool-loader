@@ -191,7 +191,7 @@ end
 ---to avro binary object container with schema.
 ---@param schema string - JSON-string, that contains avro schema { type: "record" ....}.
 ---@param table userdata -  table [{},{}, ..., {}] to encode.
----@param[opt="/dev/shm/"]  dir_to_safe string - optional parameter,
+---@param[opt="/tmp/"]  dir_to_safe string - optional parameter,
 ---that contains location on the filesystem to save intermediate results.
 ---@return string -  avro binary string.
 local function encode_table_of_records_to_avro_object_container(schema, table, dir_to_safe)
@@ -204,7 +204,7 @@ local function encode_table_of_records_to_avro_object_container(schema, table, d
     end
 
     if dir_to_safe == nil then
-        dir_to_safe = "/dev/shm/"
+        dir_to_safe = "/tmp/"
     end
     --check dir
     if not fio.path.exists(dir_to_safe) then
