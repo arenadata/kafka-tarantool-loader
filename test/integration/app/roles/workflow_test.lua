@@ -55,7 +55,7 @@ g.before_each(function()
     kafka:call('box.execute', { 'truncate table _KAFKA_TOPIC' })
 end)
 
-g.test_subscribe_unsubscribe_flow = function()
+g.test_subscribe_unsubscribe_simple = function()
     local storage1 = cluster:server('master-1-1').net_box
     local storage2 = cluster:server('master-2-1').net_box
 
@@ -78,47 +78,45 @@ g.test_subscribe_unsubscribe_flow = function()
                 }
             }
     , { status = 200 })
-    fiber.sleep(5)
-    local value_schema, _ = file_utils.read_file('test/unit/data/avro_schemas/topicEmployees_avro_schema_valid.json')
+    fiber.sleep(3)
 
-    local encoded_value = {
-        { 1, 0, "test", "test", "test", 0, 0 },
-        { 2, 0, "test", "test", "test", 0, 0 }
-    }
+    local value_schema, err = file_utils.read_file('test/unit/data/avro_schemas/topicEmployees_avro_schema_valid.json')
+    t.assert_equals(err, nil)
 
-    local ok, decoded_value = bin_avro_utils.encode(
-            value_schema,
-            encoded_value,
-            true
-    )
+    local producer, err2 = tnt_kafka.Producer.create({ brokers = "localhost:9092" })
+    t.assert_equals(err2, nil)
 
-    log.error(decoded_value)
-    t.assert_equals(ok, true)
+    local encoded_value = { { 0, 0, "test", "test", "test", 0, 0 } }
 
-    local producer, err = tnt_kafka.Producer.create({ brokers = "localhost:9092" })
-    if err ~= nil then
-        log.error(err)
-        return
-    end
+    local i = 0
+    fiber.new(function()
+        while true do
+            i = i + 1
+            encoded_value[1][1] = i
+            local _, decoded_value = bin_avro_utils.encode(
+                    value_schema,
+                    encoded_value,
+                    true
+            )
 
-    err = producer:produce({
-        topic = "EMPLOYEES",
-        key = "test_key",
-        value = decoded_value
-    })
-    if err ~= nil then
-        log.error(string.format("got error '%s' while sending value '%s'", err, message))
-        return
-    end
+            err = producer:produce({
+                topic = "EMPLOYEES",
+                key = "test_key",
+                value = decoded_value
+            })
+            t.assert_equals(err)
+        end
+    end)
 
-    -- timeout for success uploading data from kafka to staging table in background task
-    fiber.sleep(10)
-
+    -- wait data in storage staging table
     local staging_rec_count_s1 = storage1:call('storage_space_count', { 'EMPLOYEES_HOT' })
     local staging_rec_count_s2 = storage2:call('storage_space_count', { 'EMPLOYEES_HOT' })
 
-    t.assert_equals(staging_rec_count_s1, 1)
-    t.assert_equals(staging_rec_count_s2, 1)
+    while staging_rec_count_s1 == 0 and staging_rec_count_s2 == 0 do
+        staging_rec_count_s2 = storage2:call('storage_space_count', { 'EMPLOYEES_HOT' })
+        staging_rec_count_s1 = storage1:call('storage_space_count', { 'EMPLOYEES_HOT' })
+    end
+
 
     assert_http_json_request('GET',
             '/api/etl/transfer_data_to_scd_table?_stage_data_table_name=EMPLOYEES_HOT&_actual_data_table_name=EMPLOYEES_TRANSFER&_historical_data_table_name=EMPLOYEES_TRANSFER_HIST&_delta_number=2',
@@ -130,6 +128,8 @@ g.test_subscribe_unsubscribe_flow = function()
             nil,
             { status = 200 })
 
+    -- if add pause in api query sequence, when code working correct
+    --fiber.sleep(10)
     assert_http_json_request('POST',
             '/api/v1/ddl/table/reverseHistoryTransfer',
             {
