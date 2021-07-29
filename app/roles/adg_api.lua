@@ -576,7 +576,9 @@ local function transfer_data_to_scd_table_on_cluster(stage_data_table_name,actua
     end
 
     for _,future in ipairs(futures) do
-        future:wait_result(3600)
+        -- TODO: extract wait time to config
+        -- wait 1 day for transfer data
+        future:wait_result(86400)
         local res, err = future:result()
         if res == nil then
             return nil, error_repository.get_error_code(
@@ -914,7 +916,9 @@ local function get_scd_table_checksum_on_cluster(actual_data_table_name, histori
 
     local result = 0
     for _,future in ipairs(futures) do
-        future:wait_result(3600)
+        -- TODO: extract wait time to config
+        -- wait 1 day for transfer data
+        future:wait_result(86400)
         local res, err = future:result()
         if res == nil then
             return false, error_repository.get_error_code(

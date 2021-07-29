@@ -1,5 +1,5 @@
 package = 'memstorage'
-version = '0.7.3-1'
+version = '0.7.4-1'
 source  = {
     branch = 'master',
     url = 'git+https://github.com/arenadata/kafka-tarantool-loader.git'
