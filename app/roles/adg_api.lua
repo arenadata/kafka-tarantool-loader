@@ -28,7 +28,7 @@ local metrics = require('app.metrics.metrics_storage')
 local set = require('app.entities.set')
 local misc_utils = require('app.utils.misc_utils')
 local prometheus = require('metrics.plugins.prometheus')
-
+local api_timeout_config = require('app.utils.api_timeout_config')
 local cartridge_pool = require('cartridge.pool')
 local cartridge_rpc = require('cartridge.rpc')
 
@@ -71,6 +71,7 @@ _G.reverse_history_in_scd_table_on_cluster = nil
 _G.get_storage_space_schema = nil
 _G.delete_data_from_scd_table_sql_on_cluster = nil
 _G.get_scd_table_checksum_on_cluster = nil
+_G.api_timeouts = nil
 
 local err_vshard_router = errors.new_class("Vshard routing error")
 
@@ -361,7 +362,8 @@ local function load_lines(space_name, lines)
     return true
 end
 
-
+--- store procedure is called by Prostore, then it runs SELECT query.
+--- When this procedure received sql query it sends this query to all storage instances.
 local function query(query, params)
     local lower_query = string.lower(query)
 
@@ -520,9 +522,7 @@ local function transfer_data_to_historical_table_on_cluster(actual_data_table_na
     end
 
     for _,future in ipairs(futures) do
-        -- TODO: extract wait time to config
-        -- wait 1 day for transfer data
-        future:wait_result(86400)
+        future:wait_result(api_timeouts:get_transfer_stage_data_to_scd_table_timeout())
         local res, err = future:result()
         if res == nil then
             return nil, error_repository.get_error_code(
@@ -576,9 +576,7 @@ local function transfer_data_to_scd_table_on_cluster(stage_data_table_name,actua
     end
 
     for _,future in ipairs(futures) do
-        -- TODO: extract wait time to config
-        -- wait 1 day for transfer data
-        future:wait_result(86400)
+        future:wait_result(api_timeouts:get_transfer_stage_data_to_scd_table_timeout())
         local res, err = future:result()
         if res == nil then
             return nil, error_repository.get_error_code(
@@ -916,9 +914,7 @@ local function get_scd_table_checksum_on_cluster(actual_data_table_name, histori
 
     local result = 0
     for _,future in ipairs(futures) do
-        -- TODO: extract wait time to config
-        -- wait 1 day for transfer data
-        future:wait_result(86400)
+        future:wait_result(api_timeouts:get_scd_table_checksum_timeout())
         local res, err = future:result()
         if res == nil then
             return false, error_repository.get_error_code(
@@ -1000,6 +996,7 @@ local function init(opts) -- luacheck: no unused args
     _G.get_storage_space_schema = get_storage_space_schema
     _G.delete_data_from_scd_table_sql_on_cluster = delete_data_from_scd_table_sql_on_cluster
     _G.get_scd_table_checksum_on_cluster = get_scd_table_checksum_on_cluster
+    _G.api_timeouts = api_timeout_config.get_api_timeout_opts()
 
     garbage_fiber = fiber.create(
         function() while true do collectgarbage('step', 20);
@@ -1046,6 +1043,7 @@ end
 
 local function stop()
     garbage_fiber:cancel()
+    api_timeouts:clear()
     return true
 end
 
@@ -1056,6 +1054,8 @@ local function validate_config(conf_new, conf_old) -- luacheck: no unused args
 end
 
 local function apply_config(conf, opts) -- luacheck: no unused args
+    _G.api_timeouts = api_timeout_config.get_api_timeout_opts()
+
     schema_utils.init_schema_ddl()
     error_repository.init_error_repo('en')
     success_repository.init_success_repo('en')
