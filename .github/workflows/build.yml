@@ -35,6 +35,9 @@ jobs:
       - name: Get depncecies
         run: make build
 
+      - name: Run linter
+        run: make lint
+
       - name: Run memtx tests
         run: make test_memtx
 

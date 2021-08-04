@@ -155,29 +155,11 @@ std = {
 }
 
 ignore = {
-    "512", -- loop is executed at most once
---    "631"  -- line too long
+    "512" -- loop is executed at most once
 }
 
 redefined = false
 
 max_line_length = 140
-
--- exclude_files = {}
-
---files["test/front/config/**/triggers/function.lua"].globals = {
---    "log", "sleep"
---}
-
---files["test/front/config/**/functions/func.lua"].globals = {
---    "http", "json", "getenv"
---}
-
--- global variable event is declared via rawset
---files["bastida/event/init.lua"].ignore = {"113"}
-
--- pop_lease should be defined globally to use net.box.connection:call()
---files["bastida/utils/quotas.lua"].allow_defined = true
---files["bastida/utils/quotas.lua"].ignore = {"131"}
 
 -- vim: syntax=lua
