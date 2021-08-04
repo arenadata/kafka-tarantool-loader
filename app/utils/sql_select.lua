@@ -1,12 +1,12 @@
 #!/usr/bin/env tarantool
 -- Copyright 2021 Kafka-Tarantool-Loader
--- 
+--
 -- Licensed under the Apache License, Version 2.0 (the "License");
 -- you may not use this file except in compliance with the License.
 -- You may obtain a copy of the License at
--- 
+--
 --     http://www.apache.org/licenses/LICENSE-2.0
--- 
+--
 -- Unless required by applicable law or agreed to in writing, software
 -- distributed under the License is distributed on an "AS IS" BASIS,
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,9 +21,9 @@ local vshard = require('vshard')
 local fun = require('fun')
 local digest = require('digest')
 local checks = require('checks')
-local json = require('json')
-local yaml = require('yaml')
-local log = require('log')
+-- local json = require('json')
+-- local yaml = require('yaml')
+-- local log = require('log')
 
 local schema_utils = require('app.utils.schema_utils')
 
@@ -186,9 +186,12 @@ local function clear_cache()
     query_cache = {}
 end
 
+-- luacheck: ignore query_result
 local function get_bucket_id_column_number(query_result)
     local result = nil
 
+
+-- luacheck: ignore res
     for k,v in ipairs(res[1]['metadata']) do
         if v['name'] == 'bucket_id' then
             result = k

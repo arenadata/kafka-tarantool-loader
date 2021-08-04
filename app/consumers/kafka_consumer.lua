@@ -1,11 +1,11 @@
 -- Copyright 2021 Kafka-Tarantool-Loader
--- 
+--
 -- Licensed under the Apache License, Version 2.0 (the "License");
 -- you may not use this file except in compliance with the License.
 -- You may obtain a copy of the License at
--- 
+--
 --     http://www.apache.org/licenses/LICENSE-2.0
--- 
+--
 -- Unless required by applicable law or agreed to in writing, software
 -- distributed under the License is distributed on an "AS IS" BASIS,
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -17,12 +17,12 @@
 --- DateTime: 6/16/20 10:12 AM
 ---
 local checks = require('checks')
-local error_repository = require('app.messages.error_repository')
+-- local error_repository = require('app.messages.error_repository')
 local log = require('log')
-local json = require('json')
+-- local json = require('json')
 local tnt_kafka = require('kafka')
 local fiber = require('fiber')
-local clock = require('clock')
+-- local clock = require('clock')
 
 local deserialize_transform = require('app.handlers.callback.kafka_msg_deserialize_transformation')
 local insert_transform = require('app.handlers.callback.kafka_msg_insert_transformation')
@@ -33,9 +33,12 @@ local commit_transfrom = require('app.handlers.callback.kafka_msg_commit_transfo
 --- Consumer
 ---
 ---
+
+-- luacheck: ignore readonlytable
 local function readonlytable(table)
     return setmetatable({}, {
         __index = table,
+-- luacheck: ignore table key value
         __newindex = function(table, key, value)
             error("Attempt to modify read-only table")
         end,
@@ -125,6 +128,7 @@ function kafka_consumer.close(self)
     checks('table')
     log.info("INFO: closing consumer")
     local  res,err = pcall(self.consumer.close,self.consumer)
+-- luacheck: ignore self
     self = nil
     return res,err
 end
@@ -216,6 +220,7 @@ function kafka_consumer.init_poll_msg_fiber(process_function,
 
     end
 
+-- luacheck: ignore self
     local is_out_created,out = self:get_message_channel()
 
     if not is_out_created then
@@ -270,10 +275,8 @@ function kafka_consumer.init_poll_msg_fiber(self)
     local s_i_t = stat_insert_transform.init(100, committed, error_ch) -- buffer?
     local inserted_with_alert = s_i_t:get_result_channel()
 
+-- luacheck: ignore cb_t
     local cb_t = callback_transform.init(100, inserted_with_alert, error_ch)
-
-
-
 end
 
 

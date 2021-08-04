@@ -1,11 +1,11 @@
 -- Copyright 2021 Kafka-Tarantool-Loader
--- 
+--
 -- Licensed under the Apache License, Version 2.0 (the "License");
 -- you may not use this file except in compliance with the License.
 -- You may obtain a copy of the License at
--- 
+--
 --     http://www.apache.org/licenses/LICENSE-2.0
--- 
+--
 -- Unless required by applicable law or agreed to in writing, software
 -- distributed under the License is distributed on an "AS IS" BASIS,
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -23,7 +23,7 @@ local g3 = t.group('storage_drop_space')
 local g4 = t.group('storage_delta_rollback')
 local g5 = t.group('storage_delete_scd_sql')
 local g6 = t.group('storage_delta_checksum')
-local checks = require('checks')
+-- local checks = require('checks')
 local helper = require('test.helper.integration')
 local cluster = helper.cluster
 
@@ -61,13 +61,11 @@ end)
 g.test_get_space_format = function ()
     local storage = cluster:server('master-1-1').net_box
 
-
-
-    local res, err = storage:call('get_space_format',{'NOT_EXISTS_SPACE'} )
+    local res, _ = storage:call('get_space_format',{'NOT_EXISTS_SPACE'} )
     t.assert_equals(res, nil)
 
     local res2,err2 = storage:call('get_space_format',{'EMPLOYEES'} )
-    t.assert_equals(err2,nil)
+    t.assert_equals(err2, nil)
     t.assert_equals(res2, {"ID", "sysFrom", "FIRST_NAME", "LAST_NAME", "EMAIL", "sysOp", "bucket_id"})
 
 end
@@ -76,26 +74,26 @@ g.test_check_table_for_delta_fields =  function ()
     local storage = cluster:server('master-1-1').net_box
 
     local res,err = storage:call('check_table_for_delta_fields',{'EMPLOYEES', 'actual'} )
-    t.assert_equals(err, nil)
     t.assert_equals(res, true)
+    t.assert_equals(err, nil)
 
-    local res2,err2 = storage:call('check_table_for_delta_fields',{'EMPLOYEES_BAD1', 'actual'} )
+    local res2, _ = storage:call('check_table_for_delta_fields',{'EMPLOYEES_BAD1', 'actual'} )
     t.assert_equals(res2, false)
 
-    local res3,err3 = storage:call('check_table_for_delta_fields',{'EMPLOYEES_BAD2', 'actual'} )
+    local res3, _ = storage:call('check_table_for_delta_fields',{'EMPLOYEES_BAD2', 'actual'} )
     t.assert_equals(res3, false)
 
-    local res4,err4 = storage:call('check_table_for_delta_fields',{'NOT_EXISTS_SPACE', 'actual'} )
+    local res4, _ = storage:call('check_table_for_delta_fields',{'NOT_EXISTS_SPACE', 'actual'} )
     t.assert_equals(res4, false)
 
-    local res5,err5 = storage:call('check_table_for_delta_fields',{'EMPLOYEES_BAD3', 'actual'} )
+    local res5, _ = storage:call('check_table_for_delta_fields',{'EMPLOYEES_BAD3', 'actual'} )
     t.assert_equals(res5, false)
 
     local res6,err6 = storage:call('check_table_for_delta_fields',{'EMPLOYEES_HIST', 'history'} )
-    t.assert_equals(err6, nil)
     t.assert_equals(res6, true)
+    t.assert_equals(err6, nil)
 
-    local res7,err7 = storage:call('check_table_for_delta_fields',{'EMPLOYEES_HIST_BAD', 'history'} )
+    local res7, _ = storage:call('check_table_for_delta_fields',{'EMPLOYEES_HIST_BAD', 'history'} )
     t.assert_equals(res7, false)
 end
 
@@ -103,12 +101,11 @@ g.test_check_tables_for_delta = function ()
     local storage = cluster:server('master-1-1').net_box
 
     local res,err = storage:call('check_tables_for_delta',{'EMPLOYEES', 'EMPLOYEES_HIST'} )
-    t.assert_equals(err, nil)
     t.assert_equals(res, true)
+    t.assert_equals(err, nil)
 
-    local res2,err2 = storage:call('check_tables_for_delta',{'EMPLOYEES', 'EMPLOYEES_HIST_BAD2'} )
+    local res2, _ = storage:call('check_tables_for_delta',{'EMPLOYEES', 'EMPLOYEES_HIST_BAD2'} )
     t.assert_equals(res2, false)
-
 end
 
 g2.test_one_row_transfer_data_to_historical_table = function ()
@@ -120,7 +117,7 @@ g2.test_one_row_transfer_data_to_historical_table = function ()
     storage.space.EMPLOYEES_TRANSFER:insert{4,1,1,1,'Test','IT','Test',300,100}
     storage.space.EMPLOYEES_TRANSFER:insert{5,1,1,1,'Test','IT','Test',300,100}
 
-    local res,err = storage:call('transfer_data_to_historical_table',{'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 1} )
+    local res,err = storage:call('transfer_data_to_historical_table',{'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 1})
     local cnt1_1 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
     local cnt1_2 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
 
@@ -130,7 +127,7 @@ g2.test_one_row_transfer_data_to_historical_table = function ()
     t.assert_equals(cnt1_2,0)
 
 
-    local res2,err2 = storage:call('transfer_data_to_historical_table',{'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 2} )
+    local res2,err2 = storage:call('transfer_data_to_historical_table',{'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 2})
     local cnt2_1 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
     local cnt2_2 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
 
@@ -189,7 +186,7 @@ g2.test_multiple_rows_transfer_data_to_historical_table = function ()
     storage.space.EMPLOYEES_TRANSFER:insert{4,3,1,1,'Test','IT','Test',300,100}
     storage.space.EMPLOYEES_TRANSFER:insert{5,3,1,1,'Test','IT','Test',300,100}
 
-    local res,err = storage:call('transfer_data_to_historical_table',{'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 2} )
+    local res,err = storage:call('transfer_data_to_historical_table',{'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 2})
     local cnt1_1 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
     local cnt1_2 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
 
@@ -198,7 +195,7 @@ g2.test_multiple_rows_transfer_data_to_historical_table = function ()
     t.assert_equals(cnt1_1,7)
     t.assert_equals(cnt1_2,3)
 
-    local res2,err2 = storage:call('transfer_data_to_historical_table',{'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 3} )
+    local res2,err2 = storage:call('transfer_data_to_historical_table',{'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 3})
     local cnt2_1 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
     local cnt2_2 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
 
@@ -225,7 +222,7 @@ g2.test_100k_rows_transfer_data_to_historical_table = function ()
     datagen(100000,1)
     datagen(100000,2)
 
-    local res,err = storage:call('transfer_data_to_historical_table',{'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 2} )
+    local res,err = storage:call('transfer_data_to_historical_table',{'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 2})
     local cnt1_1 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
     local cnt1_2 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
 
@@ -249,7 +246,7 @@ g2.test_1k_rows_transfer_data_scd = function()
 
     datagen(1000)
 
-    local res,err = storage:call('transfer_stage_data_to_scd_table',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 1} )
+    local res,err = storage:call('transfer_stage_data_to_scd_table',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 1})
 
     local cnt1_1 = storage:call('storage_space_count', {'EMPLOYEES_HOT'})
     local cnt1_2 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
@@ -534,6 +531,7 @@ g4.test_1k_rows_rollback_wo_index_wo_batch = function()
 
     local _,_ = storage:call('transfer_stage_data_to_scd_table',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER_2', 'EMPLOYEES_TRANSFER_HIST_2', 2} )
 
+-- luacheck: max line length 150
     local res,err = storage:call('reverse_history_in_scd_table',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER_2', 'EMPLOYEES_TRANSFER_HIST_2', 2, nil} )
     local cnt1_1 = storage:call('storage_space_count', {'EMPLOYEES_HOT'})
     local cnt1_2 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER_2'})
@@ -572,6 +570,7 @@ g4.test_1k_rows_rollback_wo_index_w_batch = function()
 
     local _,_ = storage:call('transfer_stage_data_to_scd_table',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER_2', 'EMPLOYEES_TRANSFER_HIST_2', 2} )
 
+-- luacheck: max line length 160
     local res,err = storage:call('reverse_history_in_scd_table',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER_2', 'EMPLOYEES_TRANSFER_HIST_2', 2, 100} )
     local cnt1_1 = storage:call('storage_space_count', {'EMPLOYEES_HOT'})
     local cnt1_2 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER_2'})
@@ -618,6 +617,7 @@ g4.test_10k_rows_rollback_w_index_w_batch = function()
     local _,_ = storage:call('transfer_stage_data_to_scd_table',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 3} )
 
 
+-- luacheck: max line length 150
     local res2,err2 = storage:call('reverse_history_in_scd_table',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 3, 1000} )
     local cnt2_1 = storage:call('storage_space_count', {'EMPLOYEES_HOT'})
     local cnt2_2 = storage:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
@@ -733,12 +733,17 @@ end
 
 g6.test_all_dtm_types_check_data_w_column = function ()
     local storage = cluster:server('master-1-1').net_box
-    storage.space.orig__as2__all_types_table_actual:insert{1, 7729, 3, nil, 0, 1, 1, 'text', true, 1, 100000, 18594, tonumber64('1605647472000000ULL'),
-    100000000, 'd92beee8-749f-4539-aa15-3d2941dbb0f1', 'c'}
+    storage.space.orig__as2__all_types_table_actual:insert{ 1, 7729, 3, nil, 0, 1, 1, 'text', true,
+                                                            1, 100000, 18594, tonumber64('1605647472000000ULL'),
+                                                            100000000, 'd92beee8-749f-4539-aa15-3d2941dbb0f1', 'c'}
 
     local is_gen, res = storage:call('get_scd_table_checksum',
-    {'orig__as2__all_types_table_actual',
-    'orig__as2__all_types_table_history',0,{"id","double_col","float_col","varchar_col","boolean_col","int_col","bigint_col","date_col","timestamp_col","time_col","uuid_col","char_col"}})
+        { 'orig__as2__all_types_table_actual',
+          'orig__as2__all_types_table_history', 0,
+            { "id", "double_col", "float_col", "varchar_col", "boolean_col", "int_col", "bigint_col",
+              "date_col", "timestamp_col", "time_col", "uuid_col", "char_col"
+            }
+        })
     t.assert_equals(is_gen,true)
     t.assert_equals(res,0)
 end
