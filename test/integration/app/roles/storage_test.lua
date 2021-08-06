@@ -718,17 +718,17 @@ g6.test_simple_check_data_w_columns = function()
     storage:call('transfer_stage_data_to_scd_table',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 1} )
     local is_gen2, res2 = storage:call('get_scd_table_checksum', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,{'id','sysFrom'}})
     t.assert_equals(is_gen2,true)
-    t.assert_equals(res2,0)
+    t.assert_equals(res2,1181946280889)
     datagen(1000)
     storage:call('transfer_stage_data_to_scd_table',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST',2} )
 
     local is_gen3, res3 = storage:call('get_scd_table_checksum', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,{'id','sysFrom'}})
     t.assert_equals(is_gen3,true)
-    t.assert_equals(res3,0)
+    t.assert_equals(res3,1181946280889)
 
     local is_gen4, res4 = storage:call('get_scd_table_checksum', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',2,{'id','sysFrom'}})
     t.assert_equals(is_gen4,true)
-    t.assert_equals(res4,0)
+    t.assert_equals(res4,1180041276702)
 end
 
 g6.test_all_dtm_types_check_data_w_column = function ()
