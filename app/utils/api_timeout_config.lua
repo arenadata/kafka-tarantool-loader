@@ -41,6 +41,7 @@ local api_timeout_opts = {
 }
 
 local function get_api_timeout_opts()
+    api_timeout_opts:clear()
     local conf = config_utils.get_config()
     if conf == nil then
         return {}
