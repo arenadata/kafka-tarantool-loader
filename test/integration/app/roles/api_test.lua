@@ -875,6 +875,22 @@ g9.before_all(function()
     cluster:upload_config(config)
 end)
 
+g9.after_all(function()
+    local config = cluster:download_config()
+
+    config['api_timeout'] = nil
+
+    cluster:upload_config(config)
+
+    local storage1 = cluster:server('master-1-1').net_box
+    local storage2 = cluster:server('master-2-1').net_box
+
+    -- it needs because url handler works async and after request with error continue reload data from staging table
+    -- if didn't truncate in other test may race condition
+    storage1:call('box.execute', {'truncate table EMPLOYEES_HOT'})
+    storage2:call('box.execute', {'truncate table EMPLOYEES_HOT'})
+end)
+
 g9.test_timeout_cfg = function()
     local function datagen(storage,number_of_rows)
         for i=1,number_of_rows,1 do
