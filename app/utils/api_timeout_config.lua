@@ -1,11 +1,11 @@
 -- Copyright 2021 Kafka-Tarantool-Loader
--- 
+--
 -- Licensed under the Apache License, Version 2.0 (the "License");
 -- you may not use this file except in compliance with the License.
 -- You may obtain a copy of the License at
--- 
+--
 --     http://www.apache.org/licenses/LICENSE-2.0
--- 
+--
 -- Unless required by applicable law or agreed to in writing, software
 -- distributed under the License is distributed on an "AS IS" BASIS,
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -21,7 +21,8 @@ local config_utils = require('app.utils.config_utils')
 local api_timeout_opts = {
     timeouts = {
         transfer_stage_data_to_scd_tbl=86400, -- 1 day
-        scd_table_checksum=86400
+        scd_table_checksum=86400,
+        ddl_operation=20
     },
 
     get_transfer_stage_data_to_scd_table_timeout = function(self)
@@ -32,15 +33,21 @@ local api_timeout_opts = {
         return self.timeouts.scd_table_checksum
     end,
 
+    get_ddl_operation_timeout = function(self)
+        return self.timeouts.ddl_operation
+    end,
+
     clear = function(self)
         self.timeouts = {
             transfer_stage_data_to_scd_tbl=86400,
-            scd_table_checksum=86400
+            scd_table_checksum=86400,
+            ddl_operation=20
         }
     end
 }
 
 local function get_api_timeout_opts()
+    api_timeout_opts:clear()
     local conf = config_utils.get_config()
     if conf == nil then
         return {}

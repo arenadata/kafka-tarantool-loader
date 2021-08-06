@@ -26,11 +26,11 @@ local g6 = t.group('api.delete_scd_sql')
 local g7 = t.group('api.get_scd_table_checksum')
 local g8 = t.group('api.truncate_space_on_cluster')
 local g9 = t.group('api.timeouts_config')
+local g10 = t.group('api.ddl_operations')
 
 local checks = require('checks')
 local helper = require('test.helper.integration')
 local cluster = helper.cluster
--- local fiber = require('fiber')
 
 local file_utils = require('app.utils.file_utils')
 
@@ -196,41 +196,6 @@ g.test_api_metrics_get_all = function()
     --TODO Add test
 end
 
-g2.test_100k_transfer_data_to_historical_table_on_cluster = function()
-    local storage1 = cluster:server('master-1-1').net_box
-    local storage2 = cluster:server('master-2-1').net_box
-    local api = cluster:server('api-1').net_box
-
-    local function datagen(storage,number_of_rows,version) --TODO Move in helper functions
-        for i=1,number_of_rows,1 do
-            storage.space.EMPLOYEES_TRANSFER:insert{i,version,1,1,'Test','IT','Test',300,100} --TODO Bucket_id fix?
-        end
-    end
-
-    datagen(storage1,100000,1)
-    datagen(storage2,100000,1)
-
-    datagen(storage1,100000,2)
-    datagen(storage2,100000,2)
-
-
-    local res,err = api:call('transfer_data_to_historical_table_on_cluster',{'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 2} )
-    local cnt1_1 = storage1:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
-    local cnt1_2 = storage1:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
-
-    local cnt2_1 = storage2:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
-    local cnt2_2 = storage2:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
-
-
-    t.assert_equals(err, nil)
-    t.assert_equals(res, true)
-    t.assert_equals(cnt1_1,100000)
-    t.assert_equals(cnt1_2,100000)
-    t.assert_equals(cnt2_1,100000)
-    t.assert_equals(cnt2_2,100000)
-end
-
-
 
 g2.test_100k_transfer_data_to_historical_scd_on_cluster = function()
     local storage1 = cluster:server('master-1-1').net_box
@@ -292,95 +257,6 @@ g2.test_100k_transfer_data_to_historical_scd_on_cluster = function()
     t.assert_equals(cnt2_2,100000)
     t.assert_equals(cnt2_3,100000)
 
-end
-
-g2.test_rest_api_transfer_data_to_historical_table_on_cluster = function ()
-    local storage1 = cluster:server('master-1-1').net_box
-    local storage2 = cluster:server('master-2-1').net_box
-    local _ = cluster:server('api-1').net_box
-
-    local function datagen(storage,number_of_rows,version) --TODO Move in helper functions
-        for i=1,number_of_rows,1 do
-            storage.space.EMPLOYEES_TRANSFER:insert{i,version,1,1,'Test','IT','Test',300,100} --TODO Bucket_id fix?
-        end
-    end
-
-    datagen(storage1,1000,1)
-    datagen(storage2,1000,1)
-
-    datagen(storage1,1000,2)
-    datagen(storage2,1000,2)
-
-
-    local _ = assert_http_json_request('GET',
--- luacheck: max line length 180
-            '/api/etl/transfer_data_to_historical_table?_actual_data_table_name=EMPLOYEES_TRANSFER&_historical_data_table_name=EMPLOYEES_TRANSFER_HIST&_delta_number=2',
-            nil, {body = {
-                message = "INFO: Transfer data to a historical table on cluster done",
-                status = "ok",
-            }
-            , status = 200})
-
-    local cnt1_1 = storage1:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
-    local cnt1_2 = storage1:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
-
-    local cnt2_1 = storage2:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
-    local cnt2_2 = storage2:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
-
-
-    t.assert_equals(cnt1_1,1000)
-    t.assert_equals(cnt1_2,1000)
-    t.assert_equals(cnt2_1,1000)
-    t.assert_equals(cnt2_2,1000)
-end
-
-
-g2.test_rest_api_error_transfer_data_to_historical_table_on_cluster = function ()
-
-    local _ = assert_http_json_request('GET',
-            '/api/etl/transfer_data_to_historical_table?&_historical_data_table_name=EMPLOYEES_TRANSFER_HIST&_delta_number=2',
-            nil, {body = {
-                error = "ERROR: _actual_data_table_name param in query not found",
-                errorCode = "API_ETL_TRANSFER_DATA_TO_HISTORICAL_TABLE_001",
-                status = "error",
-            }
-            , status = 400})
-
-    local _ = assert_http_json_request('GET',
-            '/api/etl/transfer_data_to_historical_table?_actual_data_table_name=EMPLOYEES_TRANSFER&_delta_number=2',
-            nil, {body = {
-                error = "ERROR: _historical_data_table_name param in query not found",
-                errorCode = "API_ETL_TRANSFER_DATA_TO_HISTORICAL_TABLE_002",
-                status = "error",
-            }
-            , status = 400})
-
-    local _ = assert_http_json_request('GET',
--- luacheck: max line length 180
-            '/api/etl/transfer_data_to_historical_table?_actual_data_table_name=EMPLOYEES_TRANSFER&_historical_data_table_name=EMPLOYEES_TRANSFER_HIST',
-            nil, {body = {
-                error = "ERROR: _delta_number param in query not found",
-                errorCode = "API_ETL_TRANSFER_DATA_TO_HISTORICAL_TABLE_003",
-                status = "error",
-            }
-
-            , status = 400})
-
-
-    local _ = assert_http_json_request('GET',
-            '/api/etl/transfer_data_to_historical_table?_actual_data_table_name=EMPLOYEES_TRANSFER2&_historical_data_table_name=EMPLOYEES_TRANSFER_HIST&_delta_number=2',
-            nil, {body = {
-                error = "ERROR: No such space",
-                errorCode = "STORAGE_001",
-                opts =  {
-                    error = "ERROR: No such space",
-                    errorCode = "STORAGE_001",
-                    opts = {space = "EMPLOYEES_TRANSFER2"},
-                    status = "error",
-                },
-                status = "error",
-            }
-            , status = 400})
 end
 
 
@@ -768,21 +644,138 @@ g7.test_get_scd_checksum_on_cluster_w_columns = function()
     api:call('transfer_data_to_scd_table_on_cluster',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 1} )
     local is_gen2, res2 = api:call('get_scd_table_checksum_on_cluster', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,{'id','sysFrom'}})
     t.assert_equals(is_gen2,true)
-    t.assert_equals(res2,0)
+    t.assert_equals(res2,2363892561778)
     datagen(storage1,1000)
     datagen(storage2,1000)
     api:call('transfer_data_to_scd_table_on_cluster',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST',2} )
 
     local is_gen3, res3 = api:call('get_scd_table_checksum_on_cluster', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,{'id','sysFrom'}})
     t.assert_equals(is_gen3,true)
-    t.assert_equals(res3,0)
+    t.assert_equals(res3,2363892561778)
 
     local is_gen4, res4 = api:call('get_scd_table_checksum_on_cluster', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',2,{'id','sysFrom'}})
     t.assert_equals(is_gen4,true)
-    t.assert_equals(res4,0)
+    t.assert_equals(res4,2360082553404)
 
 end
 
+g7.test_get_scd_norm_checksum_on_cluster_w_columns = function()
+    local api = cluster:server('api-1').net_box
+    local storage1 = cluster:server('master-1-1').net_box
+    local storage2 = cluster:server('master-2-1').net_box
+
+    local function datagen(storage,number_of_rows) --TODO Move in helper functions
+        for i=1,number_of_rows,1 do
+            storage.space.EMPLOYEES_HOT:insert{i,1,'123','123','123',100,0,100} --TODO Bucket_id fix?
+        end
+    end
+
+    datagen(storage1,1000)
+    datagen(storage2,1000)
+<<<<<<< HEAD
+<<<<<<< HEAD
+<<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 57a7f7d... feat: add query profiling option
+=======
+>>>>>>> d754c13... style: fix typo
+    local is_gen, res = api:call(
+            'get_scd_table_checksum_on_cluster',
+            {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,{'id','sysFrom'},2000000}
+    )
+    t.assert_equals(is_gen,true)
+    t.assert_equals(res,0)
+    api:call('transfer_data_to_scd_table_on_cluster',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 1} )
+    local is_gen2, res2 = api:call(
+            'get_scd_table_checksum_on_cluster',
+            {'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 1, {'id','sysFrom'}, 2000000}
+<<<<<<< HEAD
+    )
+<<<<<<< HEAD
+=======
+    local is_gen, res = api:call('get_scd_table_checksum_on_cluster', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,
+       {'id','sysFrom'},2000000})
+    t.assert_equals(is_gen,true)
+    t.assert_equals(res,0)
+    api:call('transfer_data_to_scd_table_on_cluster',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 1} )
+    local is_gen2, res2 = api:call('get_scd_table_checksum_on_cluster', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,
+       {'id','sysFrom'},2000000})
+>>>>>>> 016be32... refactor(general): fix string limit lint
+=======
+    local is_gen, res = api:call(
+        'get_scd_table_checksum_on_cluster',
+        {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1, {'id','sysFrom'},2000000}
+=======
+>>>>>>> d754c13... style: fix typo
+    )
+    t.assert_equals(is_gen,true)
+    t.assert_equals(res,0)
+    api:call('transfer_data_to_scd_table_on_cluster',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 1} )
+    local is_gen2, res2 = api:call(
+        'get_scd_table_checksum_on_cluster',
+        {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1, {'id','sysFrom'},2000000}
+    )
+>>>>>>> f1a4b96... refactor(storage): remove deadcode
+=======
+>>>>>>> 57a7f7d... feat: add query profiling option
+    t.assert_equals(is_gen2,true)
+    t.assert_equals(res2,1180948)
+    datagen(storage1,1000)
+    datagen(storage2,1000)
+    api:call('transfer_data_to_scd_table_on_cluster',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST',2} )
+
+<<<<<<< HEAD
+<<<<<<< HEAD
+<<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> 57a7f7d... feat: add query profiling option
+=======
+>>>>>>> d754c13... style: fix typo
+    local is_gen3, res3 = api:call(
+            'get_scd_table_checksum_on_cluster',
+            {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,{'id','sysFrom'},2000000}
+    )
+    t.assert_equals(is_gen3,true)
+    t.assert_equals(res3,1180948)
+
+    local is_gen4, res4 = api:call(
+            'get_scd_table_checksum_on_cluster',
+            {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',2,{'id','sysFrom'},2000000}
+<<<<<<< HEAD
+    )
+<<<<<<< HEAD
+=======
+    local is_gen3, res3 = api:call('get_scd_table_checksum_on_cluster', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,
+       {'id','sysFrom'},2000000})
+    t.assert_equals(is_gen3,true)
+    t.assert_equals(res3,1180948)
+
+    local is_gen4, res4 = api:call('get_scd_table_checksum_on_cluster', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',2,
+       {'id','sysFrom'},2000000})
+>>>>>>> 016be32... refactor(general): fix string limit lint
+=======
+    local is_gen3, res3 = api:call(
+        'get_scd_table_checksum_on_cluster',
+        {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1, {'id','sysFrom'},2000000}
+    )
+    t.assert_equals(is_gen3,true)
+    t.assert_equals(res3,1180948)
+
+    local is_gen4, res4 = api:call(
+        'get_scd_table_checksum_on_cluster',
+        {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',2, {'id','sysFrom'},2000000}
+=======
+>>>>>>> d754c13... style: fix typo
+    )
+>>>>>>> f1a4b96... refactor(storage): remove deadcode
+=======
+>>>>>>> 57a7f7d... feat: add query profiling option
+    t.assert_equals(is_gen4,true)
+    t.assert_equals(res4,1179046)
+
+end
 
 g7.test_get_scd_checksum_on_cluster_rest  = function ()
 
@@ -822,6 +815,18 @@ g7.test_get_scd_checksum_on_cluster_rest  = function ()
         '/api/etl/get_scd_table_checksum',
         { actualDataTableName = 'EMPLOYEES_TRANSFER', historicalDataTableName = 'EMPLOYEES_TRANSFER_HIST', sysCn = 1},
         { status = 200, body = {checksum = 2000} })
+
+    assert_http_json_request('POST',
+            '/api/etl/get_scd_table_checksum',
+            { actualDataTableName = 'EMPLOYEES_TRANSFER', historicalDataTableName = 'EMPLOYEES_TRANSFER_HIST',
+              columnList ={'id','sysFrom'}, sysCn = 1},
+            { status = 200, body = {checksum = 2363892561778} })
+
+    assert_http_json_request('POST',
+            '/api/etl/get_scd_table_checksum',
+            { actualDataTableName = 'EMPLOYEES_TRANSFER', historicalDataTableName = 'EMPLOYEES_TRANSFER_HIST',
+              columnList ={'id','sysFrom'}, sysCn = 1, normalization=2000000},
+            { status = 200, body = {checksum = 1180948} })
 
 end
 
@@ -875,6 +880,22 @@ g9.before_all(function()
     cluster:upload_config(config)
 end)
 
+g9.after_all(function()
+    local config = cluster:download_config()
+
+    config['api_timeout'] = nil
+
+    cluster:upload_config(config)
+
+    local storage1 = cluster:server('master-1-1').net_box
+    local storage2 = cluster:server('master-2-1').net_box
+
+    -- it needs because url handler works async and after request with error continue reload data from staging table
+    -- if didn't truncate in other test may race condition
+    storage1:call('box.execute', {'truncate table EMPLOYEES_HOT'})
+    storage2:call('box.execute', {'truncate table EMPLOYEES_HOT'})
+end)
+
 g9.test_timeout_cfg = function()
     local function datagen(storage,number_of_rows)
         for i=1,number_of_rows,1 do
@@ -887,8 +908,10 @@ g9.test_timeout_cfg = function()
     datagen(storage1,10000)
     datagen(storage2,10000)
 
+    -- luacheck: max line length 210
+    local url = '/api/etl/transfer_data_to_scd_table?_stage_data_table_name=EMPLOYEES_HOT&_actual_data_table_name=EMPLOYEES_TRANSFER&_historical_data_table_name=EMPLOYEES_TRANSFER_HIST&_delta_number=2'
     assert_http_json_request('GET',
-            '/api/etl/transfer_data_to_scd_table?_stage_data_table_name=EMPLOYEES_HOT&_actual_data_table_name=EMPLOYEES_TRANSFER&_historical_data_table_name=EMPLOYEES_TRANSFER_HIST&_delta_number=2',
+            url,
             nil, {body = {
                 error = "ERROR: data modification error",
                 errorCode = "STORAGE_003",
@@ -908,4 +931,145 @@ g9.test_timeout_cfg = function()
                 status = "error",
             }, status = 400})
 
+end
+
+g10.before_test('test_timeout_error_ddl', function()
+    local config = cluster:download_config()
+
+    config['api_timeout'] = {
+        ddl_operation = 0.1
+    }
+
+    cluster:upload_config(config)
+end)
+
+g10.after_all(function()
+    local config = cluster:download_config()
+
+    config['api_timeout'] = nil
+
+    cluster:upload_config(config)
+end)
+
+g10.test_create_and_delete_api = function()
+    assert_http_json_request('POST',
+            '/api/v1/ddl/table/queuedCreate',
+            {
+                spaces = {
+                    adg_test_actual = {
+                        format = {
+                            {
+                                name = "id",
+                                type = "integer",
+                                is_nullable = false
+                            },
+                            {
+                                name = "bucket_id",
+                                type = "unsigned",
+                                is_nullable = false
+                            },
+                        },
+                        temporary = false,
+                        engine = "vinyl",
+                        indexes = {
+                            {
+                                unique = true,
+                                parts = {
+                                    {
+                                        path = "id",
+                                        type = "integer",
+                                        is_nullable = false
+                                    }
+                                },
+                                type = "TREE",
+                                name = "id"
+                            },
+                            {
+                                unique = false,
+                                parts = {
+                                    {
+                                        path = "bucket_id",
+                                        type = "unsigned",
+                                        is_nullable = false
+                                    }
+                                },
+                                type = "TREE",
+                                name = "bucket_id"
+                            }
+                        },
+                        is_local = false,
+                        sharding_key = { "id" }
+                    }
+                }
+            },
+            { status = 200 }
+    )
+
+    local c = cluster:download_config()
+    t.assert_not_equals(c.schema.spaces.adg_test_actual, nil)
+
+    assert_http_json_request('DELETE',
+            '/api/v1/ddl/table/queuedDelete',
+            { tableList = { 'adg_test_actual' } },
+            { status = 200 }
+    )
+
+    c = cluster:download_config()
+    t.assert_equals(c.schema.spaces.adg_test_actual, nil)
+end
+
+g10.test_timeout_error_ddl = function()
+    assert_http_json_request('POST',
+            '/api/v1/ddl/table/queuedCreate',
+            {
+                spaces = {
+                    adg_test_actual = {
+                        format = {
+                            {
+                                name = "id",
+                                type = "integer",
+                                is_nullable = false
+                            },
+                            {
+                                name = "bucket_id",
+                                type = "unsigned",
+                                is_nullable = false
+                            },
+                        },
+                        temporary = false,
+                        engine = "vinyl",
+                        indexes = {
+                            {
+                                unique = true,
+                                parts = {
+                                    {
+                                        path = "id",
+                                        type = "integer",
+                                        is_nullable = false
+                                    }
+                                },
+                                type = "TREE",
+                                name = "id"
+                            },
+                            {
+                                unique = false,
+                                parts = {
+                                    {
+                                        path = "bucket_id",
+                                        type = "unsigned",
+                                        is_nullable = false
+                                    }
+                                },
+                                type = "TREE",
+                                name = "bucket_id"
+                            }
+                        },
+                        is_local = false,
+                        sharding_key = { "id" }
+                    }
+                }
+            },
+            { body = {code = "API_DDL_QUEUE_004", message = "ERROR: ddl request timeout"},
+              status = 500 }
+    )
 end

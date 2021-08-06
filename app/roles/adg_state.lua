@@ -703,8 +703,8 @@ local function delayed_delete_on_cluster()
     return res, err
 end
 
-local function delayed_delete_prefix(prefix)
-    checks('string')
+local function delayed_delete_prefix(prefix, wait_res_timeout)
+    checks('string', 'number')
 
     local space = box.space['_DDL_QUEUE']
 
@@ -723,15 +723,15 @@ local function delayed_delete_prefix(prefix)
     box.commit()
 
     local w = fiber.new(function()
-        local ok = ddl_callbacks[tuple['ID']]['cond']:wait(20)
+        local ok = ddl_callbacks[tuple['ID']]['cond']:wait(wait_res_timeout)
 
         if not ok then
             ddl_callbacks[tuple['ID']] = nil
-            return { code = 'API_DDL_QUEUE_004', msg = 'ERROR: ddl reques timeout' }
+            return { code = 'API_DDL_QUEUE_004', message = 'ERROR: ddl request timeout' }
         end
 
         if ddl_callbacks[tuple['ID']]['status'] == 'error' then
-            return { code = 'API_DDL_QUEUE_004', msg = ddl_callbacks[tuple['ID']]['error'] }
+            return { code = 'API_DDL_QUEUE_004', message = ddl_callbacks[tuple['ID']]['error'] }
 
         end
         ddl_callbacks[tuple['ID']] = nil
@@ -749,8 +749,8 @@ local function delayed_delete_prefix(prefix)
     return true, nil
 end
 
-local function delayed_create(spaces)
-    checks('table')
+local function delayed_create(spaces, wait_res_timeout)
+    checks('table', 'number')
 
     local space = box.space['_DDL_QUEUE']
 
@@ -770,15 +770,15 @@ local function delayed_create(spaces)
     end
     box.commit()
     local w = fiber.new(function()
-        local ok = ddl_callbacks[tuple['ID']]['cond']:wait(20)
+        local ok = ddl_callbacks[tuple['ID']]['cond']:wait(wait_res_timeout)
 
         if not ok then
             ddl_callbacks[tuple['ID']] = nil
-            return { code = 'API_DDL_QUEUE_004', msg = 'ERROR: ddl reques timeout' }
+            return { code = 'API_DDL_QUEUE_004', message = 'ERROR: ddl request timeout' }
         end
 
         if ddl_callbacks[tuple['ID']]['status'] == 'error' then
-            return { code = 'API_DDL_QUEUE_004', msg = ddl_callbacks[tuple['ID']]['error'] }
+            return { code = 'API_DDL_QUEUE_004', message = ddl_callbacks[tuple['ID']]['error'] }
 
         end
         ddl_callbacks[tuple['ID']] = nil
@@ -796,8 +796,8 @@ local function delayed_create(spaces)
     return true, nil
 end
 
-local function delayed_delete(spaces)
-    checks('table')
+local function delayed_delete(spaces, wait_res_timeout)
+    checks('table', 'number')
 
     local space = box.space['_DDL_QUEUE']
 -- luacheck: ignore err
@@ -815,15 +815,15 @@ local function delayed_delete(spaces)
     end
     box.commit()
     local w = fiber.new(function()
-        local ok = ddl_callbacks[tuple['ID']]['cond']:wait(20)
+        local ok = ddl_callbacks[tuple['ID']]['cond']:wait(wait_res_timeout)
 
         if not ok then
             ddl_callbacks[tuple['ID']] = nil
-            return { code = 'API_DDL_QUEUE_004', msg = 'ERROR: ddl reques timeout' }
+            return { code = 'API_DDL_QUEUE_004', message = 'ERROR: ddl request timeout' }
         end
 
         if ddl_callbacks[tuple['ID']]['status'] == 'error' then
-            return { code = 'API_DDL_QUEUE_004', msg = ddl_callbacks[tuple['ID']]['error'] }
+            return { code = 'API_DDL_QUEUE_004', message = ddl_callbacks[tuple['ID']]['error'] }
 
         end
         ddl_callbacks[tuple['ID']] = nil
