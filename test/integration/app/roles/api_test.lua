@@ -25,6 +25,7 @@ local g5 = t.group('api.storage_ddl_test')
 local g6 = t.group('api.delete_scd_sql')
 local g7 = t.group('api.get_scd_table_checksum')
 local g8 = t.group('api.truncate_space_on_cluster')
+local g9 = t.group('api.timeouts_config')
 
 local checks = require('checks')
 local helper = require('test.helper.integration')
@@ -851,4 +852,60 @@ g8.test_truncate_existing_spaces_on_cluster = function()
     t.assert_equals(res, true)
     t.assert_equals(count_1,0)
     t.assert_equals(count_2,0)
+end
+
+g9.before_each(function()
+    local storage1 = cluster:server('master-1-1').net_box
+    local storage2 = cluster:server('master-2-1').net_box
+    storage1:call('box.execute', {'truncate table EMPLOYEES_TRANSFER_HIST'})
+    storage1:call('box.execute', {'truncate table EMPLOYEES_TRANSFER'})
+    storage1:call('box.execute', {'truncate table EMPLOYEES_HOT'})
+    storage2:call('box.execute', {'truncate table EMPLOYEES_TRANSFER_HIST'})
+    storage2:call('box.execute', {'truncate table EMPLOYEES_TRANSFER'})
+    storage2:call('box.execute', {'truncate table EMPLOYEES_HOT'})
+end)
+
+g9.before_all(function()
+    local config = cluster:download_config()
+
+    config['api_timeout'] = {
+        ['transfer_stage_data_to_scd_tbl'] = 1,
+    }
+
+    cluster:upload_config(config)
+end)
+
+g9.test_timeout_cfg = function()
+    local function datagen(storage,number_of_rows)
+        for i=1,number_of_rows,1 do
+            storage.space.EMPLOYEES_HOT:insert{i,1,'123','123','123',100,0,100}
+        end
+    end
+
+    local storage1 = cluster:server('master-1-1').net_box
+    local storage2 = cluster:server('master-2-1').net_box
+    datagen(storage1,10000)
+    datagen(storage2,10000)
+
+    assert_http_json_request('GET',
+            '/api/etl/transfer_data_to_scd_table?_stage_data_table_name=EMPLOYEES_HOT&_actual_data_table_name=EMPLOYEES_TRANSFER&_historical_data_table_name=EMPLOYEES_TRANSFER_HIST&_delta_number=2',
+            nil, {body = {
+                error = "ERROR: data modification error",
+                errorCode = "STORAGE_003",
+                opts = {
+                    error = "ERROR: data modification error",
+                    errorCode = "STORAGE_003",
+                    opts = {
+                        actual_data_table_name = "EMPLOYEES_TRANSFER",
+                        delta_number = 2,
+                        error = "Response is not ready",
+                        func = "transfer_stage_data_to_scd_table",
+                        historical_data_table_name = "EMPLOYEES_TRANSFER_HIST",
+                        stage_data_table_name = "EMPLOYEES_HOT",
+                    },
+                    status = "error",
+                },
+                status = "error",
+            }, status = 400})
+
 end

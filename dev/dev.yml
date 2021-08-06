@@ -32,5 +32,9 @@
             schema_data: 'adb__adg_test__env_test_staging'
             error_topic: 'err'
             success_topic: 'suss'             
-    
+
+    api_timeout:
+      transfer_stage_data_to_scd_tbl: 1
+      scd_table_checksum: 1
+
     scheduler_tasks:
