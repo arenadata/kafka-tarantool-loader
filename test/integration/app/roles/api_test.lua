@@ -30,7 +30,7 @@ local g9 = t.group('api.timeouts_config')
 local checks = require('checks')
 local helper = require('test.helper.integration')
 local cluster = helper.cluster
-local fiber =require('fiber')
+-- local fiber = require('fiber')
 
 local file_utils = require('app.utils.file_utils')
 
@@ -91,12 +91,13 @@ end)
 
 g.test_set_ddl = function ()
     local net_box = cluster:server('api-1').net_box
-    local res, err = net_box:call('set_ddl', {schema})
+    local _, err = net_box:call('set_ddl', {schema})
     t.assert_equals(err, nil)
 end
 
 g.test_simple_insert_query = function ()
     local storage = cluster:server('master-1-1').net_box
+-- luacheck: max line length 160
     --[[
     local net_box = cluster:server('api-1').net_box
     local res, err = net_box:call(
@@ -134,7 +135,7 @@ g.test_cluster_schema_update = function()
     local net_box = cluster:server('api-1').net_box
     local storage = cluster:server('master-1-1')
 
-    local res,err = storage.net_box:eval([[
+    local _, err = storage.net_box:eval([[
     s = box.schema.space.create('user2');
 
     s:format({
@@ -153,7 +154,7 @@ g.test_cluster_schema_update = function()
 
     local storage_uri = tostring(storage.advertise_uri)
 
-    local res, err = net_box:call(
+    local _, err = net_box:call(
             'sync_ddl_schema_with_storage',
             {storage_uri},{timeout=30}) -- No support redundant argument \"nullable_action\""
     t.assert_equals(err, nil)
@@ -183,15 +184,15 @@ g.test_cluster_schema_update = function()
 end
 
 g.test_api_get_config = function()
-    local net_box = cluster:server('api-1').net_box
+    local _ = cluster:server('api-1').net_box
 
-    local res = assert_http_json_request('GET', '/api/get_config', nil, {body = file_utils.read_file('/test/integration/data/api/get_config_response.json'),
-                                                                         status = 200})
+    local _ = assert_http_json_request('GET', '/api/get_config', nil,
+                    {body = file_utils.read_file('/test/integration/data/api/get_config_response.json'), status = 200})
 
 end
 
 g.test_api_metrics_get_all = function()
-    local net_box = cluster:server('api-1').net_box
+    local _ = cluster:server('api-1').net_box
     --TODO Add test
 end
 
@@ -296,7 +297,7 @@ end
 g2.test_rest_api_transfer_data_to_historical_table_on_cluster = function ()
     local storage1 = cluster:server('master-1-1').net_box
     local storage2 = cluster:server('master-2-1').net_box
-    local api = cluster:server('api-1').net_box
+    local _ = cluster:server('api-1').net_box
 
     local function datagen(storage,number_of_rows,version) --TODO Move in helper functions
         for i=1,number_of_rows,1 do
@@ -311,7 +312,8 @@ g2.test_rest_api_transfer_data_to_historical_table_on_cluster = function ()
     datagen(storage2,1000,2)
 
 
-    local res = assert_http_json_request('GET',
+    local _ = assert_http_json_request('GET',
+-- luacheck: max line length 180
             '/api/etl/transfer_data_to_historical_table?_actual_data_table_name=EMPLOYEES_TRANSFER&_historical_data_table_name=EMPLOYEES_TRANSFER_HIST&_delta_number=2',
             nil, {body = {
                 message = "INFO: Transfer data to a historical table on cluster done",
@@ -330,14 +332,12 @@ g2.test_rest_api_transfer_data_to_historical_table_on_cluster = function ()
     t.assert_equals(cnt1_2,1000)
     t.assert_equals(cnt2_1,1000)
     t.assert_equals(cnt2_2,1000)
-
-
 end
 
 
 g2.test_rest_api_error_transfer_data_to_historical_table_on_cluster = function ()
 
-    local res = assert_http_json_request('GET',
+    local _ = assert_http_json_request('GET',
             '/api/etl/transfer_data_to_historical_table?&_historical_data_table_name=EMPLOYEES_TRANSFER_HIST&_delta_number=2',
             nil, {body = {
                 error = "ERROR: _actual_data_table_name param in query not found",
@@ -346,7 +346,7 @@ g2.test_rest_api_error_transfer_data_to_historical_table_on_cluster = function (
             }
             , status = 400})
 
-    local res = assert_http_json_request('GET',
+    local _ = assert_http_json_request('GET',
             '/api/etl/transfer_data_to_historical_table?_actual_data_table_name=EMPLOYEES_TRANSFER&_delta_number=2',
             nil, {body = {
                 error = "ERROR: _historical_data_table_name param in query not found",
@@ -355,7 +355,8 @@ g2.test_rest_api_error_transfer_data_to_historical_table_on_cluster = function (
             }
             , status = 400})
 
-    local res = assert_http_json_request('GET',
+    local _ = assert_http_json_request('GET',
+-- luacheck: max line length 180
             '/api/etl/transfer_data_to_historical_table?_actual_data_table_name=EMPLOYEES_TRANSFER&_historical_data_table_name=EMPLOYEES_TRANSFER_HIST',
             nil, {body = {
                 error = "ERROR: _delta_number param in query not found",
@@ -366,7 +367,7 @@ g2.test_rest_api_error_transfer_data_to_historical_table_on_cluster = function (
             , status = 400})
 
 
-    local res = assert_http_json_request('GET',
+    local _ = assert_http_json_request('GET',
             '/api/etl/transfer_data_to_historical_table?_actual_data_table_name=EMPLOYEES_TRANSFER2&_historical_data_table_name=EMPLOYEES_TRANSFER_HIST&_delta_number=2',
             nil, {body = {
                 error = "ERROR: No such space",
@@ -385,7 +386,8 @@ end
 
 g2.test_rest_api_error_transfer_data_to_scd_table_on_cluster = function ()
 
-    local res = assert_http_json_request('GET',
+    local _ = assert_http_json_request('GET',
+-- luacheck: max line length 180
             '/api/etl/transfer_data_to_scd_table?_stage_data_table_name=EMPLOYEES_HOT&_historical_data_table_name=EMPLOYEES_TRANSFER_HIST&_delta_number=2',
             nil, {body = {
                 error = "ERROR: _actual_data_table_name param in query not found",
@@ -394,7 +396,7 @@ g2.test_rest_api_error_transfer_data_to_scd_table_on_cluster = function ()
             }
             , status = 400})
 
-    local res = assert_http_json_request('GET',
+    local _ = assert_http_json_request('GET',
             '/api/etl/transfer_data_to_scd_table?_stage_data_table_name=EMPLOYEES_HOT&_actual_data_table_name=EMPLOYEES_TRANSFER&_delta_number=2',
             nil, {body = {
                 error = "ERROR: _historical_data_table_name param in query not found",
@@ -403,7 +405,8 @@ g2.test_rest_api_error_transfer_data_to_scd_table_on_cluster = function ()
             }
             , status = 400})
 
-    local res = assert_http_json_request('GET',
+    local _ = assert_http_json_request('GET',
+-- luacheck: max line length 200
             '/api/etl/transfer_data_to_scd_table?_stage_data_table_name=EMPLOYEES_HOT&_actual_data_table_name=EMPLOYEES_TRANSFER&_historical_data_table_name=EMPLOYEES_TRANSFER_HIST',
             nil, {body = {
                 error = "ERROR: _delta_number param in query not found",
@@ -413,7 +416,7 @@ g2.test_rest_api_error_transfer_data_to_scd_table_on_cluster = function ()
 
             , status = 400})
 
-    local res = assert_http_json_request('GET',
+    local _ = assert_http_json_request('GET',
             '/api/etl/transfer_data_to_scd_table?_actual_data_table_name=EMPLOYEES_TRANSFER2&_historical_data_table_name=EMPLOYEES_TRANSFER_HIST&_delta_number=2',
             nil, {body = {
                 error = "ERROR: _stage_data_table_name param in query not found",
@@ -423,7 +426,7 @@ g2.test_rest_api_error_transfer_data_to_scd_table_on_cluster = function ()
 
             , status = 400})
 
-    local res = assert_http_json_request('GET',
+    local _ = assert_http_json_request('GET',
             '/api/etl/transfer_data_to_scd_table?_stage_data_table_name=EMPLOYEES_HOT&_actual_data_table_name=EMPLOYEES_TRANSFER2&_historical_data_table_name=EMPLOYEES_TRANSFER_HIST&_delta_number=2',
             nil, {body = {
                 error = "ERROR: No such space",
@@ -667,7 +670,7 @@ end
 
 g6.test_delete_scd_sql_on_cluster_rest  = function ()
 
-    local api = cluster:server('api-1').net_box
+    local _ = cluster:server('api-1').net_box
     local storage1 = cluster:server('master-1-1').net_box
     local storage2 = cluster:server('master-2-1').net_box
 
@@ -816,8 +819,9 @@ g7.test_get_scd_checksum_on_cluster_rest  = function ()
     api:call('transfer_data_to_scd_table_on_cluster',{'EMPLOYEES_HOT','EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 1})
 
     assert_http_json_request('POST',
-    '/api/etl/get_scd_table_checksum',
-    {actualDataTableName = 'EMPLOYEES_TRANSFER', historicalDataTableName = 'EMPLOYEES_TRANSFER_HIST', sysCn = 1}, { status = 200, body = {checksum = 2000}})
+        '/api/etl/get_scd_table_checksum',
+        { actualDataTableName = 'EMPLOYEES_TRANSFER', historicalDataTableName = 'EMPLOYEES_TRANSFER_HIST', sysCn = 1},
+        { status = 200, body = {checksum = 2000} })
 
 end
 

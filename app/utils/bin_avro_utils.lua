@@ -1,11 +1,11 @@
 -- Copyright 2021 Kafka-Tarantool-Loader
--- 
+--
 -- Licensed under the Apache License, Version 2.0 (the "License");
 -- you may not use this file except in compliance with the License.
 -- You may obtain a copy of the License at
--- 
+--
 --     http://www.apache.org/licenses/LICENSE-2.0
--- 
+--
 -- Unless required by applicable law or agreed to in writing, software
 -- distributed under the License is distributed on an "AS IS" BASIS,
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -488,6 +488,7 @@ end
 ---@param value string -  binary string, that contains encoded avro object container.
 ---@param input_schema string|nil - optional JSON-string, that contains avro schema.
 ---@return boolean|table - true|table if process finished without errors, else false|error.
+-- luacheck: ignore decode_object_container_avro
 local function decode_object_container_avro(value, input_schema)
     checks('string', '?string')
 
@@ -563,6 +564,7 @@ end
 ---@param[opt="/dev/shm/"]  dir_to_safe string - optional parameter,
 --- that contains location on the filesystem to save intermediate results.
 ---@return boolean|table - true|table if process finished without errors, false|error otherwise.
+-- luacheck: ignore decode_records_object_container_avro_fast
 local function decode_records_object_container_avro_fast(value, dir_to_safe)
     checks('string', '?string')
     local try_count = 1
@@ -632,7 +634,7 @@ end
 
 local function decode_records_object_container_avro_memory(value)
     checks('string')
-    
+
     local is_reader_created, reader = pcall(avro.open, value, "m")
     if not is_reader_created then
         return false, reader
@@ -666,6 +668,7 @@ local function decode(data,schema)
     checks('string','?string')
 
     local is_confluent_avro = false
+-- luacheck: ignore confluent_schema_id
     local confluent_schema_id
     --check for wire format
     --https://docs.confluent.io/current/schema-registry/serdes-develop/index.html#wire-format

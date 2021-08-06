@@ -1,11 +1,11 @@
 -- Copyright 2021 Kafka-Tarantool-Loader
--- 
+--
 -- Licensed under the Apache License, Version 2.0 (the "License");
 -- you may not use this file except in compliance with the License.
 -- You may obtain a copy of the License at
--- 
+--
 --     http://www.apache.org/licenses/LICENSE-2.0
--- 
+--
 -- Unless required by applicable law or agreed to in writing, software
 -- distributed under the License is distributed on an "AS IS" BASIS,
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -170,15 +170,15 @@ local function delete_data_from_scd_table_sql(req)
     return {status = 200}
 end
 
---- Get checksum for a subset of data. The function calculates a checksum within a delta for all of the 
+--- Get checksum for a subset of data. The function calculates a checksum within a delta for all of the
 --- logical tables in the datamart or for one logical table.
 --- This method implements function CHECK_SUM from DTM SQL (https://arenadata.atlassian.net/wiki/spaces/DTM/pages/475856930/SQL+CHECK+SUM)
---- @param req table - body of request: Example json body: 
+--- @param req table - body of request: Example json body:
 ---                    {
----                         "actualDataTableName": "test", 
----                         "historicalDataTableName": "test", 
----                         "sysCn": 0, 
----                         "columnList": null, 
+---                         "actualDataTableName": "test",
+---                         "historicalDataTableName": "test",
+---                         "sysCn": 0,
+---                         "columnList": null,
 ---                         "normalization": null
 ---                     }
 local function get_scd_table_checksum (req)
@@ -197,13 +197,14 @@ local function get_scd_table_checksum (req)
 
     local norm = body.normalization
     if norm ~= nil then
-        if norm < 1 then            
+        if norm < 1 then
             return error_repository.return_http_response('API_ETL_GET_SCD_CHECKSUM_004')
         end
         norm = 1
     end
 
-    local is_ok,res = _G.get_scd_table_checksum_on_cluster(body.actualDataTableName,body.historicalDataTableName,body.sysCn,body.columnList, norm)
+    local is_ok,res = _G.get_scd_table_checksum_on_cluster(body.actualDataTableName, body.historicalDataTableName,
+                                                           body.sysCn, body.columnList, norm)
 
     if not is_ok then
         return error_repository.return_http_response('API_ETL_GET_SCD_CHECKSUM_005', {error = res})

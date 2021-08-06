@@ -12,7 +12,6 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
-
 local fiber = require('fiber')
 
 -- class which implement map of mutex table
@@ -43,7 +42,7 @@ local mutex_map = {
     end
 }
 
-function get_mutex_map()
+local function get_mutex_map()
     return mutex_map
 end
 

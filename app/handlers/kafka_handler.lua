@@ -1,11 +1,11 @@
 -- Copyright 2021 Kafka-Tarantool-Loader
--- 
+--
 -- Licensed under the Apache License, Version 2.0 (the "License");
 -- you may not use this file except in compliance with the License.
 -- You may obtain a copy of the License at
--- 
+--
 --     http://www.apache.org/licenses/LICENSE-2.0
--- 
+--
 -- Unless required by applicable law or agreed to in writing, software
 -- distributed under the License is distributed on an "AS IS" BASIS,
 -- WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
@@ -20,7 +20,7 @@ local error_repository = require('app.messages.error_repository')
 local json = require('json')
 local cartridge = require('cartridge')
 local pool = require('cartridge.pool')
-local log = require('log')
+-- local log = require('log')
 local avro_schema_lib = require('avro_schema')
 
 
@@ -329,7 +329,7 @@ local function register_kafka_callback_function(req)
     end
 
 
-    local ok,err = cartridge.rpc_call('app.roles.adg_state','register_kafka_callback_function',
+    local _, err = cartridge.rpc_call('app.roles.adg_state','register_kafka_callback_function',
             {body.callbackFunctionName,body.callbackFunctionDesc,
              callback_function_param_schema_string},{leader_only=true})
 
@@ -341,6 +341,7 @@ local function register_kafka_callback_function(req)
     return {status = 200}
 end
 
+-- luacheck: ignore req
 local function get_kafka_callback_functions(req)
 
     local res,err = cartridge.rpc_call('app.roles.adg_state','get_callback_functions')
@@ -356,7 +357,7 @@ end
 local function delete_kafka_callback_function(req)
     local callback_function_name = req:stash('callbackFunctionName')
 
-    local ok,err = cartridge.rpc_call('app.roles.adg_state','delete_kafka_callback_function',
+    local _, err = cartridge.rpc_call('app.roles.adg_state','delete_kafka_callback_function',
             {callback_function_name},{leader_only=true})
 
 
