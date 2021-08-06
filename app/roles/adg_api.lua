@@ -521,7 +521,7 @@ local function transfer_data_to_historical_table_on_cluster(actual_data_table_na
     end
 
     for _,future in ipairs(futures) do
-        future:wait_result(api_timeouts:get_transfer_stage_data_to_scd_table_timeout())
+        future:wait_result(_G.api_timeouts:get_transfer_stage_data_to_scd_table_timeout())
         local res, err = future:result()
         if res == nil then
             return nil, error_repository.get_error_code(
@@ -575,7 +575,7 @@ local function transfer_data_to_scd_table_on_cluster(stage_data_table_name,actua
     end
 
     for _,future in ipairs(futures) do
-        future:wait_result(api_timeouts:get_transfer_stage_data_to_scd_table_timeout())
+        future:wait_result(_G.api_timeouts:get_transfer_stage_data_to_scd_table_timeout())
         local res, err = future:result()
         if res == nil then
             return nil, error_repository.get_error_code(
@@ -917,7 +917,7 @@ local function get_scd_table_checksum_on_cluster(actual_data_table_name, histori
 
     local result = 0
     for _,future in ipairs(futures) do
-        future:wait_result(api_timeouts:get_scd_table_checksum_timeout())
+        future:wait_result(_G.api_timeouts:get_scd_table_checksum_timeout())
         local res, err = future:result()
         if res == nil then
             return false, error_repository.get_error_code(
@@ -1046,7 +1046,7 @@ end
 
 local function stop()
     garbage_fiber:cancel()
-    api_timeouts:clear()
+    _G.api_timeouts:clear()
     return true
 end
 

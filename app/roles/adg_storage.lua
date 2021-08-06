@@ -843,7 +843,9 @@ local function get_scd_table_checksum(actual_data_table_name, historical_data_ta
             else table.insert(concatenate,'')
             end
         end
-        result = result + dtm_digest_utils.dtm_int32_hash(table.concat(concatenate,delimeter)) % norm
+
+        local dtm_hash_cols = dtm_digest_utils.dtm_int32_hash(table.concat(concatenate,delimeter))
+        result = result + math.floor(dtm_hash_cols / norm)
     end
 
     local res , err = pcall(function ()
