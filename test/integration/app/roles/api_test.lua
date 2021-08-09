@@ -783,6 +783,39 @@ g7.test_get_scd_checksum_on_cluster_w_columns = function()
 
 end
 
+g7.test_get_scd_norm_checksum_on_cluster_w_columns = function()
+    local api = cluster:server('api-1').net_box
+    local storage1 = cluster:server('master-1-1').net_box
+    local storage2 = cluster:server('master-2-1').net_box
+
+    local function datagen(storage,number_of_rows) --TODO Move in helper functions
+        for i=1,number_of_rows,1 do
+            storage.space.EMPLOYEES_HOT:insert{i,1,'123','123','123',100,0,100} --TODO Bucket_id fix?
+        end
+    end
+
+    datagen(storage1,1000)
+    datagen(storage2,1000)
+    local is_gen, res = api:call('get_scd_table_checksum_on_cluster', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,{'id','sysFrom'},2000000})
+    t.assert_equals(is_gen,true)
+    t.assert_equals(res,0)
+    api:call('transfer_data_to_scd_table_on_cluster',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 1} )
+    local is_gen2, res2 = api:call('get_scd_table_checksum_on_cluster', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,{'id','sysFrom'},2000000})
+    t.assert_equals(is_gen2,true)
+    t.assert_equals(res2,1180948)
+    datagen(storage1,1000)
+    datagen(storage2,1000)
+    api:call('transfer_data_to_scd_table_on_cluster',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST',2} )
+
+    local is_gen3, res3 = api:call('get_scd_table_checksum_on_cluster', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,{'id','sysFrom'},2000000})
+    t.assert_equals(is_gen3,true)
+    t.assert_equals(res3,1180948)
+
+    local is_gen4, res4 = api:call('get_scd_table_checksum_on_cluster', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',2,{'id','sysFrom'},2000000})
+    t.assert_equals(is_gen4,true)
+    t.assert_equals(res4,1179046)
+
+end
 
 g7.test_get_scd_checksum_on_cluster_rest  = function ()
 
@@ -822,6 +855,18 @@ g7.test_get_scd_checksum_on_cluster_rest  = function ()
         '/api/etl/get_scd_table_checksum',
         { actualDataTableName = 'EMPLOYEES_TRANSFER', historicalDataTableName = 'EMPLOYEES_TRANSFER_HIST', sysCn = 1},
         { status = 200, body = {checksum = 2000} })
+
+    assert_http_json_request('POST',
+            '/api/etl/get_scd_table_checksum',
+            { actualDataTableName = 'EMPLOYEES_TRANSFER', historicalDataTableName = 'EMPLOYEES_TRANSFER_HIST',
+              columnList ={'id','sysFrom'}, sysCn = 1},
+            { status = 200, body = {checksum = 2363892561778} })
+
+    assert_http_json_request('POST',
+            '/api/etl/get_scd_table_checksum',
+            { actualDataTableName = 'EMPLOYEES_TRANSFER', historicalDataTableName = 'EMPLOYEES_TRANSFER_HIST',
+              columnList ={'id','sysFrom'}, sysCn = 1, normalization=2000000},
+            { status = 200, body = {checksum = 1180948} })
 
 end
 

@@ -200,6 +200,7 @@ local function get_scd_table_checksum (req)
         if norm < 1 then
             return error_repository.return_http_response('API_ETL_GET_SCD_CHECKSUM_004')
         end
+    else
         norm = 1
     end
 
