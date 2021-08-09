@@ -731,6 +731,34 @@ g6.test_simple_check_data_w_columns = function()
     t.assert_equals(res4,1180041276702)
 end
 
+g6.test_normalization_checksum_data_w_columns = function()
+    local storage = cluster:server('master-1-1').net_box
+
+    local function datagen(number_of_rows)
+        for i=1,number_of_rows,1 do
+            storage.space.EMPLOYEES_HOT:insert{i,1,'123','123','123',100,0,100}
+        end
+    end
+    datagen(1000)
+    local is_gen, res = storage:call('get_scd_table_checksum', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,{'id','sysFrom'},2000000})
+    t.assert_equals(is_gen,true)
+    t.assert_equals(res,0)
+    storage:call('transfer_stage_data_to_scd_table',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 1} )
+    local is_gen2, res2 = storage:call('get_scd_table_checksum', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,{'id','sysFrom'},2000000})
+    t.assert_equals(is_gen2,true)
+    t.assert_equals(res2,590474)
+    datagen(1000)
+    storage:call('transfer_stage_data_to_scd_table',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST',2} )
+
+    local is_gen3, res3 = storage:call('get_scd_table_checksum', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,{'id','sysFrom'},2000000})
+    t.assert_equals(is_gen3,true)
+    t.assert_equals(res3,590474)
+
+    local is_gen4, res4 = storage:call('get_scd_table_checksum', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',2,{'id','sysFrom'},2000000})
+    t.assert_equals(is_gen4,true)
+    t.assert_equals(res4,589523)
+end
+
 g6.test_all_dtm_types_check_data_w_column = function ()
     local storage = cluster:server('master-1-1').net_box
     storage.space.orig__as2__all_types_table_actual:insert{ 1, 7729, 3, nil, 0, 1, 1, 'text', true,
