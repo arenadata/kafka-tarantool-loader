@@ -294,6 +294,95 @@ g2.test_100k_transfer_data_to_historical_scd_on_cluster = function()
 
 end
 
+g2.test_rest_api_transfer_data_to_historical_table_on_cluster = function ()
+    local storage1 = cluster:server('master-1-1').net_box
+    local storage2 = cluster:server('master-2-1').net_box
+    local _ = cluster:server('api-1').net_box
+
+    local function datagen(storage,number_of_rows,version) --TODO Move in helper functions
+        for i=1,number_of_rows,1 do
+            storage.space.EMPLOYEES_TRANSFER:insert{i,version,1,1,'Test','IT','Test',300,100} --TODO Bucket_id fix?
+        end
+    end
+
+    datagen(storage1,1000,1)
+    datagen(storage2,1000,1)
+
+    datagen(storage1,1000,2)
+    datagen(storage2,1000,2)
+
+
+    local _ = assert_http_json_request('GET',
+-- luacheck: max line length 180
+            '/api/etl/transfer_data_to_historical_table?_actual_data_table_name=EMPLOYEES_TRANSFER&_historical_data_table_name=EMPLOYEES_TRANSFER_HIST&_delta_number=2',
+            nil, {body = {
+                message = "INFO: Transfer data to a historical table on cluster done",
+                status = "ok",
+            }
+            , status = 200})
+
+    local cnt1_1 = storage1:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
+    local cnt1_2 = storage1:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
+
+    local cnt2_1 = storage2:call('storage_space_count', {'EMPLOYEES_TRANSFER'})
+    local cnt2_2 = storage2:call('storage_space_count', {'EMPLOYEES_TRANSFER_HIST'})
+
+
+    t.assert_equals(cnt1_1,1000)
+    t.assert_equals(cnt1_2,1000)
+    t.assert_equals(cnt2_1,1000)
+    t.assert_equals(cnt2_2,1000)
+end
+
+
+g2.test_rest_api_error_transfer_data_to_historical_table_on_cluster = function ()
+
+    local _ = assert_http_json_request('GET',
+            '/api/etl/transfer_data_to_historical_table?&_historical_data_table_name=EMPLOYEES_TRANSFER_HIST&_delta_number=2',
+            nil, {body = {
+                error = "ERROR: _actual_data_table_name param in query not found",
+                errorCode = "API_ETL_TRANSFER_DATA_TO_HISTORICAL_TABLE_001",
+                status = "error",
+            }
+            , status = 400})
+
+    local _ = assert_http_json_request('GET',
+            '/api/etl/transfer_data_to_historical_table?_actual_data_table_name=EMPLOYEES_TRANSFER&_delta_number=2',
+            nil, {body = {
+                error = "ERROR: _historical_data_table_name param in query not found",
+                errorCode = "API_ETL_TRANSFER_DATA_TO_HISTORICAL_TABLE_002",
+                status = "error",
+            }
+            , status = 400})
+
+    local _ = assert_http_json_request('GET',
+-- luacheck: max line length 180
+            '/api/etl/transfer_data_to_historical_table?_actual_data_table_name=EMPLOYEES_TRANSFER&_historical_data_table_name=EMPLOYEES_TRANSFER_HIST',
+            nil, {body = {
+                error = "ERROR: _delta_number param in query not found",
+                errorCode = "API_ETL_TRANSFER_DATA_TO_HISTORICAL_TABLE_003",
+                status = "error",
+            }
+
+            , status = 400})
+
+
+    local _ = assert_http_json_request('GET',
+            '/api/etl/transfer_data_to_historical_table?_actual_data_table_name=EMPLOYEES_TRANSFER2&_historical_data_table_name=EMPLOYEES_TRANSFER_HIST&_delta_number=2',
+            nil, {body = {
+                error = "ERROR: No such space",
+                errorCode = "STORAGE_001",
+                opts =  {
+                    error = "ERROR: No such space",
+                    errorCode = "STORAGE_001",
+                    opts = {space = "EMPLOYEES_TRANSFER2"},
+                    status = "error",
+                },
+                status = "error",
+            }
+            , status = 400})
+end
+
 
 g2.test_rest_api_error_transfer_data_to_scd_table_on_cluster = function ()
 
