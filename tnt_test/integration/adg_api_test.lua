@@ -157,9 +157,6 @@ add('test_futures_errors', function(g)
     local res, err = conn:call('set_ddl', { schema })
     t.assert_equals(err, nil)
 
-    res, err = conn:call('transfer_data_to_historical_table_on_cluster', { "", "", 1 })
-    check_future_error(err)
-
     res, err = conn:call('transfer_data_to_scd_table_on_cluster', { "", "", "", 1 })
     check_future_error(err)
 
