@@ -18,10 +18,13 @@ local ddl = require('ddl')
 local schema_utils = require('app.utils.schema_utils')
 local mutex_map = require('app.utils.mutex_map')
 local etl_config = require('app.etl.config.etl_config')
+local query_debug_config = require('app.utils.query_debug_config')
+local query_dbg_opts = nil
 -- local config_utils = require('app.utils.config_utils')
 local yaml = require('yaml')
 local json = require('json')
 local log = require('log')
+local clock = require('clock')
 local errors = require('errors')
 local checks = require('checks')
 local fiber = require('fiber')
@@ -33,7 +36,6 @@ local fun = require('fun')
 local set = require('app.entities.set')
 local metrics = require('app.metrics.metrics_storage')
 local role_name = 'app.roles.adg_storage'
-local log_queries = false
 local moonwalker = require 'moonwalker'
 
 local success_repository = require('app.messages.success_repository')
@@ -115,9 +117,7 @@ local function execute_sql(query,params)
 -- luacheck: ignore res err
     local res, err = nil, nil
 
-    if log_queries then
-        log.warn("query: %s, params: %s", query, json.encode(params))
-    end
+    local start_time = clock.time()
 
     local prep = prepared_statements[query]
     if prep ~= nil then
@@ -134,6 +134,11 @@ local function execute_sql(query,params)
         else
             res,err = err_storage:pcall(box.execute, query, params)
         end
+    end
+
+    if query_dbg_opts:is_query_debug_enable() then
+        local req_time = (clock.time() - start_time) * 1000
+        log.info("query: %s, params: %s, execution time (ms): %f", query, json.encode(params), req_time)
     end
 
     return res,err
@@ -928,7 +933,7 @@ local function init(opts) -- luacheck: no unused args
     _G.delete_data_from_scd_table_sql = delete_data_from_scd_table_sql
     _G.get_scd_table_checksum = get_scd_table_checksum
     _G.table_mutex_map = mutex_map.get_mutex_map()
-
+    query_dbg_opts = query_debug_config.get_query_prof_opts()
 
     garbage_fiber = fiber.create(
             function() while true do collectgarbage('step', 20);
@@ -944,6 +949,7 @@ end
 
 local function stop()
     table_mutex_map:clear()
+    query_dbg_opts:clear()
     garbage_fiber:cancel()
     return true
 end
@@ -964,6 +970,7 @@ end
 local function apply_config(conf, opts) -- luacheck: no unused args
     if opts.is_master then  -- luacheck: ignore 542
     end
+    query_dbg_opts = query_debug_config.get_query_prof_opts()
     schema_utils.init_schema_ddl()
     etl_config.init_etl_opts()
     error_repository.init_error_repo('en')
