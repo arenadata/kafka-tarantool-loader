@@ -707,22 +707,26 @@ g7.test_get_scd_norm_checksum_on_cluster_w_columns = function()
 
     datagen(storage1,1000)
     datagen(storage2,1000)
-    local is_gen, res = api:call('get_scd_table_checksum_on_cluster', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,{'id','sysFrom'},2000000})
+    local is_gen, res = api:call('get_scd_table_checksum_on_cluster', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,
+       {'id','sysFrom'},2000000})
     t.assert_equals(is_gen,true)
     t.assert_equals(res,0)
     api:call('transfer_data_to_scd_table_on_cluster',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 1} )
-    local is_gen2, res2 = api:call('get_scd_table_checksum_on_cluster', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,{'id','sysFrom'},2000000})
+    local is_gen2, res2 = api:call('get_scd_table_checksum_on_cluster', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,
+       {'id','sysFrom'},2000000})
     t.assert_equals(is_gen2,true)
     t.assert_equals(res2,1180948)
     datagen(storage1,1000)
     datagen(storage2,1000)
     api:call('transfer_data_to_scd_table_on_cluster',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST',2} )
 
-    local is_gen3, res3 = api:call('get_scd_table_checksum_on_cluster', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,{'id','sysFrom'},2000000})
+    local is_gen3, res3 = api:call('get_scd_table_checksum_on_cluster', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,
+       {'id','sysFrom'},2000000})
     t.assert_equals(is_gen3,true)
     t.assert_equals(res3,1180948)
 
-    local is_gen4, res4 = api:call('get_scd_table_checksum_on_cluster', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',2,{'id','sysFrom'},2000000})
+    local is_gen4, res4 = api:call('get_scd_table_checksum_on_cluster', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',2,
+       {'id','sysFrom'},2000000})
     t.assert_equals(is_gen4,true)
     t.assert_equals(res4,1179046)
 
