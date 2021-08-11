@@ -38,12 +38,6 @@ package.preload['fake_adg_storage'] = function()
             local checks = require('checks')
             local fiber = require('fiber')
 
-            local function transfer_data_to_historical_table(actual_data_table_name,historical_data_table_name, delta_number)
-                checks('string', 'string', 'number')
-
-                fiber.self():cancel()
-            end
-
             local function transfer_stage_data_to_scd_table(stage_data_table_name, actual_data_table_name,historical_data_table_name, delta_number)
                 checks('string','string','string','number')
 
@@ -96,7 +90,6 @@ package.preload['fake_adg_storage'] = function()
                 return res,err
             end
 
-            _G.transfer_data_to_historical_table = transfer_data_to_historical_table
             _G.transfer_stage_data_to_scd_table = transfer_stage_data_to_scd_table
             _G.reverse_history_in_scd_table = reverse_history_in_scd_table
             _G.insert_tuples = insert_tuples

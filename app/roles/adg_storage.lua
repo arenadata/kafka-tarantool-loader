@@ -53,7 +53,6 @@ _G.prep_sql = nil
 _G.execute_sql = nil
 _G.set_schema_ddl = nil
 _G.get_storage_ddl = nil
-_G.transfer_data_to_historical_table = nil
 _G.get_space_format = nil
 _G.check_table_for_delta_fields = nil
 _G.check_tables_for_delta = nil
@@ -395,113 +394,6 @@ local function check_tables_for_delta(actual_data_table_name,historical_data_tab
 
 end
 
----transfer_data_to_historical_table
----Method, that performs transfer between actual and historical tables.
----Example of usage: transfer_data_to_historical_table('EMPLOYEES', 'EMPLOYEES_HIST',2)
----@param actual_data_table_name string - Name of the table, that contains actual data for delta processing.
----@param historical_data_table_name string - Name of the table, that contains historical data for delta processing.
----@param delta_number number - Number, that marks new version of data.
----@return boolean,string|nil
-local function transfer_data_to_historical_table(actual_data_table_name,historical_data_table_name, delta_number)
-    checks('string', 'string', 'number')
-
-    local is_data_table_ok, err_data = check_table_for_delta_fields(actual_data_table_name,'actual')
-    local is_historical_table_ok, err_hist = check_table_for_delta_fields(historical_data_table_name,'history')
-
-    if not is_data_table_ok then
-        log.error(err_data)
-        return false, err_data
-    end
-
-    if not is_historical_table_ok then
-        log.error(err_hist)
-        return false, err_hist
-    end
-
-    local is_tables_meta_ok, tables_meta_err = check_tables_for_delta(actual_data_table_name,historical_data_table_name)
-
-    if not is_tables_meta_ok then
-        log.error(tables_meta_err)
-        return false, tables_meta_err
-    end
-
-    -- Get tables metadata
-    local actual_table_meta = get_space_format(actual_data_table_name)
-    local hist_table_meta = get_space_format(historical_data_table_name)
-
-    --Get primary key
-    local actual_data_pk = fun.map(function(x) return x.fieldno end,box.space[actual_data_table_name].index[0].parts):totable()
--- luacheck: max line length 180
-    local actual_data_pk_fields = fun.map(function(x) return actual_table_meta[x.fieldno] end,box.space[actual_data_table_name].index[0].parts):totable()
-    --remove etl_config.get_date_field_start_nm()
-    actual_data_pk_fields[#actual_data_pk_fields] = nil
-
-    local select_fields_text = fun.reduce(
-            function(acc,elem)
-                return acc .. elem .. ','
-            end, '',
-            fun.map(function(field)
-                if field == etl_config.get_date_field_end_nm() then
-                    return tostring(delta_number - 1) .. ' as "' .. etl_config.get_date_field_end_nm() .. '"'
-                elseif field == etl_config.get_date_field_op_nm() then
-                    return 'hot."' .. field .. '" as "' .. field .. '"'
-                else return 'actual."' .. field .. '" as "' .. field .. '"' --TODO Refactor
-                end
-            end, hist_table_meta)):sub(1,-2)
-
-    local where_fields_text = fun.reduce(
-            function(acc,elem)
-                return acc .. elem
-            end,'',
-            fun.map(function(where_condition)
-                return string.format(' and hot."%s" = actual."%s"\n', where_condition,where_condition)
-            end, actual_data_pk_fields)
-    )
-
-    local sql = 'select ' .. select_fields_text .. [[
-         from
-        (select * from "%s" where "%s" = %i) hot
-        inner join
-        (select * from "%s" where "%s" < %i) actual on
-        1 = 1
-        ]] .. where_fields_text
-
-    sql = string.format(sql,actual_data_table_name,etl_config.get_date_field_start_nm(),delta_number,actual_data_table_name,etl_config.get_date_field_start_nm(),delta_number)
-
-    local transfer_data,err_trans_data  = execute_sql(sql)
-
-
-    if err_trans_data ~= nil then
-        return nil, error_repository.get_error_code(
-            'STORAGE_DELTA_TRANSFER_003', {
-                error = err_trans_data,
-                sql_query = sql
-            }
-        )
-    end
-
-    -- partition or map transfer_data
-    local _, err = err_storage:pcall(
-            function ()
-                for _,v in ipairs(transfer_data.rows) do
-                    box.begin()
-                    box.space[historical_data_table_name]:put(v)
-                    local key = {}
-                    for _,field in ipairs(actual_data_pk) do
-                        table.insert(key,v[field]) --TODO Refactor
-                    end
-                    box.space[actual_data_table_name]:delete(key)
-                    box.commit()
-                end
-                return true, nil
-            end)
-
-    if err ~= nil then
-        return nil,error_repository.get_error_code('STORAGE_003', {error = err})
-    end
-
-    return true,nil
-end
 
 ---key_from_tuple
 ---@param tuple table|userdata - tarantool tuple or lua table to extract key
@@ -919,7 +811,6 @@ local function init(opts) -- luacheck: no unused args
     _G.execute_sql = execute_sql
     _G.set_schema_ddl = set_schema_ddl
     _G.get_storage_ddl = get_storage_ddl
-    _G.transfer_data_to_historical_table = transfer_data_to_historical_table
     _G.get_space_format = get_space_format
     _G.check_table_for_delta_fields = check_table_for_delta_fields
     _G.check_tables_for_delta = check_tables_for_delta

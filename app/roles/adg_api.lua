@@ -62,7 +62,6 @@ _G.load_lines = nil
 _G.consume_all = nil
 _G.get_metric = nil
 _G.sync_ddl_schema_with_storage = nil
-_G.transfer_data_to_historical_table_on_cluster = nil
 _G.execute_query_for_massive_select_to_kafka = nil
 _G.transfer_data_to_scd_table_on_cluster = nil
 _G.drop_spaces_on_cluster = nil
@@ -483,65 +482,6 @@ local function get_metric()
     return metrics.export(role_name)
 end
 
----transfer_data_to_historical_table_on_cluster
----Method, that performs transfer between actual and historical tables on all master storages in cluster.
----Example of usage: transfer_data_to_historical_table_on_cluster('EMPLOYEES', 'EMPLOYEES_HIST',2)
----@param actual_data_table_name string - Name of the table, that contains actual data for delta processing.
----@param historical_data_table_name string - Name of the table, that contains historical data for delta processing.
----@param delta_number number - Number, that marks new version of data.
-local function transfer_data_to_historical_table_on_cluster(actual_data_table_name,historical_data_table_name, delta_number)
-    checks('string', 'string', 'number')
-
-    local storages =  cartridge.rpc_get_candidates('app.roles.adg_storage',{leader_only = true}) --TODO Move to single function
-    if #storages == 0 then
-        return false, error_repository.get_error_code('VROUTER_REPLICA_GET_001', {role='app.roles.adg_storage'})
-    end
-
-    local futures = {}
-    for _, cand in ipairs(storages) do
-        local conn, err = pool.connect(cand)
-        if conn == nil then
-            return nil, error_repository.get_error_code(
-                'VROUTER_REPLICA_GET_001', {
-                    role = 'app.roles.adg_storage',
-                    error = err
-                }
-            )
-        else
-            local future, err = conn:call(
-                'transfer_data_to_historical_table',
-                { actual_data_table_name, historical_data_table_name, delta_number },
-                { is_async = true }
-            )
-            if err ~= nil then
-                return nil, err
-            end
-            table.insert(futures,future)
-        end
-    end
-
-    for _,future in ipairs(futures) do
-        future:wait_result(_G.api_timeouts:get_transfer_stage_data_to_scd_table_timeout())
-        local res, err = future:result()
-        if res == nil then
-            return nil, error_repository.get_error_code(
-                'STORAGE_003', {
-                    func='transfer_data_to_historical_table',
-                    actual_data_table_name = actual_data_table_name,
-                    historical_data_table_name = historical_data_table_name,
-                    delta_number = delta_number,
-                    error = err
-                }
-            )
-        end
-
-        if res[1] == false or res[1] == nil then
-            return nil, res[2]
-        end
-    end
-
-    return true, nil
-end
 
 local function transfer_data_to_scd_table_on_cluster(stage_data_table_name,actual_data_table_name,historical_data_table_name, delta_number)
     checks('string', 'string','string', 'number')
@@ -990,7 +930,6 @@ local function init(opts) -- luacheck: no unused args
     _G.get_metric = get_metric
     _G.load_lines = load_lines
     _G.sync_ddl_schema_with_storage = sync_ddl_schema_with_storage
-    _G.transfer_data_to_historical_table_on_cluster = transfer_data_to_historical_table_on_cluster
     _G.transfer_data_to_scd_table_on_cluster = transfer_data_to_scd_table_on_cluster
     _G.drop_spaces_on_cluster = drop_spaces_on_cluster
     _G.execute_query_for_massive_select_to_kafka = execute_query_for_massive_select_to_kafka
@@ -1021,8 +960,6 @@ local function init(opts) -- luacheck: no unused args
     select_query_to_kafka_handler.select_query_to_kafka_handler)
 
     httpd:route({method='GET',path = 'api/metrics/get_all_metrics'}, get_all_metrics_handler.get_all_metrics)
-
-    httpd:route({method='GET', path = 'api/etl/transfer_data_to_historical_table'}, etl_handler.transfer_data_to_historical_table)
 
     httpd:route({method='GET', path = 'api/etl/transfer_data_to_scd_table'}, etl_handler.transfer_data_to_scd_table)
 
@@ -1085,7 +1022,6 @@ return {
     apply_config = apply_config,
     get_metric = get_metric,
     get_schema = get_schema,
-    transfer_data_to_historical_table_on_cluster = transfer_data_to_historical_table_on_cluster,
     execute_query_for_massive_select_to_kafka = execute_query_for_massive_select_to_kafka,
     transfer_data_to_scd_table_on_cluster_cb = transfer_data_to_scd_table_on_cluster_cb,
     reverse_history_in_scd_table_on_cluster = reverse_history_in_scd_table_on_cluster,
