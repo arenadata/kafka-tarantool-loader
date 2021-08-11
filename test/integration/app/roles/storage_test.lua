@@ -616,29 +616,15 @@ g6.test_normalization_checksum_data_w_columns = function()
     t.assert_equals(is_gen,true)
     t.assert_equals(res,0)
     storage:call('transfer_stage_data_to_scd_table',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 1} )
-<<<<<<< HEAD
-    local is_gen2, res2 = storage:call('get_scd_table_checksum', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,
-       {'id','sysFrom'},2000000})
-=======
     local is_gen2, res2 = storage:call(
             'get_scd_table_checksum',
             {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,{'id','sysFrom'},2000000}
     )
->>>>>>> e9b8b51e0813e5449e7f5f8a10ae39f43b281232
     t.assert_equals(is_gen2,true)
     t.assert_equals(res2,590474)
     datagen(1000)
     storage:call('transfer_stage_data_to_scd_table',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST',2} )
 
-<<<<<<< HEAD
-    local is_gen3, res3 = storage:call('get_scd_table_checksum', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,
-       {'id','sysFrom'},2000000})
-    t.assert_equals(is_gen3,true)
-    t.assert_equals(res3,590474)
-
-    local is_gen4, res4 = storage:call('get_scd_table_checksum', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',2,
-       {'id','sysFrom'},2000000})
-=======
     local is_gen3, res3 = storage:call(
             'get_scd_table_checksum',
             {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,{'id','sysFrom'},2000000}
@@ -650,7 +636,6 @@ g6.test_normalization_checksum_data_w_columns = function()
             'get_scd_table_checksum',
             {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',2,{'id','sysFrom'},2000000}
     )
->>>>>>> e9b8b51e0813e5449e7f5f8a10ae39f43b281232
     t.assert_equals(is_gen4,true)
     t.assert_equals(res4,589523)
 end
