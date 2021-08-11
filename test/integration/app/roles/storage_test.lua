@@ -616,57 +616,19 @@ g6.test_normalization_checksum_data_w_columns = function()
     t.assert_equals(is_gen,true)
     t.assert_equals(res,0)
     storage:call('transfer_stage_data_to_scd_table',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 1} )
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 57a7f7d... feat: add query profiling option
-=======
->>>>>>> d754c13... style: fix typo
-=======
->>>>>>> dada1ed295e3f2bc52e2e51abe84cb8311dc0a92
     local is_gen2, res2 = storage:call(
             'get_scd_table_checksum',
             {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,{'id','sysFrom'},2000000}
     )
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
-    local is_gen2, res2 = storage:call('get_scd_table_checksum', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,
-       {'id','sysFrom'},2000000})
->>>>>>> 016be32... refactor(general): fix string limit lint
-=======
->>>>>>> 57a7f7d... feat: add query profiling option
-=======
->>>>>>> d754c13... style: fix typo
-=======
->>>>>>> dada1ed295e3f2bc52e2e51abe84cb8311dc0a92
     t.assert_equals(is_gen2,true)
     t.assert_equals(res2,590474)
     datagen(1000)
     storage:call('transfer_stage_data_to_scd_table',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST',2} )
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 57a7f7d... feat: add query profiling option
-=======
->>>>>>> d754c13... style: fix typo
-=======
->>>>>>> dada1ed295e3f2bc52e2e51abe84cb8311dc0a92
     local is_gen3, res3 = storage:call(
             'get_scd_table_checksum',
             {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,{'id','sysFrom'},2000000}
     )
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> dada1ed295e3f2bc52e2e51abe84cb8311dc0a92
     t.assert_equals(is_gen3,true)
     t.assert_equals(res3,590474)
 
@@ -674,32 +636,6 @@ g6.test_normalization_checksum_data_w_columns = function()
             'get_scd_table_checksum',
             {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',2,{'id','sysFrom'},2000000}
     )
-<<<<<<< HEAD
-=======
-    local is_gen3, res3 = storage:call('get_scd_table_checksum', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,
-       {'id','sysFrom'},2000000})
-    t.assert_equals(is_gen3,true)
-    t.assert_equals(res3,590474)
-
-    local is_gen4, res4 = storage:call('get_scd_table_checksum', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',2,
-       {'id','sysFrom'},2000000})
->>>>>>> 016be32... refactor(general): fix string limit lint
-=======
-=======
->>>>>>> d754c13... style: fix typo
-    t.assert_equals(is_gen3,true)
-    t.assert_equals(res3,590474)
-
-    local is_gen4, res4 = storage:call(
-            'get_scd_table_checksum',
-            {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',2,{'id','sysFrom'},2000000}
-    )
-<<<<<<< HEAD
->>>>>>> 57a7f7d... feat: add query profiling option
-=======
->>>>>>> d754c13... style: fix typo
-=======
->>>>>>> dada1ed295e3f2bc52e2e51abe84cb8311dc0a92
     t.assert_equals(is_gen4,true)
     t.assert_equals(res4,589523)
 end

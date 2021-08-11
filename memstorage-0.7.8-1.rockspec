@@ -1,9 +1,6 @@
+
 package = 'memstorage'
-<<<<<<< HEAD:memstorage-0.7.8-1.rockspec
 version = '0.7.8-1'
-=======
-version = '0.7.7-1'
->>>>>>> dada1ed295e3f2bc52e2e51abe84cb8311dc0a92:memstorage-0.7.7-1.rockspec
 source  = {
     branch = 'master',
     url = 'git+https://github.com/arenadata/kafka-tarantool-loader.git'

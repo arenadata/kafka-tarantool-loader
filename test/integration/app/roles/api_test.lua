@@ -26,11 +26,11 @@ local g6 = t.group('api.delete_scd_sql')
 local g7 = t.group('api.get_scd_table_checksum')
 local g8 = t.group('api.truncate_space_on_cluster')
 local g9 = t.group('api.timeouts_config')
-local g10 = t.group('api.ddl_operations')
 
 local checks = require('checks')
 local helper = require('test.helper.integration')
 local cluster = helper.cluster
+-- local fiber = require('fiber')
 
 local file_utils = require('app.utils.file_utils')
 
@@ -672,17 +672,6 @@ g7.test_get_scd_norm_checksum_on_cluster_w_columns = function()
 
     datagen(storage1,1000)
     datagen(storage2,1000)
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 57a7f7d... feat: add query profiling option
-=======
->>>>>>> d754c13... style: fix typo
-=======
->>>>>>> dada1ed295e3f2bc52e2e51abe84cb8311dc0a92
     local is_gen, res = api:call(
             'get_scd_table_checksum_on_cluster',
             {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,{'id','sysFrom'},2000000}
@@ -693,56 +682,14 @@ g7.test_get_scd_norm_checksum_on_cluster_w_columns = function()
     local is_gen2, res2 = api:call(
             'get_scd_table_checksum_on_cluster',
             {'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 1, {'id','sysFrom'}, 2000000}
-<<<<<<< HEAD
-<<<<<<< HEAD
     )
-<<<<<<< HEAD
-=======
-    local is_gen, res = api:call('get_scd_table_checksum_on_cluster', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,
-       {'id','sysFrom'},2000000})
-    t.assert_equals(is_gen,true)
-    t.assert_equals(res,0)
-    api:call('transfer_data_to_scd_table_on_cluster',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 1} )
-    local is_gen2, res2 = api:call('get_scd_table_checksum_on_cluster', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,
-       {'id','sysFrom'},2000000})
->>>>>>> 016be32... refactor(general): fix string limit lint
-=======
-    local is_gen, res = api:call(
-        'get_scd_table_checksum_on_cluster',
-        {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1, {'id','sysFrom'},2000000}
-=======
->>>>>>> d754c13... style: fix typo
-    )
-    t.assert_equals(is_gen,true)
-    t.assert_equals(res,0)
-    api:call('transfer_data_to_scd_table_on_cluster',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 1} )
-    local is_gen2, res2 = api:call(
-        'get_scd_table_checksum_on_cluster',
-        {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1, {'id','sysFrom'},2000000}
-    )
->>>>>>> f1a4b96... refactor(storage): remove deadcode
-=======
->>>>>>> 57a7f7d... feat: add query profiling option
-=======
-    )
->>>>>>> dada1ed295e3f2bc52e2e51abe84cb8311dc0a92
+
     t.assert_equals(is_gen2,true)
     t.assert_equals(res2,1180948)
     datagen(storage1,1000)
     datagen(storage2,1000)
     api:call('transfer_data_to_scd_table_on_cluster',{'EMPLOYEES_HOT', 'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST',2} )
 
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> 57a7f7d... feat: add query profiling option
-=======
->>>>>>> d754c13... style: fix typo
-=======
->>>>>>> dada1ed295e3f2bc52e2e51abe84cb8311dc0a92
     local is_gen3, res3 = api:call(
             'get_scd_table_checksum_on_cluster',
             {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,{'id','sysFrom'},2000000}
@@ -753,39 +700,8 @@ g7.test_get_scd_norm_checksum_on_cluster_w_columns = function()
     local is_gen4, res4 = api:call(
             'get_scd_table_checksum_on_cluster',
             {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',2,{'id','sysFrom'},2000000}
-<<<<<<< HEAD
-<<<<<<< HEAD
     )
-<<<<<<< HEAD
-=======
-    local is_gen3, res3 = api:call('get_scd_table_checksum_on_cluster', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,
-       {'id','sysFrom'},2000000})
-    t.assert_equals(is_gen3,true)
-    t.assert_equals(res3,1180948)
 
-    local is_gen4, res4 = api:call('get_scd_table_checksum_on_cluster', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',2,
-       {'id','sysFrom'},2000000})
->>>>>>> 016be32... refactor(general): fix string limit lint
-=======
-    local is_gen3, res3 = api:call(
-        'get_scd_table_checksum_on_cluster',
-        {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1, {'id','sysFrom'},2000000}
-    )
-    t.assert_equals(is_gen3,true)
-    t.assert_equals(res3,1180948)
-
-    local is_gen4, res4 = api:call(
-        'get_scd_table_checksum_on_cluster',
-        {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',2, {'id','sysFrom'},2000000}
-=======
->>>>>>> d754c13... style: fix typo
-    )
->>>>>>> f1a4b96... refactor(storage): remove deadcode
-=======
->>>>>>> 57a7f7d... feat: add query profiling option
-=======
-    )
->>>>>>> dada1ed295e3f2bc52e2e51abe84cb8311dc0a92
     t.assert_equals(is_gen4,true)
     t.assert_equals(res4,1179046)
 
@@ -945,145 +861,4 @@ g9.test_timeout_cfg = function()
                 status = "error",
             }, status = 400})
 
-end
-
-g10.before_test('test_timeout_error_ddl', function()
-    local config = cluster:download_config()
-
-    config['api_timeout'] = {
-        ddl_operation = 0.1
-    }
-
-    cluster:upload_config(config)
-end)
-
-g10.after_all(function()
-    local config = cluster:download_config()
-
-    config['api_timeout'] = nil
-
-    cluster:upload_config(config)
-end)
-
-g10.test_create_and_delete_api = function()
-    assert_http_json_request('POST',
-            '/api/v1/ddl/table/queuedCreate',
-            {
-                spaces = {
-                    adg_test_actual = {
-                        format = {
-                            {
-                                name = "id",
-                                type = "integer",
-                                is_nullable = false
-                            },
-                            {
-                                name = "bucket_id",
-                                type = "unsigned",
-                                is_nullable = false
-                            },
-                        },
-                        temporary = false,
-                        engine = "vinyl",
-                        indexes = {
-                            {
-                                unique = true,
-                                parts = {
-                                    {
-                                        path = "id",
-                                        type = "integer",
-                                        is_nullable = false
-                                    }
-                                },
-                                type = "TREE",
-                                name = "id"
-                            },
-                            {
-                                unique = false,
-                                parts = {
-                                    {
-                                        path = "bucket_id",
-                                        type = "unsigned",
-                                        is_nullable = false
-                                    }
-                                },
-                                type = "TREE",
-                                name = "bucket_id"
-                            }
-                        },
-                        is_local = false,
-                        sharding_key = { "id" }
-                    }
-                }
-            },
-            { status = 200 }
-    )
-
-    local c = cluster:download_config()
-    t.assert_not_equals(c.schema.spaces.adg_test_actual, nil)
-
-    assert_http_json_request('DELETE',
-            '/api/v1/ddl/table/queuedDelete',
-            { tableList = { 'adg_test_actual' } },
-            { status = 200 }
-    )
-
-    c = cluster:download_config()
-    t.assert_equals(c.schema.spaces.adg_test_actual, nil)
-end
-
-g10.test_timeout_error_ddl = function()
-    assert_http_json_request('POST',
-            '/api/v1/ddl/table/queuedCreate',
-            {
-                spaces = {
-                    adg_test_actual = {
-                        format = {
-                            {
-                                name = "id",
-                                type = "integer",
-                                is_nullable = false
-                            },
-                            {
-                                name = "bucket_id",
-                                type = "unsigned",
-                                is_nullable = false
-                            },
-                        },
-                        temporary = false,
-                        engine = "vinyl",
-                        indexes = {
-                            {
-                                unique = true,
-                                parts = {
-                                    {
-                                        path = "id",
-                                        type = "integer",
-                                        is_nullable = false
-                                    }
-                                },
-                                type = "TREE",
-                                name = "id"
-                            },
-                            {
-                                unique = false,
-                                parts = {
-                                    {
-                                        path = "bucket_id",
-                                        type = "unsigned",
-                                        is_nullable = false
-                                    }
-                                },
-                                type = "TREE",
-                                name = "bucket_id"
-                            }
-                        },
-                        is_local = false,
-                        sharding_key = { "id" }
-                    }
-                }
-            },
-            { body = {code = "API_DDL_QUEUE_004", message = "ERROR: ddl request timeout"},
-              status = 500 }
-    )
 end
