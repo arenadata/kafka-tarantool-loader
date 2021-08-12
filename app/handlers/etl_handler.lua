@@ -38,41 +38,6 @@ local function drop_space_on_cluster(req)
     end
 end
 
-local function transfer_data_to_historical_table(req)
-
-    local actual_data_table_name = url_utils.url_decode(req:query_param('_actual_data_table_name'))
-
-    if actual_data_table_name == nil then
-        return error_repository.return_http_response('API_ETL_TRANSFER_DATA_TO_HISTORICAL_TABLE_001')
-    end
-
-    local historical_data_table_name = url_utils.url_decode(req:query_param('_historical_data_table_name'))
-
-    if historical_data_table_name == nil then
-        return error_repository.return_http_response('API_ETL_TRANSFER_DATA_TO_HISTORICAL_TABLE_002')
-    end
-
-    local delta_number = tonumber(req:query_param('_delta_number'))
-
-    if delta_number == nil then
-        return error_repository.return_http_response('API_ETL_TRANSFER_DATA_TO_HISTORICAL_TABLE_003')
-    end
-
-    --TODO Add counter?
-
-    local ok,err = _G.transfer_data_to_historical_table_on_cluster(actual_data_table_name,
-                                                                    historical_data_table_name,
-                                                                    delta_number)
-
-    if ok then return success_repository.return_http_response('API_ETL_TRANSFER_DATA_TO_HISTORICAL_TABLE_001')
-        else
-        if type(err) == 'string' then
-            return error_repository.return_http_response(json.decode(err)['errorCode'],err)
-        else return error_repository.return_http_response('ROLE_VALIDATE_CONFIG_ERR_001',err)
-        end
-    end
-
-end
 
 local function transfer_data_to_scd_table(req)
 
@@ -215,7 +180,6 @@ local function get_scd_table_checksum (req)
 end
 
 return {
-    transfer_data_to_historical_table = transfer_data_to_historical_table,
     transfer_data_to_scd_table = transfer_data_to_scd_table,
     drop_space_on_cluster = drop_space_on_cluster,
     reverse_history_in_scd_table = reverse_history_in_scd_table,
