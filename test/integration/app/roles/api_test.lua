@@ -676,10 +676,13 @@ g7.test_get_scd_norm_checksum_on_cluster_w_columns = function()
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> 57a7f7d... feat: add query profiling option
 =======
 >>>>>>> d754c13... style: fix typo
+=======
+>>>>>>> dada1ed295e3f2bc52e2e51abe84cb8311dc0a92
     local is_gen, res = api:call(
             'get_scd_table_checksum_on_cluster',
             {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,{'id','sysFrom'},2000000}
@@ -690,6 +693,7 @@ g7.test_get_scd_norm_checksum_on_cluster_w_columns = function()
     local is_gen2, res2 = api:call(
             'get_scd_table_checksum_on_cluster',
             {'EMPLOYEES_TRANSFER', 'EMPLOYEES_TRANSFER_HIST', 1, {'id','sysFrom'}, 2000000}
+<<<<<<< HEAD
 <<<<<<< HEAD
     )
 <<<<<<< HEAD
@@ -719,6 +723,9 @@ g7.test_get_scd_norm_checksum_on_cluster_w_columns = function()
 >>>>>>> f1a4b96... refactor(storage): remove deadcode
 =======
 >>>>>>> 57a7f7d... feat: add query profiling option
+=======
+    )
+>>>>>>> dada1ed295e3f2bc52e2e51abe84cb8311dc0a92
     t.assert_equals(is_gen2,true)
     t.assert_equals(res2,1180948)
     datagen(storage1,1000)
@@ -729,10 +736,13 @@ g7.test_get_scd_norm_checksum_on_cluster_w_columns = function()
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> 57a7f7d... feat: add query profiling option
 =======
 >>>>>>> d754c13... style: fix typo
+=======
+>>>>>>> dada1ed295e3f2bc52e2e51abe84cb8311dc0a92
     local is_gen3, res3 = api:call(
             'get_scd_table_checksum_on_cluster',
             {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,{'id','sysFrom'},2000000}
@@ -743,6 +753,7 @@ g7.test_get_scd_norm_checksum_on_cluster_w_columns = function()
     local is_gen4, res4 = api:call(
             'get_scd_table_checksum_on_cluster',
             {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',2,{'id','sysFrom'},2000000}
+<<<<<<< HEAD
 <<<<<<< HEAD
     )
 <<<<<<< HEAD
@@ -772,6 +783,9 @@ g7.test_get_scd_norm_checksum_on_cluster_w_columns = function()
 >>>>>>> f1a4b96... refactor(storage): remove deadcode
 =======
 >>>>>>> 57a7f7d... feat: add query profiling option
+=======
+    )
+>>>>>>> dada1ed295e3f2bc52e2e51abe84cb8311dc0a92
     t.assert_equals(is_gen4,true)
     t.assert_equals(res4,1179046)
 

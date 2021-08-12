@@ -65,6 +65,7 @@ _G.sync_ddl_schema_with_storage = nil
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 
 local function transfer_data_to_historical_table_on_cluster(actual_data_table_name,historical_data_table_name, delta_number)
@@ -127,6 +128,8 @@ _G.transfer_data_to_historical_table_on_cluster = nil
 >>>>>>> 3e6ee8f... Remove endpoint /api/etl/transfer_data_to_historical_table
 =======
 >>>>>>> f1a4b96... refactor(storage): remove deadcode
+=======
+>>>>>>> dada1ed295e3f2bc52e2e51abe84cb8311dc0a92
 _G.execute_query_for_massive_select_to_kafka = nil
 _G.transfer_data_to_scd_table_on_cluster = nil
 _G.drop_spaces_on_cluster = nil

@@ -619,14 +619,18 @@ g6.test_normalization_checksum_data_w_columns = function()
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> 57a7f7d... feat: add query profiling option
 =======
 >>>>>>> d754c13... style: fix typo
+=======
+>>>>>>> dada1ed295e3f2bc52e2e51abe84cb8311dc0a92
     local is_gen2, res2 = storage:call(
             'get_scd_table_checksum',
             {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,{'id','sysFrom'},2000000}
     )
+<<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
 =======
@@ -637,6 +641,8 @@ g6.test_normalization_checksum_data_w_columns = function()
 >>>>>>> 57a7f7d... feat: add query profiling option
 =======
 >>>>>>> d754c13... style: fix typo
+=======
+>>>>>>> dada1ed295e3f2bc52e2e51abe84cb8311dc0a92
     t.assert_equals(is_gen2,true)
     t.assert_equals(res2,590474)
     datagen(1000)
@@ -645,16 +651,22 @@ g6.test_normalization_checksum_data_w_columns = function()
 <<<<<<< HEAD
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
 =======
 >>>>>>> 57a7f7d... feat: add query profiling option
 =======
 >>>>>>> d754c13... style: fix typo
+=======
+>>>>>>> dada1ed295e3f2bc52e2e51abe84cb8311dc0a92
     local is_gen3, res3 = storage:call(
             'get_scd_table_checksum',
             {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,{'id','sysFrom'},2000000}
     )
 <<<<<<< HEAD
 <<<<<<< HEAD
+<<<<<<< HEAD
+=======
+>>>>>>> dada1ed295e3f2bc52e2e51abe84cb8311dc0a92
     t.assert_equals(is_gen3,true)
     t.assert_equals(res3,590474)
 
@@ -662,6 +674,7 @@ g6.test_normalization_checksum_data_w_columns = function()
             'get_scd_table_checksum',
             {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',2,{'id','sysFrom'},2000000}
     )
+<<<<<<< HEAD
 =======
     local is_gen3, res3 = storage:call('get_scd_table_checksum', {'EMPLOYEES_TRANSFER','EMPLOYEES_TRANSFER_HIST',1,
        {'id','sysFrom'},2000000})
@@ -685,6 +698,8 @@ g6.test_normalization_checksum_data_w_columns = function()
 >>>>>>> 57a7f7d... feat: add query profiling option
 =======
 >>>>>>> d754c13... style: fix typo
+=======
+>>>>>>> dada1ed295e3f2bc52e2e51abe84cb8311dc0a92
     t.assert_equals(is_gen4,true)
     t.assert_equals(res4,589523)
 end
