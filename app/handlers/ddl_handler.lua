@@ -76,15 +76,15 @@ local function queued_prefix_delete(req)
                                   message = 'ERROR: prefix param not found in the query.'}))
     end
 
-
+    local waiting_operation_timeout = _G.api_timeouts:get_ddl_operation_timeout()
     local _,err = cartridge.rpc_call('app.roles.adg_state',
             'delayed_delete_prefix',
-            { prefix },
-            { leader_only = true, timeout = 30 })
+            { prefix, waiting_operation_timeout },
+            { leader_only = true, timeout = waiting_operation_timeout + 10 })
 
     if err ~= nil then
         if err['code'] == 'API_DDL_QUEUE_004' then
-            return error_repository.return_http_response(err['code'], nil, err['msg'])
+            return error_repository.return_http_response(err['code'], nil, err)
         end
         return error_repository.return_http_response('API_DDL_QUEUE_003', nil, err)
     end
@@ -103,13 +103,14 @@ local function queued_tables_delete(req)
         return error_repository.return_http_response('API_DDL_QUEUE_002')
     end
 
+    local waiting_operation_timeout = _G.api_timeouts:get_ddl_operation_timeout()
     local _,err = cartridge.rpc_call('app.roles.adg_state',
             'delayed_delete',
-            { body.tableList },
-            { leader_only = true, timeout = 30 })
+            { body.tableList, waiting_operation_timeout },
+            { leader_only = true, timeout = waiting_operation_timeout + 10 })
     if err ~= nil then
         if err['code'] == 'API_DDL_QUEUE_004' then
-            return error_repository.return_http_response(err['code'], nil, err['msg'])
+            return error_repository.return_http_response(err['code'], nil, err)
         end
         return error_repository.return_http_response('API_DDL_QUEUE_003', nil, err)
     end
@@ -128,13 +129,14 @@ local function queued_tables_create(req)
         return error_repository.return_http_response('API_DDL_QUEUE_002')
     end
 
+    local waiting_operation_timeout = _G.api_timeouts:get_ddl_operation_timeout()
     local _,err = cartridge.rpc_call('app.roles.adg_state',
             'delayed_create',
-            { body.spaces },
-            { leader_only = true, timeout = 30 })
+            { body.spaces, waiting_operation_timeout },
+            { leader_only = true, timeout = waiting_operation_timeout + 10 })
     if err ~= nil then
         if err['code'] == 'API_DDL_QUEUE_004' then
-            return error_repository.return_http_response(err['code'], nil, err['msg'])
+            return error_repository.return_http_response(err['code'], nil, err)
         end
         return error_repository.return_http_response('API_DDL_QUEUE_003', nil, err)
     end

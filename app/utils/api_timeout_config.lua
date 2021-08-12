@@ -21,7 +21,8 @@ local config_utils = require('app.utils.config_utils')
 local api_timeout_opts = {
     timeouts = {
         transfer_stage_data_to_scd_tbl=86400, -- 1 day
-        scd_table_checksum=86400
+        scd_table_checksum=86400,
+        ddl_operation=20
     },
 
     get_transfer_stage_data_to_scd_table_timeout = function(self)
@@ -32,10 +33,15 @@ local api_timeout_opts = {
         return self.timeouts.scd_table_checksum
     end,
 
+    get_ddl_operation_timeout = function(self)
+        return self.timeouts.ddl_operation
+    end,
+
     clear = function(self)
         self.timeouts = {
             transfer_stage_data_to_scd_tbl=86400,
-            scd_table_checksum=86400
+            scd_table_checksum=86400,
+            ddl_operation=20
         }
     end
 }
