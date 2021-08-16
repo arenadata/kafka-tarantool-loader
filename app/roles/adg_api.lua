@@ -36,9 +36,7 @@ local role_name = 'app.roles.adg_api'
 -- local json = require('json')
 
 local garbage_fiber = nil
-
 local cluster_config_handler = require('app.handlers.cluster_config_handler')
-local select_query_to_kafka_handler = require('app.handlers.select_table_to_kafka_handler')
 local get_all_metrics_handler = require('app.handlers.get_all_metrics_handler')
 local etl_handler = require('app.handlers.etl_handler')
 local truncate_space_handler = require('app.handlers.truncate_space_handler')
@@ -953,11 +951,9 @@ local function init(opts) -- luacheck: no unused args
     httpd:route({method='GET', path = '/api/get_config'} ,
     cluster_config_handler.cluster_config_handler)
 
+    --
     httpd:route({method='GET', path = '/api/kafka/send_table/:table/'},
-    select_query_to_kafka_handler.select_table_to_kafka_handler)
-
-    httpd:route({method='GET', path = '/api/kafka/send_query/'},
-    select_query_to_kafka_handler.select_query_to_kafka_handler)
+    nil)
 
     httpd:route({method='GET',path = 'api/metrics/get_all_metrics'}, get_all_metrics_handler.get_all_metrics)
 
