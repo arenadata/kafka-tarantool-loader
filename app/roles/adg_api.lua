@@ -951,10 +951,6 @@ local function init(opts) -- luacheck: no unused args
     httpd:route({method='GET', path = '/api/get_config'} ,
     cluster_config_handler.cluster_config_handler)
 
-    --
-    httpd:route({method='GET', path = '/api/kafka/send_table/:table/'},
-    nil)
-
     httpd:route({method='GET',path = 'api/metrics/get_all_metrics'}, get_all_metrics_handler.get_all_metrics)
 
     httpd:route({method='GET', path = 'api/etl/transfer_data_to_scd_table'}, etl_handler.transfer_data_to_scd_table)

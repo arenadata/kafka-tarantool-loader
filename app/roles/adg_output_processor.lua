@@ -38,7 +38,6 @@ local garbage_fiber = nil
 _G.test_msg_to_kafka = nil
 _G.send_simple_msg_to_kafka = nil
 _G.send_query_to_kafka = nil
-_G.send_table_to_kafka = nil
 _G.get_metric = nil
 _G.send_query_to_kafka_with_plan = nil
 
@@ -377,18 +376,6 @@ local function send_query_to_kafka(topic_name, query, opts)
 end
 
 
-local function send_table_to_kafka(topic_name,table,filter,opts)
-    local ok,err
-    if filter == nil then
-        ok, err = send_query_to_kafka(topic_name, string.format('select * from %s', table), opts)
-    else
--- luacheck: max line length 180
-        ok, err = send_query_to_kafka(topic_name,string.format('select * from %s where %s', table, filter), opts) --TODO SQL injections ????????????
-    end
-
-    return ok,err
-end
-
 local function test_msg_to_kafka()
     send_simple_msg_to_kafka('input_test','2','value')
 end
@@ -412,7 +399,6 @@ local function init(opts)
     _G.test_msg_to_kafka = test_msg_to_kafka
     _G.send_simple_msg_to_kafka = send_simple_msg_to_kafka
     _G.send_query_to_kafka = send_query_to_kafka
-    _G.send_table_to_kafka = send_table_to_kafka
     _G.send_query_to_kafka_with_plan = send_query_to_kafka_with_plan
 
     if opts.is_master then -- luacheck: ignore 542
@@ -444,7 +430,6 @@ return {
     test_msg_to_kafka = test_msg_to_kafka,
     send_messages_to_kafka = send_messages_to_kafka,
     send_query_to_kafka = send_query_to_kafka,
-    send_table_to_kafka = send_table_to_kafka,
     send_query_to_kafka_with_plan = send_query_to_kafka_with_plan,
     get_metric = get_metric,
     dependencies = {
