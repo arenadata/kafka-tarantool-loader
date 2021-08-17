@@ -25,10 +25,7 @@ local error_repository = require('app.messages.error_repository')
 local success_repository = require('app.messages.success_repository')
 local metrics = require('app.metrics.metrics_storage')
 
--- local cartridge_pool = require('cartridge.pool')
 local cartridge_rpc = require('cartridge.rpc')
-
--- local json = require('json')
 
 local role_name = 'app.roles.adg_scheduler'
 
@@ -79,7 +76,6 @@ end
 local function event_loop_run()
     local tasks = scheduler_utils.get_current_periodical_tasks() or {}
     while true do
-        --log.info('INFO: Event loop tick')
         for k,v in pairs(tasks) do
             local current_ts = math.floor(clock.time())
             if(k == current_ts) then do

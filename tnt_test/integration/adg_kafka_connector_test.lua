@@ -135,7 +135,6 @@ g_vinyl.before_each(function()
 end)
 
 local function add(name, fn)
-    --g_memtx[name] = fn
     g_vinyl[name] = fn
 end
 

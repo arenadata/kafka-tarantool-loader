@@ -21,7 +21,6 @@ local topic_success = {}
 local vshard = require('vshard')
 local checks = require('checks')
 local log = require('log')
--- local misc_utils = require('app.utils.misc_utils')
 local error_repository = require('app.messages.error_repository')
 
 local function init_routes()

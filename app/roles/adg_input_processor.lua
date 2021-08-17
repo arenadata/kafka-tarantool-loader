@@ -33,7 +33,6 @@ local fiber = require('fiber')
 local validate_utils = require('app.utils.validate_utils')
 local yaml = require('yaml')
 
--- local cartridge_pool = require('cartridge.pool')
 local cartridge_rpc = require('cartridge.rpc')
 
 local role_name = 'app.roles.adg_input_processor'
@@ -42,8 +41,6 @@ _G.insert_messages_from_kafka = nil
 _G.load_csv_lines = nil
 _G.get_metric = nil
 _G.insert_message_from_kafka_async = nil
-
--- local misc_utils = require('app.utils.misc_utils')
 
 local metrics = require('app.metrics.metrics_storage')
 
@@ -219,7 +216,6 @@ end
 -- luacheck: ignore topic value
 local function parse_csv(topic, value)
     -- TODO multiple string parse
-    --return string.split(value:gsub('%"',''),',')
 end
 
 local function parse_avro(schema,value)
@@ -236,8 +232,6 @@ local function parse_avro(schema,value)
         )
     end
 
-    --log.info('INFO: Avro schema obtained from repo')
-
 
     local is_valid_json, json_value = pcall(json.decode, value)
 
@@ -245,7 +239,6 @@ local function parse_avro(schema,value)
         return nil, error_repository.get_error_code(
             'AVRO_SCHEMA_004',{
                 desc = json_value
-                --json_value = {value} avro binary encoding?
             }
         )
     end
@@ -288,7 +281,6 @@ local function parse_avro(schema,value)
     if not is_generate then
         return false, error_repository.get_error_code('AVRO_SCHEMA_006', {error=data})
     end
-    --log.info('INFO: Values for insert successfully generated')
     return true, data
 end
 
@@ -457,7 +449,6 @@ local function insert_messages_from_kafka(messages, parse_key_function_str, pars
         local is_value_loaded, loaded_value = load_value_to_storage(decoded_value,spaces)
 
         if not is_value_loaded then
-            -- for each space. {space = {result = true|false, desc = {error = error, amount}}}
 -- luacheck: ignore k
             local loaded_rows_cnt = fun.map(function(k,v) return v.desc.amount end, loaded_value):sum() --loaded rows
             local concatenate_error = fun.filter(function(k,v) return not v.result end,loaded_value) --filter errors
@@ -504,7 +495,6 @@ local function insert_message_from_kafka_async(message,parse_key_function_str,pa
         local is_value_loaded, loaded_value = load_value_to_storage(decoded_value,spaces)
 
         if not is_value_loaded then
-            -- for each space. {space = {result = true|false, desc = {error = error, amount}}}
 -- luacheck: ignore k
             local loaded_rows_cnt = fun.map(function(k,v) return v.desc.amount end, loaded_value):sum() --loaded rows
             local concatenate_error = fun.filter(function(k,v) return not v.result end,loaded_value) --filter errors
@@ -522,7 +512,6 @@ end
 local function insert_messages_from_kafka_old(messages,parse_key_function_str,parse_value_function_str)
     checks('table','string','string')
 
---    local parse_key_function = get_function_by_name(parse_key_function_str)
     local parse_value_function = get_function_by_name(parse_value_function_str)
 
     local parsing_result = {}
@@ -576,8 +565,6 @@ local function insert_messages_from_kafka_old(messages,parse_key_function_str,pa
             goto continue
 
         end
-
-
 
 
         parsing_result[topic..':'..tostring(partition)..':'..tostring(offset)] =

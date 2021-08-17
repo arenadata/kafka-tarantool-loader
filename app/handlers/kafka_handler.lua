@@ -20,7 +20,6 @@ local error_repository = require('app.messages.error_repository')
 local json = require('json')
 local cartridge = require('cartridge')
 local pool = require('cartridge.pool')
--- local log = require('log')
 local avro_schema_lib = require('avro_schema')
 
 
@@ -198,9 +197,6 @@ local function dataload_from_topic_on_cluster(req)
 
         return error_repository.return_http_response('API_KAFKA_DATALOAD_003')
     end
-
-
-     --body.maxNumberOfMessagesPerPartition == nil
 
     -- check avro schema param
     local json_schema_string

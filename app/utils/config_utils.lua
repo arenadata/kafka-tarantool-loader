@@ -17,7 +17,6 @@ local checks = require('checks')
 local cartridge = require('cartridge')
 local file_utils = require('app.utils.file_utils')
 local misc_utils = require('app.utils.misc_utils')
--- local log = require('log')
 
 local function parse_file_conf(file)
 checks('string')
@@ -157,12 +156,7 @@ local function get_consumer_options(conf)
     end
     local consumers = conf['kafka_consume']
     local properties = consumers['properties']
---    local custom_properties = consumers['custom_properties']
-   -- if custom_properties ~= nil then
-   --     for kc,vc in pairs(custom_properties) do
-    --        properties[kc] = vc
-     --   end
-    --end
+
     if type(properties) == 'string' then properties = {} end
     return properties
 end

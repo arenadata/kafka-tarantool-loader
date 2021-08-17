@@ -34,11 +34,9 @@ local function create(brokers, options, additional_opts)
 
     local error_callback = function(error)
         log.error("ERROR: got error: %s", error)
-     --   table.insert(errors,error)
     end
     local log_callback = function(fac, str, level)
         log.info("INFO: got log: %d - %s - %s", level, fac, str)
-      --  table.insert(logs,string.format("got log: %d - %s - %s", level, fac, str))
     end
 
     if additional_opts ~= nil then

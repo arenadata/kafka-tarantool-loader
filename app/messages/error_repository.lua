@@ -17,7 +17,6 @@ local log = require('log')
 local message_utils = require('app.messages.utils.message_utils')
 local file_utils = require('app.utils.file_utils')
 local repository_utils = require('app.messages.utils.repository_utils')
--- local fio = require('fio')
 local json = require('json')
 
 ---@type table -that contains error operations messages.

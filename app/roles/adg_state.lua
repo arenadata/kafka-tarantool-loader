@@ -37,12 +37,9 @@ local fiber = require('fiber')
 local yaml = require('yaml')
 local math = require('math')
 
--- local cartridge_pool = require('cartridge.pool')
 local cartridge_rpc = require('cartridge.rpc')
 
 _G.update_delete_batch_storage = nil
-_G.get_tables_from_delete_batch = nil
-_G.remove_delete_batch = nil
 _G.insert_kafka_callback_log = nil
 _G.set_kafka_callback_log_result = nil
 _G.insert_kafka_error_msg = nil
@@ -596,10 +593,6 @@ local function validate_config(conf_new, conf_old)
     for _, replica_set in pairs(conf_new.topology.replicasets) do
         if replica_set.roles['app.roles.adg_state'] then
             replicasets_cnt = replicasets_cnt + 1
-            --[[ At least one vshard-storage (default) must have weight > 0
-            if replica_set.weight ~= 0 then
-                return false,'app.metrics.metrics_storage weight 1'
-            end ]]
         end
     end
 
@@ -842,38 +835,6 @@ local function delayed_delete(spaces, wait_res_timeout)
 
 end
 
-local function get_tables_from_delete_batch(batch_id)
-    checks('string')
-
-    local delete_space_batch = box.space['_DELETE_SPACE_BATCH']
-
-    if delete_space_batch == nil then
-        return nil, 'ERROR: _DELETE_SPACE_BATCH space not found'
-    end
-
-    local batch = delete_space_batch:get(batch_id)
-
-    if batch ~= nil then
-        return batch['DELETE_TABLE_ARRAY']
-    else
-        return {}
-    end
-
-end
-
-local function remove_delete_batch(batch_id)
-    checks('string')
-
-    local delete_space_batch = box.space['_DELETE_SPACE_BATCH']
-
-    if delete_space_batch == nil then
-        return nil, 'ERROR: _DELETE_SPACE_BATCH space not found'
-    end
-
-    delete_space_batch:delete(batch_id)
-
-    return true
-end
 
 local function get_schema()
     for _, instance_uri in pairs(cartridge_rpc.get_candidates('app.roles.adg_storage', { leader_only = true })) do
@@ -898,8 +859,6 @@ local function init(opts)
     global:new('ddl_request_queue')
 
     _G.update_delete_batch_storage = update_delete_batch_storage
-    _G.get_tables_from_delete_batch = get_tables_from_delete_batch
-    _G.remove_delete_batch = remove_delete_batch
     _G.insert_kafka_callback_log = insert_kafka_callback_log
     _G.set_kafka_callback_log_result = set_kafka_callback_log_result
     _G.insert_kafka_error_msg = insert_kafka_error_msg
@@ -932,8 +891,6 @@ return {
     get_metric = get_metric,
     get_schema = get_schema,
     update_delete_batch_storage = update_delete_batch_storage,
-    get_tables_from_delete_batch = get_tables_from_delete_batch,
-    remove_delete_batch = remove_delete_batch,
     insert_kafka_callback_log = insert_kafka_callback_log,
     set_kafka_callback_log_result = set_kafka_callback_log_result,
     insert_kafka_error_msg = insert_kafka_error_msg,

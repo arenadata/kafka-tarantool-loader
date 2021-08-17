@@ -14,9 +14,6 @@
 -- limitations under the License.
 
 local t = require('luatest')
-
-
--- local shared = require('test.helper')
 local avro_utils = require('app.utils.avro_utils')
 local avro_schema = require('avro_schema')
 local json = require("json")
@@ -148,15 +145,9 @@ g.test_invalid_data = function ()
     t.assert_equals(ok,false)
     t.assert_equals(err,'Field bar missing')
 
---    local nil_data = nil
 end
 
 g2.test_input_check = function ()
---    local nil_schema= nil
---    local empty_table = {}
---    local err_opts = {err = '123'}
---    local valid_opts_false = {is_downgrade=false}
---    local valid_opts_true = {is_downgrade=true}
 -- luacheck: ignore valid_schema
     local _, valid_schema = avro_schema.create ({
         type = "record",

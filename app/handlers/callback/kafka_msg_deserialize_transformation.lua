@@ -19,7 +19,6 @@
 ---
 local fiber = require('fiber')
 local log = require('log')
--- local checks = require('checks')
 local clock = require('clock')
 
 local kafka_msg_deserialize_transformation = {}

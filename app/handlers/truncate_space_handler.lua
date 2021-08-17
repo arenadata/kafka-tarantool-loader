@@ -12,10 +12,6 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
--- local cartridge = require('cartridge')
--- local pool = require('cartridge.pool')
--- local json = require('json')
--- local log = require('log')
 
 local url_utils = require('app.utils.url_utils')
 local error_repository = require('app.messages.error_repository')

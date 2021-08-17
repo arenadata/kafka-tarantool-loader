@@ -29,11 +29,9 @@ local set = require('app.entities.set')
 local misc_utils = require('app.utils.misc_utils')
 local prometheus = require('metrics.plugins.prometheus')
 local api_timeout_config = require('app.utils.api_timeout_config')
--- local cartridge_pool = require('cartridge.pool')
 local cartridge_rpc = require('cartridge.rpc')
 
 local role_name = 'app.roles.adg_api'
--- local json = require('json')
 
 local garbage_fiber = nil
 local cluster_config_handler = require('app.handlers.cluster_config_handler')
@@ -52,7 +50,6 @@ local fun = require('fun')
 _G.set_ddl = nil
 _G.get_ddl = nil
 _G.query = nil
-_G.drop_space_on_cluster = nil
 _G.truncate_space_on_cluster = nil
 _G.drop_all = nil
 _G.space_len = nil
@@ -105,8 +102,6 @@ local function set_ddl(ddl)
     return true
 end
 
-
-
 ---sync_ddl_schema_with_storage
 ---@param storage string
 local function sync_ddl_schema_with_storage(storage)
@@ -139,43 +134,6 @@ local function sync_ddl_schema_with_storage(storage)
     end
 
     return false,storage .. ' dont have app.roles.adg_storage role'
-end
-
----drop_space_on_cluster - function to drop space on cluster.
----@param space_name string  - space name to drop.
----@param schema_ddl_correction boolean - flag, that shows update ddl schema or not. Default - True.
----@return boolean | table - true,nil if dropped | false,error - otherwise.
-local function drop_space_on_cluster(space_name,schema_ddl_correction)
-    checks('string','?boolean')
-    if schema_ddl_correction == nil then
-        schema_ddl_correction = true
-    end
-    local storages =  cartridge.rpc_get_candidates('app.roles.adg_storage',{leader_only = true})
-
-    for _,cand in ipairs(storages) do
-        local conn, err = pool.connect(cand)
-        if conn == nil then
-            return false,err
-        else
-            local is_space_dropped,space_drop_err  = conn:call('drop_space',{space_name},{timeout = 30, is_async=false})
-
-            if is_space_dropped ~= true then
-                return false,space_drop_err
-            end
-        end
-        fiber.sleep(0.01) -- Wait async replicas for processing changes.
-    end
-
-    if schema_ddl_correction == true then
-        local current_ddl_schema = yaml.decode(cartridge.get_schema())
-        current_ddl_schema.spaces[space_name] = nil
-        local is_ddl_schema_patched, schema_patch_err =cartridge.set_schema(yaml.encode(current_ddl_schema))
-
-        if is_ddl_schema_patched == nil then
-            return false, schema_patch_err
-        end
-    end
-    return true, nil
 end
 
 ---truncate_space_on_cluster - function to truncate space on cluster.
@@ -257,18 +215,16 @@ local function drop_spaces_on_cluster(spaces,prefix,schema_ddl_correction)
             else
                 log.error(schema_patch_err)
                 fiber.sleep(0.5)
-                goto retry
+                goto retry  --TODO: WTF?
             end
         end
     end
-    --ddl_handler.queued_tables_notify(dropped_spaces)
     return dropped_spaces, nil
 end
 
 local function drop_all()
     local replicas, _ = vshard.router.routeall()
 
---    local result = nil
     for _, replica in pairs(replicas) do
         local res, err = replica:callro("storage_drop_all")
 
@@ -426,18 +382,30 @@ local function query(query, params)
         end
 
         local result = nil
+        local fibers_count = 0
+        local buffer = fiber.channel(#replicas)
         for _, replica in pairs(replicas) do
-            local res, err = replica:callro("execute_sql",
-                                            { query, params })
+            fibers_count = fibers_count + 1
+            fiber.create(function()
+                -- function callro in vshard has internal timeout. if result is not
+                -- received at this timeout, will be return error and res=nil
+                local res, err = replica:callro("execute_sql", { query, params })
 
-            if res == nil then
-                return nil, err
+                buffer:put({data=res, err=err})
+            end)
+        end
+
+        for _=0, fibers_count do
+            local msg = buffer:get()
+
+            if msg.data == nil then
+                return nil, msg.err
             end
 
             if result == nil then
-                result = res
+                result = msg.data
             else
-                result.rows = misc_utils.append_table(result.rows, res.rows)
+                result.rows = misc_utils.append_table(result.rows, msg.data.rows)
             end
         end
 
@@ -820,7 +788,7 @@ end
 --- @param delta_number number - delta (https://arenadata.atlassian.net/wiki/spaces/DTM/pages/46653935/delta)
 --- @param column_list table - optional, columns list for calculate checksum
 --- @param normalization number - optional, coefficient of increasing the possible number
---                                of records within the delta. (positive integer greater than or equal to 1, default 1).
+---                               of records within the delta. (positive integer greater than or equal to 1, default 1).
 local function get_scd_table_checksum_on_cluster(actual_data_table_name, historical_data_table_name,
                                                  delta_number, column_list, normalization)
     checks('string','string','number','?table','?number')
@@ -900,12 +868,9 @@ end
 local function init_ddl_routes()
     local httpd = cartridge.service_get('httpd')
     httpd:route({method='DELETE', path = 'api/v1/ddl/table/:tableName'}, ddl_handler.add_table_to_delete_batch)
-    httpd:route({method='PUT', path = 'api/v1/ddl/table/batchDelete'}, ddl_handler.put_tables_to_delete_batch)
     httpd:route({method='DELETE', path = 'api/v1/ddl/table/queuedDelete'}, ddl_handler.queued_tables_delete)
     httpd:route({method='POST', path = 'api/v1/ddl/table/queuedCreate'}, ddl_handler.queued_tables_create)
     httpd:route({method='DELETE', path = 'api/v1/ddl/table/queuedDelete/prefix/:tablePrefix'}, ddl_handler.queued_prefix_delete)
-    httpd:route({method='DELETE', path = 'api/v1/ddl/table/batchDelete/:batchId'}, ddl_handler.delete_table_batch)
-    httpd:route({method='DELETE', path = 'api/v1/ddl/table/batchDelete/prefix/:tablePrefix'}, ddl_handler.delete_table_prefix)
     httpd:route({method='POST', path = 'api/v1/ddl/table/schema'}, ddl_handler.get_storage_space_schema)
 end
 
@@ -921,7 +886,6 @@ local function init(opts) -- luacheck: no unused args
     _G.set_ddl = set_ddl
     _G.get_ddl = get_ddl
     _G.query = query
-    _G.drop_space_on_cluster = drop_space_on_cluster
     _G.truncate_space_on_cluster = truncate_space_on_cluster
     _G.drop_all = drop_all
     _G.space_len = space_len
@@ -956,8 +920,6 @@ local function init(opts) -- luacheck: no unused args
     httpd:route({method='GET', path = 'api/etl/transfer_data_to_scd_table'}, etl_handler.transfer_data_to_scd_table)
 
     httpd:route({method='POST', path = '/api/v1/ddl/table/reverseHistoryTransfer'}, etl_handler.reverse_history_in_scd_table)
-
-    httpd:route({method='GET', path = 'api/etl/drop_space_on_cluster'}, etl_handler.drop_space_on_cluster)
 
     httpd:route({method='GET', path = 'api/etl/truncate_space_on_cluster'}, truncate_space_handler.truncate_space_on_cluster)
 
@@ -1007,7 +969,6 @@ return {
     role_name = role_name,
     init = init,
     stop = stop,
-    drop_space_on_cluster = drop_space_on_cluster,
     truncate_space_on_cluster = truncate_space_on_cluster,
     drop_spaces_on_cluster = drop_spaces_on_cluster,
     validate_config = validate_config,
