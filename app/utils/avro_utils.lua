@@ -14,8 +14,6 @@
 
 local avro_schema = require('avro_schema')
 local checks = require('checks')
--- local misc_utils = require('app.utils.misc_utils')
-
 
 local function check_avro_schema_compatibility(old_schema, new_schema, opts)
     checks('table', 'table', {

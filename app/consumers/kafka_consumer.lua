@@ -17,12 +17,9 @@
 --- DateTime: 6/16/20 10:12 AM
 ---
 local checks = require('checks')
--- local error_repository = require('app.messages.error_repository')
 local log = require('log')
--- local json = require('json')
 local tnt_kafka = require('kafka')
 local fiber = require('fiber')
--- local clock = require('clock')
 
 local deserialize_transform = require('app.handlers.callback.kafka_msg_deserialize_transformation')
 local insert_transform = require('app.handlers.callback.kafka_msg_insert_transformation')
@@ -42,7 +39,6 @@ local function readonlytable(table)
         __newindex = function(table, key, value)
             error("Attempt to modify read-only table")
         end,
-    --    __metatable = false,
         __type = 'kafka_consumer'
     });
 end

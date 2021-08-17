@@ -26,7 +26,6 @@ local prometheus = require('metrics.plugins.prometheus')
 local fun = require('fun')
 local error_repository = require('app.messages.error_repository')
 local success_repository = require('app.messages.success_repository')
--- local misc_utils = require('app.utils.misc_utils')
 local validate_utils = require('app.utils.validate_utils')
 local json = require('json')
 local vshard = require('vshard')
@@ -42,8 +41,6 @@ local producer = nil
 local default_consumer = nil
 local err_storage = errors.new_class("Kafka storage error")
 local topic_x_consumers = {}
-
--- local cartridge_pool = require('cartridge.pool')
 local cartridge_rpc = require('cartridge.rpc')
 
 
@@ -386,33 +383,6 @@ local function subscribe_to_topic_fiber_old(topic_name, max_number_of_messages, 
     end
 
     box.commit()
-    --[[
-    local rebalance_callback = function(msg)
-        log.info("INFO: got rebalance msg: %s", json.encode(msg))
-        local current_time = os.clock()
-
-        if msg.assigned ~= nil then
-            for k, v in pairs(_G.rebalance_subscriptions) do
-                if current_time >= k then
-                    v:signal()
-                end
-            end
-        end
-
-        if msg.revoked ~= nil then
-            for k, v in pairs(_G.rebalance_unsubscriptions) do
-                if current_time >= k then
-                    v:signal()
-                end
-            end
-        end
-    end
-
-
-    local is_consumer_created, consumer = kafka_consumer.init(kafka_utils.get_brokers()):set_options(
-            kafka_utils.get_options()
-    ):set_rebalance_callback(rebalance_callback):build()
-   ]]
     local is_consumer_created, consumer = kafka_consumer.init(kafka_utils.get_brokers()):set_options(
             kafka_utils.get_options()
     ):build()
@@ -428,13 +398,6 @@ local function subscribe_to_topic_fiber_old(topic_name, max_number_of_messages, 
 
     topic_x_consumers[topic_name] = consumer
     fiber.sleep(5)
-    --wait for rebalance msg
-    --[[local current_time = os.clock()
-    local cond_object = fiber.cond()
-    _G.rebalance_subscriptions[current_time] = cond_object
-    cond_object:wait(30) --TODO move to parameters
-
-    _G.rebalance_subscriptions[current_time] = nil]]
     return  true, nil
 end
 
@@ -500,7 +463,6 @@ local function subscribe_to_topic_fiber(topic_name,
         return  false, subscribe_err
     end
 
-    --topic_x_consumers[topic_name] = default_consumer
     return  true, nil
 end
 
@@ -536,26 +498,6 @@ local function unsubscribe_from_topic_fiber(topic_name)
     box.commit()
 
     if topic_found then
-      --[[  local is_unsubscribe, unsubscribe_err = topic_x_consumers[topic_name]:unsubscribe({ topic_name }) --is needed?
-
-        if not is_unsubscribe then
-            return  false, unsubscribe_err
-        end
-
-        --wait for rebalance msg
-        local current_time = os.clock()
-        local cond_object = fiber.cond()
-        _G.rebalance_unsubscriptions[current_time] = cond_object
-        cond_object:wait(15)
-
-        _G.rebalance_unsubscriptions[current_time] = nil --]]
-        --local is_deleted, delete_err = topic_x_consumers[topic_name]:close()
-        --fiber.sleep(5)
-        --if not is_deleted then
-        --    return  false, delete_err
-        --end
-
-        --topic_x_consumers[topic_name] = nil
 
         local is_unsubscribe, unsubscribe_err = default_consumer:unsubscribe({ topic_name })
 
@@ -592,7 +534,6 @@ local function dataload_from_topic_fiber(topic_name, spaces, max_number_of_messa
     if not msg_polled then
         return {false, error = msgs, amount = 0 }
     end
---    local consumed_msg = 0
     if msgs.amount > 0 then
         local serialized_kafka_msgs = fun.map(function(v) return v:value() end,msgs.result):totable()
         local msg_with_max_offset = fun.max_by(function (a,b) if a:offset() > b:offset() then return a else return b end end,

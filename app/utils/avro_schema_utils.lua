@@ -16,8 +16,6 @@ local log = require('log')
 local avro_schema = require('avro_schema')
 local json = require('json')
 local config_utils = require('app.utils.config_utils')
--- local misc_utils = require('app.utils.misc_utils')
--- local avro_utils = require('app.utils.avro_utils')
 local checks = require('checks')
 local fun = require('fun')
 local error_repository = require('app.messages.error_repository')
@@ -25,8 +23,6 @@ local schema_registry_opts = config_utils.get_schema_registry_opts(config_utils.
 local ddl = require('ddl')
 local routes_data = {}
 local routes_key = {}
-
--- local http_client = require('http.client') --> new --TODO Optimization Http requests
 
 local function get_schema_registry_opts()
     return schema_registry_opts

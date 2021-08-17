@@ -97,21 +97,6 @@ end
 
 g.test_simple_insert_query = function ()
     local storage = cluster:server('master-1-1').net_box
--- luacheck: max line length 160
-    --[[
-    local net_box = cluster:server('api-1').net_box
-    local res, err = net_box:call(
-            'query',
-            {
-                "INSERT INTO USER1 (id, first_name, last_name, email) VALUES (1, ?, ?, 'johndoe@example.com') values (4, 'Ivan', 'Ivanov', 'ivan@example.com')",
-                {'John', 'Doe'}
-            }
-    )
-
-    t.assert_equals(err, nil)
-
-    t.assert_equals(res, {row_count=2})]]
-
     storage.space.USER1:replace({1, 'John', 'Doe', 'johndoe@example.com', 7729})
 end
 
@@ -394,83 +379,6 @@ g4.test_subscription_api = function()
 
 end
 
-
--- g4.test_unsubscription_api = function()
-
---     assert_http_json_request('DELETE',
---             '/api/v1/kafka/subscription/1234',
---             nil, { status = 404})
-
---     assert_http_json_request('POST',
---             '/api/v1/kafka/subscription',
---             {topicName = '123', maxNumberOfMessagesPerPartition = 10000}, { status = 200})
-
---     assert_http_json_request('DELETE',
---             '/api/v1/kafka/subscription/123',
---             nil, { status = 200})
-
---     assert_http_json_request('POST',
---             '/api/v1/kafka/subscription',
---             {topicName = 'a', maxNumberOfMessagesPerPartition = 10000}, { status = 200})
-
---     assert_http_json_request('POST',
---             '/api/v1/kafka/subscription',
---             {topicName = 'b', maxNumberOfMessagesPerPartition = 10000}, { status = 200})
-
---     assert_http_json_request('POST',
---             '/api/v1/kafka/subscription',
---             {topicName = 'c', maxNumberOfMessagesPerPartition = 10000}, { status = 200})
-
---     assert_http_json_request('DELETE',
---             '/api/v1/kafka/subscription/a',
---             nil, { status = 200})
-
---     assert_http_json_request('DELETE',
---             '/api/v1/kafka/subscription/b',
---             nil, { status = 200})
-
---     assert_http_json_request('DELETE',
---             '/api/v1/kafka/subscription/c',
---             nil, { status = 200})
-
--- end
-
--- local function string_function()
---     local random_number
---     local random_string
---     random_string = ""
---     for x = 1,10,1 do
---         random_number = math.random(65, 90)
---         random_string = random_string .. string.char(random_number)
---     end
---     return random_string
--- end
-
--- local function gen_sub_unsub(topic_name)
---     local s = assert_http_json_request('POST',
---             '/api/v1/kafka/subscription',
---             {topicName = topic_name, maxNumberOfMessagesPerPartition = 10000}, { status = 200})
-
---     local uns = assert_http_json_request('DELETE',
---             '/api/v1/kafka/subscription/' .. topic_name,
---             nil, { status = 200})
---     return pcall(t.assert_equals,s.status == 200 and uns.status == 200,true)
--- end
-
--- g4.test_sub_unsub = function()
---     local fibers = {}
---     for i=1,100 do
---         local f = fiber.new(gen_sub_unsub,string_function())
---         f:set_joinable(true)
---         table.insert(fibers,f)
---     end
-
---     for _,v in ipairs(fibers) do
---         local r,v = v:join()
---         t.assert_equals(r,true)
---         t.assert_equals(v,true)
---     end
--- end
 
 g4.test_dataload_api = function()
 

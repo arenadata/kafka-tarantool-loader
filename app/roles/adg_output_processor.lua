@@ -189,16 +189,6 @@ local function send_query_to_kafka_with_plan(replica_uuid,plan,stream_number,str
                                                                                        is_last_chunk =is_last_chunk})
         end
 
-        --Remove bucket_id
-        --[[
-        if schema_name ~= nil then
-            local ok,bucket_id_c = pcall(sql_select.get_bucket_id_column_number(res[1]))
-            if bucket_id_c ~= nil then
-                for _,v in ipairs(res[1]['rows']) do
-                    v[bucket_id_c] = nil
-                end
-            end
-        end]]
 
         local is_generate, data = bin_avro_utils.encode(avro_schema,res[1]['rows'],true)
 

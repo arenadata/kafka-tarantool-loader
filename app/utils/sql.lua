@@ -15,29 +15,12 @@
 
 local lpeg = require("lulpeg")
 local locale = lpeg.locale;
--- local yaml = require('yaml')
 local fun = require('fun')
 
 local P = lpeg.P;
--- local R = lpeg.R;
 local S = lpeg.S;
 local V = lpeg.V;
 local C = lpeg.C;
--- local Cb = lpeg.Cb;
--- local Cc = lpeg.Cc;
--- local Cf = lpeg.Cf;
--- local Cg = lpeg.Cg;
--- local Cp = lpeg.Cp;
--- local Cs = lpeg.Cs;
--- local Ct = lpeg.Ct;
--- local Cmt = lpeg.Cmt;
-
--- local white = lpeg.S(" \t\r\n") ^ 0
-
--- local integer = white * lpeg.R("09") ^ 1 / tonumber
--- local muldiv = white * lpeg.C(lpeg.S("/*"))
--- local addsub = white * lpeg.C(lpeg.S("+-"))
-
 
 local function caseless (literal)
     local caseless = lpeg.Cf((lpeg.P(1) / function (a) return lpeg.S(a:lower()..a:upper()) end)^1, function (a, b) return a * b end)

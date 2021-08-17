@@ -23,7 +23,6 @@ local g3 = t.group('storage_drop_space')
 local g4 = t.group('storage_delta_rollback')
 local g5 = t.group('storage_delete_scd_sql')
 local g6 = t.group('storage_delta_checksum')
--- local checks = require('checks')
 local helper = require('test.helper.integration')
 local cluster = helper.cluster
 

@@ -19,7 +19,6 @@
 ---
 local fiber = require('fiber')
 local log = require('log')
--- local checks = require('checks')
 local clock = require('clock')
 local cartridge = require('cartridge')
 
@@ -157,7 +156,7 @@ local function create_fiber(self,process_function, fiber_name,source,error_dest)
                     if input ~= nil then
                         local result = process_function(input,error_dest,fiber_name)
                         if result ~= nil then
-                            local sent = true--self.process_channel:put(result,error_dest,fiber_name)
+                            local sent = true
                             if not sent then
                                 log.error("ERROR: %s fiber send error",fiber_name)
                                 if error_dest ~= nil then

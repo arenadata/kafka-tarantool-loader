@@ -29,11 +29,9 @@ local set = require('app.entities.set')
 local misc_utils = require('app.utils.misc_utils')
 local prometheus = require('metrics.plugins.prometheus')
 local api_timeout_config = require('app.utils.api_timeout_config')
--- local cartridge_pool = require('cartridge.pool')
 local cartridge_rpc = require('cartridge.rpc')
 
 local role_name = 'app.roles.adg_api'
--- local json = require('json')
 
 local garbage_fiber = nil
 local cluster_config_handler = require('app.handlers.cluster_config_handler')
@@ -261,14 +259,12 @@ local function drop_spaces_on_cluster(spaces,prefix,schema_ddl_correction)
             end
         end
     end
-    --ddl_handler.queued_tables_notify(dropped_spaces)
     return dropped_spaces, nil
 end
 
 local function drop_all()
     local replicas, _ = vshard.router.routeall()
 
---    local result = nil
     for _, replica in pairs(replicas) do
         local res, err = replica:callro("storage_drop_all")
 
@@ -820,7 +816,7 @@ end
 --- @param delta_number number - delta (https://arenadata.atlassian.net/wiki/spaces/DTM/pages/46653935/delta)
 --- @param column_list table - optional, columns list for calculate checksum
 --- @param normalization number - optional, coefficient of increasing the possible number
---                                of records within the delta. (positive integer greater than or equal to 1, default 1).
+---                               of records within the delta. (positive integer greater than or equal to 1, default 1).
 local function get_scd_table_checksum_on_cluster(actual_data_table_name, historical_data_table_name,
                                                  delta_number, column_list, normalization)
     checks('string','string','number','?table','?number')

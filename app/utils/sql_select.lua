@@ -21,9 +21,6 @@ local vshard = require('vshard')
 local fun = require('fun')
 local digest = require('digest')
 local checks = require('checks')
--- local json = require('json')
--- local yaml = require('yaml')
--- local log = require('log')
 
 local schema_utils = require('app.utils.schema_utils')
 
@@ -40,7 +37,6 @@ local function prepare(query)
 
     if parsed == nil or parsed[1] ~= 'select' then
         return nil
-        --, errors.new("calculate_bucket_id_error", "expected select expression, got: %s", query)
     end
 
     local expr = parsed[4]

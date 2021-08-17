@@ -22,7 +22,6 @@ local bin_avro_utils = require('app.utils.bin_avro_utils')
 local file_utils = require('app.utils.file_utils')
 local json = require('json')
 local os = require('os')
-
 local t = require('luatest')
 
 local g = t.group('bin_avro_utils.compile_avro_schema')
@@ -83,34 +82,6 @@ g2.test_topicX_transformation = function ()
     t.assert_equals(decoded_value,bin_avro_utils.clean_table_of_records_from_avro_types(values))
 end
 
--- DEPRECATED TEST FOR AVRO SCHEME
--- g2.test_transformation_with_external_schema = function()
---     local value_schema,_ = file_utils.read_file('test/unit/data/avro_schemas/topicZ_avro_schema_value.json')
---     local encoded1,_ = file_utils.read_file('test/unit/data/avro_values/topicZ_value_encoded.avro')
---     local decoded1,_ = file_utils.read_file('test/unit/data/avro_values/topicZ_value_decoded.json')
-
---     local ok1,decoded_value1 = bin_avro_utils.decode(encoded1, value_schema)
-
---     t.assert_equals(ok1,true)
---     t.assert_equals(decoded_value1,json.decode(decoded1))
-
---     local encoded2,_ = file_utils.read_file('test/unit/data/avro_values/topicZ_value_encoded3.avro')
---     local decoded2,_ = file_utils.read_file('test/unit/data/avro_values/topicZ_value_decoded2.json')
-
---     local ok2,decoded_value2 = bin_avro_utils.decode(encoded2,value_schema)
-
---     t.assert_equals(ok2,true)
---     t.assert_equals(decoded_value2,json.decode(decoded2))
-
---     local encoded3,_ = file_utils.read_file('test/unit/data/avro_values/test1_value_encoded.avro')
---     local decoded3,_ = file_utils.read_file('test/unit/data/avro_values/test1_2_value_decoded.json')
-
---     local ok3,decoded_value3 = bin_avro_utils.decode(encoded3,value_schema)
-
---     t.assert_equals(ok3,true)
---     t.assert_equals(decoded_value3,json.decode(decoded3))
--- end
-
 g2.test_transformation_with_schema_in_data = function()
     local encoded1,_ = file_utils.read_file('test/unit/data/avro_values/topicZ_value_encoded2.avro')
     local decoded1,_ = file_utils.read_file('test/unit/data/avro_values/topicZ_value_decoded2.json')
@@ -165,30 +136,6 @@ g2.test_transformation_with_schema2_in_data_fast = function()
     t.assert_equals(decoded_value,json.decode(decoded))
 end
 
--- DEPRECATED TEST FOR AVRO SCHEME
--- g2.test_large_encode_decode = function()
-
---     local encoded = file_utils.read_file('test/unit/data/avro_values/avro1000_000_w_s.avro')
---     local schema_ok, schema = bin_avro_utils.extract_metadata(encoded)
-
---     t.assert_equals(schema_ok,true)
-
---     local json_value = json.decode(file_utils.read_file('test/unit/data/avro_values/avro1000_000.json'))
---     local ok2,res2 = bin_avro_utils.encode(schema.value['avro.schema'],json_value,true)
-
---     t.assert_equals(ok2,true)
-
---     local ok3,res3 = bin_avro_utils.decode(res2)
-
---     t.assert_equals(ok3,true)
---     t.assert_equals(#res3,#json_value)
-
---     local ok4,res4 = bin_avro_utils.decode(encoded)
-
---     t.assert_equals(ok4,true)
---     t.assert_equals(1000000,#res4)
-
--- end
 
 local function test_decoding_avro_single_object(run_cnt)
     local start_time = os.clock()
@@ -208,22 +155,6 @@ local function test_decoding_avro_single_object(run_cnt)
     return end_time - start_time <  run_cnt * 0.1
 end
 
--- DEPRECATED TEST FOR AVRO SCHEME
--- local function test_decoding_perf_avro_object_container(file,row_cnt,run_cnt)
---     local start_time = os.clock()
---     local encoded,_ = file_utils.read_file(file)
---     for _=1,run_cnt,1 do
---         local ok, _= bin_avro_utils.decode(encoded)
---         t.assert_equals(ok,true)
---     end
---     local end_time = os.clock()
---     return end_time - start_time < row_cnt * run_cnt / 59000
--- end
-
--- g3.test_perf_decoding_file_with_schema = function()
--- luacheck: max line length 150
---     t.assert_equals(test_decoding_perf_avro_object_container('test/unit/data/avro_values/avro1000.avro',1000,100), true)
--- end
 
 g3.test_perf_encoding_decoding_wo_schema = function()
     t.assert_equals(test_decoding_avro_single_object(1000),true)

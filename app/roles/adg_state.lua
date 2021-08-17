@@ -37,7 +37,6 @@ local fiber = require('fiber')
 local yaml = require('yaml')
 local math = require('math')
 
--- local cartridge_pool = require('cartridge.pool')
 local cartridge_rpc = require('cartridge.rpc')
 
 _G.update_delete_batch_storage = nil
@@ -596,10 +595,6 @@ local function validate_config(conf_new, conf_old)
     for _, replica_set in pairs(conf_new.topology.replicasets) do
         if replica_set.roles['app.roles.adg_state'] then
             replicasets_cnt = replicasets_cnt + 1
-            --[[ At least one vshard-storage (default) must have weight > 0
-            if replica_set.weight ~= 0 then
-                return false,'app.metrics.metrics_storage weight 1'
-            end ]]
         end
     end
 

@@ -15,7 +15,6 @@
 
 
 local checks = require('checks')
--- local log = require('log')
 local errors = require('errors')
 
 local route_utils = require('app.utils.route_utils')

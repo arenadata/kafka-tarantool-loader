@@ -23,7 +23,6 @@ local g2 = t.group('integration_adg_kafka_connector_v2.unsubscription')
 
 local helper = require('test.helper.integration')
 local cluster = helper.cluster
--- local log = require('log')
 --TODO kafka in docker
 
 g.before_each(function()
@@ -36,49 +35,11 @@ g2.before_each(function()
     kafka:call('box.execute', {'truncate table _KAFKA_TOPIC'})
 end)
 
--- g.test_subscription_valid_values = function()
---     local kafka = cluster:server('kafka_connector-1').net_box
-
---     local res1 = kafka:call('subscribe_to_topic', {'test_topic1', 1000})
---     t.assert_equals(res1,true)
-
-
---     local line1 = kafka.space['_KAFKA_TOPIC']:get('test_topic1')
---     t.assert_equals(line1,{'test_topic1', 1000})
-
-
---     local res2 = kafka:call('subscribe_to_topic', {'test_topic2', 1000, '{ "type": "long" }'})
---     t.assert_equals(res2,true)
-
-
---     local line2 = kafka.space['_KAFKA_TOPIC']:get('test_topic2')
---     t.assert_equals(line2,{'test_topic2', 1000, '{ "type": "long" }'})
-
--- end
-
 g.test_subscription_invalid_values = function()
     local kafka = cluster:server('kafka_connector-1').net_box
     t.assert_error(kafka.call,kafka, 'subscribe_to_topic', {'test_topic1', nil})
     t.assert_error(kafka.call,kafka, 'subscribe_to_topic', {nil, 100})
 end
-
-
--- g2.test_unsubscription_valid_values = function()
---     local kafka = cluster:server('kafka_connector-1').net_box
-
---     local res1 = kafka:call('subscribe_to_topic', {'test_topic1', 1000})
---     t.assert_equals(res1,true)
-
-
---     local res2 = kafka:call('unsubscribe_from_topic', {'test_topic1'})
---     t.assert_equals(res2,true)
-
---     local line2 = kafka.space['_KAFKA_TOPIC']:get('test_topic1')
-
---     t.assert_equals(line2,nil)
-
--- end
-
 
 g2.test_unsubscription_invalid_values = function()
     local kafka = cluster:server('kafka_connector-1').net_box
