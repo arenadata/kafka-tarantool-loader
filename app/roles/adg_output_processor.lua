@@ -16,12 +16,9 @@ local cartridge = require('cartridge')
 local prometheus = require('metrics.plugins.prometheus')
 local log = require('log')
 local checks = require('checks')
-local avro_utils = require('app.utils.avro_utils')
 local avro_schema_utils = require('app.utils.avro_schema_utils')
 local misc_utils = require('app.utils.misc_utils')
-local sql_select =require('app.utils.sql_select')
 local schema_utils = require('app.utils.schema_utils')
-local json = require('json')
 local fiber = require('fiber')
 local error_repository = require('app.messages.error_repository')
 local success_repository = require('app.messages.success_repository')
@@ -37,7 +34,6 @@ local garbage_fiber = nil
 
 _G.test_msg_to_kafka = nil
 _G.send_simple_msg_to_kafka = nil
-_G.send_query_to_kafka = nil
 _G.get_metric = nil
 _G.send_query_to_kafka_with_plan = nil
 
@@ -240,141 +236,6 @@ local function send_query_to_kafka_with_plan(replica_uuid,plan,stream_number,str
     return true, success_repository.get_success_code('ADG_OUTPUT_PROCESSOR_002')
 end
 
-local function send_query_to_kafka(topic_name, query, opts)
-
-    if not string.match(string.lower(query), "^%s*select%s+") then
-        return false,error_repository.get_error_code('ADG_OUTPUT_PROCESSOR_003',{query=query})
-    end
-
-    local batch_size = opts['batch_size'] or 1000
-    local schema_name = opts['schema_name'] or nil
--- luacheck: ignore schema
-    local schema = nil
--- luacheck: ignore ok
-    local ok, methods = nil,nil
--- luacheck: ignore is_generate data
-    local is_generate, data = nil, nil
-
-    if schema_name ~= nil then
-        schema = avro_schema_utils.get_schema(schema_name)
-
-        if schema == nil then
-            return false, error_repository.get_error_code('AVRO_SCHEMA_001',{schema_registry=avro_schema_utils.get_schema_registry_opts,
-                                                                            schema_name=schema_name})
-        end
-
-        ok,methods = avro_utils.compile_avro_schema(schema)
-
-        if not ok then
-            return false, error_repository.get_error_code('AVRO_SCHEMA_002',{schema_name=schema_name,methods=methods})
-        end
-    end
-
-    local replicas, err = sql_select.get_replicas(
-        query, {})
-
-    if err ~= nil then
-        return false, error_repository.get_error_code('VROUTER_REPLICA_GET_001', {query=query,desc=err})
-    end
-
-    local split_query = {}
-
-    for _,cand in pairs(replicas) do
-        local row_cnt, row_cnt_err = cand:callbre(
-            'execute_sql',
-            {string.format("select count(*) from (%s);",query)},
-            {is_async=false}
-        )
-        if row_cnt_err~= nil then
-            return false, error_repository.get_error_code('VSTORAGE_SQL_SELECT_001', {sql_err=row_cnt_err,query=query})
-        end
-
-        local split = misc_utils.generate_limit_offset(row_cnt['rows'][1][1],batch_size)
-        split_query[cand] = split
-    end
-
-
-
-    local stream_query = query .. ' order by 1 limit ? offset ?'
-
-
-    local streams = {}
-
-    local stream_number = 0
-    for cand,split in pairs(split_query) do --stream
-        stream_number = stream_number + 1
-        streams[stream_number] = {}
-        cand:callbre('prep_sql', {stream_query}, {is_async= false})
-        for chunk_number,v in ipairs(split) do --package
-            local future = cand:callbre(
-                'execute_sql',
-                {stream_query,{v['limit'],v['offset']}},
-                {is_async=true, timeout=360}
-            )
-            fiber.sleep(0.01)
-            streams[stream_number][chunk_number] = future
-        end
-    end
-
-    for stream_number, futures in ipairs(streams) do
-        local chunk_total = #futures
-        local is_last_chunk = false
-        for chunk_number, future in ipairs(futures) do
-
-            if chunk_number == chunk_total then
-                 is_last_chunk = true
-            end
-            future:wait_result(360)
-            local res, err = future:result()
-
-            if res == nil then
-                return false, error_repository.get_error_code('ADG_OUTPUT_PROCESSOR_001', {desc=err,
-                                                                                        stream_number=stream_number,
-                                                                                        chunk_number=chunk_number,
-                                                                                        is_last_chunk =is_last_chunk})
-            end
-
-            --Remove bucket_id
-            if schema_name ~= nil then
-                local _, bucket_id_c = pcall(sql_select.get_bucket_id_column_number(res[1]))
-                if bucket_id_c ~= nil then
-                    for _,v in ipairs(res[1]['rows']) do
-                        v[bucket_id_c] = nil
-                    end
-                end
-            end
-
-            if schema_name ~= nil then
-                 is_generate, data = methods.unflatten({res[1]['rows']})
-            else  is_generate, data = true, res[1]['rows']
-            end
-
-            if not is_generate then
-                return false, error_repository.get_error_code('AVRO_SCHEMA_003', {desc=data})
-            end
-
-            local key = json.encode({
-                streamNumber = stream_number-1,
-                streamTotal = #streams,
-                chunkNumber = chunk_number-1,
-                isLastChunk = is_last_chunk
-            })
-
-            local result = send_messages_to_kafka(topic_name,{[1] = {key = key
-            , value=json.encode(data)}},{is_async=true})
-            if result then
-                success_repository.get_success_code('ADG_OUTPUT_PROCESSOR_001')
-            else return false, error_repository.get_error_code('ADG_OUTPUT_PROCESSOR_002',
-                                                                            {topic_name=topic_name,
-                                                                            key=key
-                                                                            })
-                                                                        end
-        end
-    end
-    return true, success_repository.get_success_code('ADG_OUTPUT_PROCESSOR_002')
-
-end
-
 
 local function test_msg_to_kafka()
     send_simple_msg_to_kafka('input_test','2','value')
@@ -398,7 +259,6 @@ local function init(opts)
 
     _G.test_msg_to_kafka = test_msg_to_kafka
     _G.send_simple_msg_to_kafka = send_simple_msg_to_kafka
-    _G.send_query_to_kafka = send_query_to_kafka
     _G.send_query_to_kafka_with_plan = send_query_to_kafka_with_plan
 
     if opts.is_master then -- luacheck: ignore 542
@@ -429,7 +289,6 @@ return {
     send_simple_msg_to_kafka = send_simple_msg_to_kafka,
     test_msg_to_kafka = test_msg_to_kafka,
     send_messages_to_kafka = send_messages_to_kafka,
-    send_query_to_kafka = send_query_to_kafka,
     send_query_to_kafka_with_plan = send_query_to_kafka_with_plan,
     get_metric = get_metric,
     dependencies = {
