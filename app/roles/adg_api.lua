@@ -255,7 +255,7 @@ local function drop_spaces_on_cluster(spaces,prefix,schema_ddl_correction)
             else
                 log.error(schema_patch_err)
                 fiber.sleep(0.5)
-                goto retry
+                goto retry  --TODO: WTF?
             end
         end
     end
@@ -896,12 +896,9 @@ end
 local function init_ddl_routes()
     local httpd = cartridge.service_get('httpd')
     httpd:route({method='DELETE', path = 'api/v1/ddl/table/:tableName'}, ddl_handler.add_table_to_delete_batch)
-    httpd:route({method='PUT', path = 'api/v1/ddl/table/batchDelete'}, ddl_handler.put_tables_to_delete_batch)
     httpd:route({method='DELETE', path = 'api/v1/ddl/table/queuedDelete'}, ddl_handler.queued_tables_delete)
     httpd:route({method='POST', path = 'api/v1/ddl/table/queuedCreate'}, ddl_handler.queued_tables_create)
     httpd:route({method='DELETE', path = 'api/v1/ddl/table/queuedDelete/prefix/:tablePrefix'}, ddl_handler.queued_prefix_delete)
-    httpd:route({method='DELETE', path = 'api/v1/ddl/table/batchDelete/:batchId'}, ddl_handler.delete_table_batch)
-    httpd:route({method='DELETE', path = 'api/v1/ddl/table/batchDelete/prefix/:tablePrefix'}, ddl_handler.delete_table_prefix)
     httpd:route({method='POST', path = 'api/v1/ddl/table/schema'}, ddl_handler.get_storage_space_schema)
 end
 
