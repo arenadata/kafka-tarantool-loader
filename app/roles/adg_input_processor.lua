@@ -41,6 +41,7 @@ _G.insert_messages_from_kafka = nil
 _G.load_csv_lines = nil
 _G.get_metric = nil
 _G.insert_message_from_kafka_async = nil
+_G.remove_spaces_from_bucket_id_cache = nil
 
 local metrics = require("app.metrics.metrics_storage")
 
@@ -437,12 +438,19 @@ local function get_schema()
     end
 end
 
+local function remove_spaces_from_bucket_id_cache(space_names)
+    for _, space_name in ipairs(space_names) do
+        schema_utils.clean_bucket_id_cache_by_space(space_name)
+    end
+end
+
 local function init(opts)
     rawset(_G, "ddl", { get_schema = get_schema })
 
     _G.insert_messages_from_kafka = insert_messages_from_kafka
     _G.load_csv_lines = load_csv_lines
     _G.insert_message_from_kafka_async = insert_message_from_kafka_async
+    _G.remove_spaces_from_bucket_id_cache = remove_spaces_from_bucket_id_cache
     if opts.is_master then -- luacheck: ignore 542
     end
 
@@ -471,6 +479,7 @@ local function init(opts)
 end
 
 return {
+    remove_spaces_from_bucket_id_cache = remove_spaces_from_bucket_id_cache,
     role_name = role_name,
     init = init,
     stop = stop,

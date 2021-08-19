@@ -28,11 +28,15 @@ local g9 = t.group("api.timeouts_config")
 local g10 = t.group("api.ddl_operations")
 local g11 = t.group("integration_api_sql")
 local g12 = t.group("api.migration")
+local g13 = t.group("api.incorrect_bucket_id")
 
 local checks = require("checks")
 local helper = require("test.helper.integration")
 local cluster = helper.cluster
 
+local fiber = require("fiber")
+local tnt_kafka = require("kafka")
+local bin_avro_utils = require("app.utils.bin_avro_utils")
 local file_utils = require("app.utils.file_utils")
 
 local function assert_http_json_request(method, path, body, expected)
@@ -999,21 +1003,35 @@ g10.test_timeout_error_ddl = function()
     })
 end
 
+g11.after_all(function ()
+    local storage1 = cluster:server("master-1-1").net_box
+    local storage2 = cluster:server("master-2-1").net_box
+
+    storage1:call("box.execute", { [[truncate table "table_test_1"]] })
+    storage2:call("box.execute", { [[truncate table "table_test_1"]] })
+    storage1:call("box.execute", { [[truncate table "table_test_2"]] })
+    storage2:call("box.execute", { [[truncate table "table_test_2"]] })
+    storage1:call("box.execute", { [[truncate table "dev__sales__sales_staging"]] })
+    storage2:call("box.execute", { [[truncate table "dev__sales__sales_staging"]] })
+end)
+
 g11.test_insert_select_query = function()
+    t.skip("manually tested")
     local net_box = cluster:server("api-1").net_box
-    local storage = cluster:server("master-1-1").net_box
 
-    local _, _ = storage:eval([[]])
-    storage.space.table_test_2:insert({ 1, "John", "Doe", "johndoe@example.com", 1 })
+    local res, err = net_box:call("query", {
+        [[INSERT INTO "table_test_1"
+        ("id", FIRST_NAME, LAST_NAME, EMAIL) VALUES (?, ?, ?, ?);]],
+        { 1, "John", "Doe", "johndoe@example.com" },
+    })
+    t.assert_equals(err, nil)
+    t.assert_equals(res.row_count, 1)
 
-    local res, err = net_box:call(
-        "query",
-        {
-            [[INSERT INTO "table_test_1"
+    local res, err = net_box:call("query", {
+        [[INSERT INTO "table_test_1"
         ("id", FIRST_NAME, LAST_NAME, EMAIL, "bucket_id") SELECT * FROM "table_test_2" WHERE "id" = ?;]],
-            { 1 },
-        }
-    )
+        { 1 },
+    })
 
     t.assert_equals(err, nil)
     t.assert_equals(res, true)
@@ -1021,7 +1039,38 @@ g11.test_insert_select_query = function()
     local res, err = net_box:call("query", { [[SELECT * FROM "table_test_1";]], {} })
 
     t.assert_equals(err, nil)
-    t.assert_equals(res.rows, { { 1, "John", "Doe", "johndoe@example.com", 1 } })
+    t.assert_equals(res.rows, { { 1, "John", "Doe", "johndoe@example.com", 7729 } })
+end
+
+g11.test_insert_dtm_query = function()
+    t.skip("manually tested")
+    local net_box = cluster:server("api-1").net_box
+
+    local res, err = net_box:call("query", {
+        -- luacheck: max line length 210
+        [[insert into "dev__sales__sales_staging" ("identification_number", "transaction_date", "product_code", "product_units", "store_id", "description", "sys_op") values(?,?,?,?,?,?,?);]],
+        {1,0,'A',7,1234,'B', 0},
+    })
+
+    t.assert_equals(err, nil)
+    t.assert_equals(res.row_count, 1)
+
+    res, err = net_box:call("query", {
+        -- luacheck: max line length 220
+        [[insert into "dev__sales__sales_staging" ("identification_number", "transaction_date", "product_code", "product_units", "store_id", "description", "bucket_id", "sys_op") values(2,0,'A',7,1234,'B',null,0);]],
+    })
+    t.assert_equals(err, nil)
+    t.assert_equals(res.row_count, 1)
+
+    local res, err = net_box:call("query", {
+        -- luacheck: max line length 210
+        [[insert into "dev__sales__sales_staging" ("identification_number", "transaction_date", "product_code", "product_units", "store_id", "description", "sys_op") values (?,?,?,?,?,?,?), (?,?,?,?,?,?,?);]],
+        {3,0,'C',7,1235,'2', 0, 4,0,'D',7,1236,'1', 0},
+    })
+
+    t.assert_equals(err, nil)
+    t.assert_equals(res.row_count, 2)
+
 end
 
 g12.test_incorrect_body_params = function()
@@ -1140,4 +1189,516 @@ g12.test_column_migration = function()
         end
     end
     t.assert_equals(has_index, false)
+end
+
+g13.test_bucket_id_vinyl_calc = function()
+    t.skip("manually tested")
+    local storage1 = cluster:server("master-1-1").net_box
+
+    local value_schema, err = file_utils.read_file("test/unit/data/avro_schemas/adg_test_avro_schema.json")
+    t.assert_equals(err, nil)
+
+    local producer, err2 = tnt_kafka.Producer.create({ brokers = "kafka:29092" })
+    t.assert_equals(err2, nil)
+
+    -- Создать спейс с именем 1, ключом шардирования 1
+    assert_http_json_request("POST", "/api/v1/ddl/table/queuedCreate", {
+        spaces = {
+            adg_test_actual = {
+                format = {
+                    {
+                        name = "id",
+                        type = "integer",
+                        is_nullable = false,
+                    },
+                    {
+                        name = "int_col",
+                        type = "integer",
+                        is_nullable = false,
+                    },
+                    {
+                        name = "sysFrom",
+                        type = "number",
+                        is_nullable = false,
+                    },
+                    {
+                        name = "sysOp",
+                        type = "number",
+                        is_nullable = false,
+                    },
+                    {
+                        name = "bucket_id",
+                        type = "unsigned",
+                        is_nullable = true,
+                    },
+                },
+                temporary = false,
+                engine = "vinyl",
+                indexes = {
+                    {
+                        unique = true,
+                        parts = {
+                            {
+                                path = "id",
+                                type = "integer",
+                                is_nullable = false,
+                            },
+                            {
+                                path = "int_col",
+                                type = "integer",
+                                is_nullable = false,
+                            },
+                            {
+                                path = "sysFrom",
+                                type = "number",
+                                is_nullable = false,
+                            },
+                        },
+                        type = "TREE",
+                        name = "id",
+                    },
+                    {
+                        unique = false,
+                        parts = {
+                            {
+                                path = "bucket_id",
+                                type = "unsigned",
+                                is_nullable = true,
+                            },
+                        },
+                        type = "TREE",
+                        name = "bucket_id",
+                    },
+                },
+                is_local = false,
+                sharding_key = { "id" },
+            },
+            adg_test_staging = {
+                format = {
+                    {
+                        name = "id",
+                        type = "integer",
+                        is_nullable = false,
+                    },
+                    {
+                        name = "int_col",
+                        type = "integer",
+                        is_nullable = false,
+                    },
+                    {
+                        name = "sysOp",
+                        type = "number",
+                        is_nullable = false,
+                    },
+                    {
+                        name = "bucket_id",
+                        type = "unsigned",
+                        is_nullable = true,
+                    },
+                },
+                temporary = false,
+                engine = "vinyl",
+                indexes = {
+                    {
+                        unique = true,
+                        parts = {
+                            {
+                                path = "id",
+                                type = "integer",
+                                is_nullable = false,
+                            },
+                            {
+                                path = "int_col",
+                                type = "integer",
+                                is_nullable = false,
+                            },
+                        },
+                        type = "TREE",
+                        name = "id",
+                    },
+                    {
+                        unique = false,
+                        parts = {
+                            {
+                                path = "bucket_id",
+                                type = "unsigned",
+                                is_nullable = true,
+                            },
+                        },
+                        type = "TREE",
+                        name = "bucket_id",
+                    },
+                },
+                is_local = false,
+                sharding_key = { "id" },
+            },
+            adg_test_history = {
+                format = {
+                    {
+                        name = "id",
+                        type = "integer",
+                        is_nullable = false,
+                    },
+                    {
+                        name = "int_col",
+                        type = "integer",
+                        is_nullable = false,
+                    },
+                    {
+                        name = "bucket_id",
+                        type = "unsigned",
+                        is_nullable = true,
+                    },
+                    {
+                        name = "sysFrom",
+                        type = "number",
+                        is_nullable = false,
+                    },
+                    {
+                        name = "sysOp",
+                        type = "number",
+                        is_nullable = false,
+                    },
+                    {
+                        name = "sysTo",
+                        type = "number",
+                        is_nullable = false,
+                    },
+                },
+                temporary = false,
+                engine = "vinyl",
+                indexes = {
+                    {
+                        unique = true,
+                        parts = {
+                            {
+                                path = "id",
+                                type = "integer",
+                                is_nullable = false,
+                            },
+                            {
+                                path = "int_col",
+                                type = "integer",
+                                is_nullable = false,
+                            },
+                            {
+                                path = "sysFrom",
+                                type = "number",
+                                is_nullable = false,
+                            },
+                        },
+                        type = "TREE",
+                        name = "id",
+                    },
+                    {
+                        unique = false,
+                        parts = {
+                            {
+                                path = "bucket_id",
+                                type = "unsigned",
+                                is_nullable = true,
+                            },
+                        },
+                        type = "TREE",
+                        name = "bucket_id",
+                    },
+                },
+                is_local = false,
+                sharding_key = { "id" },
+            },
+        },
+    }, {
+        status = 200,
+    })
+    ---- Загрузить данные
+    assert_http_json_request("POST", "/api/v1/kafka/subscription", {
+        topicName = "adg_test",
+        spaceNames = { "adg_test_staging" },
+        avroSchema = nil,
+        maxNumberOfMessagesPerPartition = 100,
+        maxIdleSecondsBeforeCbCall = 100,
+        callbackFunction = {
+            callbackFunctionName = "transfer_data_to_scd_table_on_cluster_cb",
+            callbackFunctionParams = {
+                _space = "adg_test_staging",
+                _stage_data_table_name = "adg_test_staging",
+                _actual_data_table_name = "adg_test_actual",
+                _historical_data_table_name = "adg_test_history",
+                _delta_number = 40,
+            },
+        },
+    }, {
+        status = 200,
+    })
+    fiber.sleep(5)
+
+    local _, decoded_value = bin_avro_utils.encode(value_schema, { { 1, 1, 0 }, { 1, 5, 0 } }, true)
+    producer:produce({ topic = "adg_test", key = "test_key", value = decoded_value })
+    fiber.sleep(3)
+
+    assert_http_json_request(
+        "GET",
+        -- luacheck: max line length 210
+        "/api/etl/transfer_data_to_scd_table?_stage_data_table_name=adg_test_staging&_actual_data_table_name=adg_test_actual&_historical_data_table_name=adg_test_history&_delta_number=2",
+        nil,
+        { status = 200 }
+    )
+    fiber.sleep(1)
+
+    -- bucket_id назначен корректно в соответствии с ключом шардирования 1
+    local r = storage1:eval("return box.space.adg_test_actual:select{}")
+    t.assert_equals(r[1][5], r[2][5])
+
+    -- Удалить спейс (/api/v1/ddl/table/queuedDelete/prefix/:tablePrefix)
+    assert_http_json_request("DELETE", "/api/v1/ddl/table/queuedDelete/prefix/adg_tes", nil, { status = 200 })
+    fiber.sleep(1)
+
+    -- Создать спейс с именем 1, ключом шардирования 2
+    assert_http_json_request("POST", "/api/v1/ddl/table/queuedCreate", {
+        spaces = {
+            adg_test_actual = {
+                format = {
+                    {
+                        name = "id",
+                        type = "integer",
+                        is_nullable = false,
+                    },
+                    {
+                        name = "int_col",
+                        type = "integer",
+                        is_nullable = false,
+                    },
+                    {
+                        name = "sysFrom",
+                        type = "number",
+                        is_nullable = false,
+                    },
+                    {
+                        name = "sysOp",
+                        type = "number",
+                        is_nullable = false,
+                    },
+                    {
+                        name = "bucket_id",
+                        type = "unsigned",
+                        is_nullable = true,
+                    },
+                },
+                temporary = false,
+                engine = "vinyl",
+                indexes = {
+                    {
+                        unique = true,
+                        parts = {
+                            {
+                                path = "id",
+                                type = "integer",
+                                is_nullable = false,
+                            },
+                            {
+                                path = "int_col",
+                                type = "integer",
+                                is_nullable = false,
+                            },
+                            {
+                                path = "sysFrom",
+                                type = "number",
+                                is_nullable = false,
+                            },
+                        },
+                        type = "TREE",
+                        name = "id",
+                    },
+                    {
+                        unique = false,
+                        parts = {
+                            {
+                                path = "bucket_id",
+                                type = "unsigned",
+                                is_nullable = true,
+                            },
+                        },
+                        type = "TREE",
+                        name = "bucket_id",
+                    },
+                },
+                is_local = false,
+                sharding_key = { "int_col" },
+            },
+            adg_test_staging = {
+                format = {
+                    {
+                        name = "id",
+                        type = "integer",
+                        is_nullable = false,
+                    },
+                    {
+                        name = "int_col",
+                        type = "integer",
+                        is_nullable = false,
+                    },
+                    {
+                        name = "sysOp",
+                        type = "number",
+                        is_nullable = false,
+                    },
+                    {
+                        name = "bucket_id",
+                        type = "unsigned",
+                        is_nullable = true,
+                    },
+                },
+                temporary = false,
+                engine = "vinyl",
+                indexes = {
+                    {
+                        unique = true,
+                        parts = {
+                            {
+                                path = "id",
+                                type = "integer",
+                                is_nullable = false,
+                            },
+                            {
+                                path = "int_col",
+                                type = "integer",
+                                is_nullable = false,
+                            },
+                        },
+                        type = "TREE",
+                        name = "id",
+                    },
+                    {
+                        unique = false,
+                        parts = {
+                            {
+                                path = "bucket_id",
+                                type = "unsigned",
+                                is_nullable = true,
+                            },
+                        },
+                        type = "TREE",
+                        name = "bucket_id",
+                    },
+                },
+                is_local = false,
+                sharding_key = { "int_col" },
+            },
+            adg_test_history = {
+                format = {
+                    {
+                        name = "id",
+                        type = "integer",
+                        is_nullable = false,
+                    },
+                    {
+                        name = "int_col",
+                        type = "integer",
+                        is_nullable = false,
+                    },
+                    {
+                        name = "bucket_id",
+                        type = "unsigned",
+                        is_nullable = true,
+                    },
+                    {
+                        name = "sysFrom",
+                        type = "number",
+                        is_nullable = false,
+                    },
+                    {
+                        name = "sysOp",
+                        type = "number",
+                        is_nullable = false,
+                    },
+                    {
+                        name = "sysTo",
+                        type = "number",
+                        is_nullable = false,
+                    },
+                },
+                temporary = false,
+                engine = "vinyl",
+                indexes = {
+                    {
+                        unique = true,
+                        parts = {
+                            {
+                                path = "id",
+                                type = "integer",
+                                is_nullable = false,
+                            },
+                            {
+                                path = "int_col",
+                                type = "integer",
+                                is_nullable = false,
+                            },
+                            {
+                                path = "sysFrom",
+                                type = "number",
+                                is_nullable = false,
+                            },
+                        },
+                        type = "TREE",
+                        name = "id",
+                    },
+                    {
+                        unique = false,
+                        parts = {
+                            {
+                                path = "bucket_id",
+                                type = "unsigned",
+                                is_nullable = true,
+                            },
+                        },
+                        type = "TREE",
+                        name = "bucket_id",
+                    },
+                },
+                is_local = false,
+                sharding_key = { "int_col" },
+            },
+        },
+    }, {
+        status = 200,
+    })
+    -- Загрузить данные
+    assert_http_json_request("POST", "/api/v1/kafka/subscription", {
+        topicName = "adg_test",
+        spaceNames = { "adg_test_staging" },
+        avroSchema = nil,
+        maxNumberOfMessagesPerPartition = 100,
+        maxIdleSecondsBeforeCbCall = 100,
+        callbackFunction = {
+            callbackFunctionName = "transfer_data_to_scd_table_on_cluster_cb",
+            callbackFunctionParams = {
+                _space = "adg_test_staging",
+                _stage_data_table_name = "adg_test_staging",
+                _actual_data_table_name = "adg_test_actual",
+                _historical_data_table_name = "adg_test_history",
+                _delta_number = 40,
+            },
+        },
+    }, {
+        status = 200,
+    })
+    fiber.sleep(5)
+
+    _, decoded_value = bin_avro_utils.encode(value_schema, { { 1, 1, 0 }, { 1, 5, 0 } }, true)
+    producer:produce({ topic = "adg_test", key = "test_key", value = decoded_value })
+    fiber.sleep(3)
+
+    assert_http_json_request(
+        "GET",
+        -- luacheck: max line length 210
+        "/api/etl/transfer_data_to_scd_table?_stage_data_table_name=adg_test_staging&_actual_data_table_name=adg_test_actual&_historical_data_table_name=adg_test_history&_delta_number=2",
+        nil,
+        { status = 200 }
+    )
+    fiber.sleep(3)
+
+    -- Ожидание: bucket_id загруженных записей назначен в соответствии с ключом шардирования 2
+    -- Реальность: bucket_id загруженных записей назначен в соответствии с ключом шардирования 1
+    r = storage1:eval("return box.space.adg_test_actual:select{}")
+    t.assert_not_equals(r[1][5], r[2][5])
 end

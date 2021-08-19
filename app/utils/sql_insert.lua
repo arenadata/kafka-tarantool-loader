@@ -22,6 +22,7 @@ local track_inserted_tuples = false
 
 local err_sql_insert = errors.new_class("SQL insert error")
 
+-- trigger returns inserting values tuple if active track_inserted_tuples
 -- luacheck: ignore old_value request_type
 local function on_replace_trigger(old_value, new_value, space_name, request_type)
     if track_inserted_tuples then
@@ -47,9 +48,11 @@ end
 
 -- Get tuples that will be inserted by an sql statement
 local function get_tuples(sql_statement, params, bucket_count)
-    checks("string", "table", "number")
+    checks("string", "?table", "number")
 
     inserted_tuples = {}
+
+    -- this variable is needed for condition in trigger `on_replace_trigger` that returns inserting values tuple
     track_inserted_tuples = true
 
     --TODO refactor this shit

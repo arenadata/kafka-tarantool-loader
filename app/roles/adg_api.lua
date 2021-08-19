@@ -70,6 +70,34 @@ _G.api_timeouts = nil
 
 local err_vshard_router = errors.new_class("Vshard routing error")
 
+local function purge_bucket_id_caches_by_name(dropped_spaces)
+    local _, err = cartridge.rpc_call(
+        "app.roles.adg_input_processor",
+        "remove_spaces_from_bucket_id_cache",
+        { dropped_spaces }
+    )
+    if err == nil then
+        return errors.new("ERROR: purge on adg_input_processor bucked_id cache failed")
+    end
+
+    local storages = cartridge.rpc_get_candidates("app.roles.adg_storage", { leader_only = true })
+    for _, cand in ipairs(storages) do
+        local conn, err = pool.connect(cand)
+        if conn == nil then
+            return err
+        else
+            local _, err = conn:call(
+                "remove_spaces_from_bucket_id_cache",
+                { dropped_spaces }
+            )
+            if err == nil then
+                return errors.new("ERROR: purge on adg_storage bucked_id cache failed")
+            end
+        end
+    end
+    return nil
+end
+
 local function set_ddl(ddl)
     checks("string")
 
@@ -220,6 +248,12 @@ local function drop_spaces_on_cluster(spaces, prefix, schema_ddl_correction)
             end
         end
     end
+
+    local err = purge_bucket_id_caches_by_name(dropped_spaces)
+    if err ~= nil then
+        return dropped_spaces, err
+    end
+
     return dropped_spaces, nil
 end
 
@@ -332,9 +366,24 @@ local function executeComplexInsert(query, params)
 end
 
 local function executeSimpleInsert(query, params)
-    local sql_res, err = sql_insert.get_tuples(query, params, vshard.router.bucket_count())
-    if sql_res == nil then
+    local storages = cartridge.rpc_get_candidates("app.roles.adg_storage", { leader_only = true })
+    if #storages == 0 then
+        log.error("ERROR: storage to execute ddl not found")
+    end
+
+    -- get random storage that transform query to record tuple
+    local conn, err = pool.connect(storages[math.random( #storages )])
+    local sql_res
+    if conn == nil then
+        log.error(err)
         return nil, err
+    else
+        sql_res, err = conn:call("transform_query_to_tuple", { query, params, vshard.router.bucket_count() }, { is_async = false })
+
+        if sql_res == nil or sql_res == false then
+            log.error(err)
+            return nil, err
+        end
     end
 
     local by_bucket_id = sql_insert.tuples_by_bucket_id(sql_res.inserted_tuples, vshard.router.bucket_count())

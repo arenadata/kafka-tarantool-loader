@@ -22,6 +22,10 @@ local schema_ddl = {}
 local err_ddl = errors.new_class("Schema_utils error")
 local bucket_id_fields_cache = {}
 
+local function clean_bucket_id_cache_by_space(space_name)
+    bucket_id_fields_cache[space_name] = nil
+end
+
 local function init_schema_ddl()
     schema_ddl = config_utils.get_ddl_schema(config_utils.get_config())
 end
@@ -135,6 +139,7 @@ local function from_csv_line(space_name, line)
 end
 
 return {
+    clean_bucket_id_cache_by_space = clean_bucket_id_cache_by_space,
     init_schema_ddl = init_schema_ddl,
     get_schema_ddl = get_schema_ddl,
     get_field_by_name = get_field_by_name,
