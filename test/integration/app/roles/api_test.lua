@@ -19,7 +19,6 @@
 local t = require('luatest')
 local g = t.group('integration_api')
 local g2= t.group('api_delta_processing_test')
-local g3 = t.group('api.drop_space_on_cluster')
 local g4 = t.group('api.kafka_connector_api_test')
 local g5 = t.group('api.storage_ddl_test')
 local g6 = t.group('api.delete_scd_sql')
@@ -301,23 +300,6 @@ g2.test_rest_api_error_transfer_data_to_scd_table_on_cluster = function ()
                 status = "error",
             }
             , status = 400})
-end
-
-g3.test_drop_existing_spaces_on_cluster = function()
-    local storage1 = cluster:server('master-1-1').net_box
-    local storage2 = cluster:server('master-2-1').net_box
-    local api = cluster:server('api-1').net_box
-
-    local res,err = api:call('drop_space_on_cluster', {'DROP_TABLE',false})
-
-    -- refresh net.box schema metadata
-    storage1:eval('return true')
-    storage2:eval('return true')
-
-    t.assert_equals(res,true)
-    t.assert_equals(err,nil)
-    t.assert_equals(storage1.space.DROP_TABLE, nil)
-    t.assert_equals(storage2.space.DROP_TABLE, nil)
 end
 
 g4.test_subscription_api = function()

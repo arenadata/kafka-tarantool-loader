@@ -50,7 +50,6 @@ local fun = require('fun')
 _G.set_ddl = nil
 _G.get_ddl = nil
 _G.query = nil
-_G.drop_space_on_cluster = nil
 _G.truncate_space_on_cluster = nil
 _G.drop_all = nil
 _G.space_len = nil
@@ -137,43 +136,6 @@ local function sync_ddl_schema_with_storage(storage)
     end
 
     return false,storage .. ' dont have app.roles.adg_storage role'
-end
-
----drop_space_on_cluster - function to drop space on cluster.
----@param space_name string  - space name to drop.
----@param schema_ddl_correction boolean - flag, that shows update ddl schema or not. Default - True.
----@return boolean | table - true,nil if dropped | false,error - otherwise.
-local function drop_space_on_cluster(space_name,schema_ddl_correction)
-    checks('string','?boolean')
-    if schema_ddl_correction == nil then
-        schema_ddl_correction = true
-    end
-    local storages =  cartridge.rpc_get_candidates('app.roles.adg_storage',{leader_only = true})
-
-    for _,cand in ipairs(storages) do
-        local conn, err = pool.connect(cand)
-        if conn == nil then
-            return false,err
-        else
-            local is_space_dropped,space_drop_err  = conn:call('drop_space',{space_name},{timeout = 30, is_async=false})
-
-            if is_space_dropped ~= true then
-                return false,space_drop_err
-            end
-        end
-        fiber.sleep(0.01) -- Wait async replicas for processing changes.
-    end
-
-    if schema_ddl_correction == true then
-        local current_ddl_schema = yaml.decode(cartridge.get_schema())
-        current_ddl_schema.spaces[space_name] = nil
-        local is_ddl_schema_patched, schema_patch_err =cartridge.set_schema(yaml.encode(current_ddl_schema))
-
-        if is_ddl_schema_patched == nil then
-            return false, schema_patch_err
-        end
-    end
-    return true, nil
 end
 
 ---truncate_space_on_cluster - function to truncate space on cluster.
@@ -926,7 +888,6 @@ local function init(opts) -- luacheck: no unused args
     _G.set_ddl = set_ddl
     _G.get_ddl = get_ddl
     _G.query = query
-    _G.drop_space_on_cluster = drop_space_on_cluster
     _G.truncate_space_on_cluster = truncate_space_on_cluster
     _G.drop_all = drop_all
     _G.space_len = space_len
@@ -961,8 +922,6 @@ local function init(opts) -- luacheck: no unused args
     httpd:route({method='GET', path = 'api/etl/transfer_data_to_scd_table'}, etl_handler.transfer_data_to_scd_table)
 
     httpd:route({method='POST', path = '/api/v1/ddl/table/reverseHistoryTransfer'}, etl_handler.reverse_history_in_scd_table)
-
-    httpd:route({method='GET', path = 'api/etl/drop_space_on_cluster'}, etl_handler.drop_space_on_cluster)
 
     httpd:route({method='GET', path = 'api/etl/truncate_space_on_cluster'}, truncate_space_handler.truncate_space_on_cluster)
 
@@ -1012,7 +971,6 @@ return {
     role_name = role_name,
     init = init,
     stop = stop,
-    drop_space_on_cluster = drop_space_on_cluster,
     truncate_space_on_cluster = truncate_space_on_cluster,
     drop_spaces_on_cluster = drop_spaces_on_cluster,
     validate_config = validate_config,

@@ -22,23 +22,6 @@ local url_utils = require('app.utils.url_utils')
 local success_repository = require('app.messages.success_repository')
 local error_repository = require('app.messages.error_repository')
 
-local function drop_space_on_cluster(req)
-
-    local space_name = url_utils.url_decode(req:query_param('_space_name'))
-    local schema_ddl_correction = url_utils.url_decode(req:query_param('_clear_schema_ddl'))
-
-    if space_name == nil then
-        return error_repository.return_http_response('DROP_SPACE_ON_CLUSTER_001')
-    end
-
-    local ok,err = _G.drop_space_on_cluster(space_name,schema_ddl_correction)
-
-    if ok then return success_repository.return_http_response('DROP_SPACE_ON_CLUSTER_001')
-    else error_repository.return_http_response('DROP_SPACE_ON_CLUSTER_002', {error = err})
-    end
-end
-
-
 local function transfer_data_to_scd_table(req)
 
     local stage_data_table_name = url_utils.url_decode(req:query_param('_stage_data_table_name'))
@@ -181,7 +164,6 @@ end
 
 return {
     transfer_data_to_scd_table = transfer_data_to_scd_table,
-    drop_space_on_cluster = drop_space_on_cluster,
     reverse_history_in_scd_table = reverse_history_in_scd_table,
     delete_data_from_scd_table_sql = delete_data_from_scd_table_sql,
     get_scd_table_checksum = get_scd_table_checksum
