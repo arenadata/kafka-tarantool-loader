@@ -435,7 +435,7 @@ local function query(query, params)
             end)
         end
 
-        for _=0, fibers_count do
+        for _=1, fibers_count do
             local msg = buffer:get()
 
             if msg.data == nil then
