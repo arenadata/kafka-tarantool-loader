@@ -422,18 +422,30 @@ local function query(query, params)
         end
 
         local result = nil
+        local fibers_count = 0
+        local buffer = fiber.channel(#replicas)
         for _, replica in pairs(replicas) do
-            local res, err = replica:callro("execute_sql",
-                                            { query, params })
+            fibers_count = fibers_count + 1
+            fiber.create(function()
+                -- function callro in vshard has internal timeout. if result is not
+                -- received at this timeout, will be return error and res=nil
+                local res, err = replica:callro("execute_sql", { query, params })
 
-            if res == nil then
-                return nil, err
+                buffer:put({data=res, err=err})
+            end)
+        end
+
+        for _=0, fibers_count do
+            local msg = buffer:get()
+
+            if msg.data == nil then
+                return nil, msg.err
             end
 
             if result == nil then
-                result = res
+                result = msg.data
             else
-                result.rows = misc_utils.append_table(result.rows, res.rows)
+                result.rows = misc_utils.append_table(result.rows, msg.data.rows)
             end
         end
 
