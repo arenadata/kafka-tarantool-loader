@@ -30,7 +30,18 @@ local function truncate_space_on_cluster(req)
     end
 end
 
+local function truncate_space_on_cluster_post(req)
+    local body = req:json()
+    if body.spaceName == nil then
+        return error_repository.return_http_response('TRUNCATE_SPACE_ON_CLUSTER_001')
+    end
+    local ok,err = _G.truncate_space_on_cluster(body.spaceName)
+    if ok then return success_repository.return_http_response('TRUNCATE_SPACE_ON_CLUSTER_001')
+    else error_repository.return_http_response('TRUNCATE_SPACE_ON_CLUSTER_002', {error = err})
+    end
+end
 
 return {
-    truncate_space_on_cluster = truncate_space_on_cluster
+    truncate_space_on_cluster = truncate_space_on_cluster,
+    truncate_space_on_cluster_post = truncate_space_on_cluster_post
 }

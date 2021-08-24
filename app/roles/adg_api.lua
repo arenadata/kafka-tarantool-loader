@@ -925,6 +925,8 @@ local function init(opts) -- luacheck: no unused args
 
     httpd:route({method='GET', path = 'api/etl/truncate_space_on_cluster'}, truncate_space_handler.truncate_space_on_cluster)
 
+    httpd:route({method='POST', path = 'api/etl/truncate_space_on_cluster'}, truncate_space_handler.truncate_space_on_cluster_post)
+
     httpd:route({method='POST', path = 'api/etl/delete_data_from_scd_table'}, etl_handler.delete_data_from_scd_table_sql)
 
     httpd:route({method='POST', path = 'api/etl/get_scd_table_checksum'}, etl_handler.get_scd_table_checksum)

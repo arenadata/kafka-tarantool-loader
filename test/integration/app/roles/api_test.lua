@@ -677,6 +677,38 @@ g8.test_truncate_existing_spaces_on_cluster = function()
     t.assert_equals(count_2,0)
 end
 
+g8.test_truncate_existing_spaces_on_cluster_post = function ()
+    local storage1 = cluster:server('master-1-1').net_box
+    local storage2 = cluster:server('master-2-1').net_box
+    local api = cluster:server('api-1').net_box
+
+    storage1:eval('return true')
+    storage2:eval('return true')
+
+    local function datagen(storage,number_of_rows,bucket_id)
+        for i=1, number_of_rows, 1 do
+            storage.space.TRUNCATE_TABLE:insert{i, bucket_id}
+        end
+    end
+
+    datagen(storage1,1000,1)
+    datagen(storage2,1000,2)
+
+    assert_http_json_request('POST',
+    '/api/etl/truncate_space_on_cluster',
+    {spaceName = 'TRUNCATE_TABLE'}, { status = 200})
+
+    local res, err = api:call('truncate_space_on_cluster', {'TRUNCATE_TABLE',false})
+
+    local count_1 = storage1:call('storage_space_count', {'TRUNCATE_TABLE'})
+    local count_2 = storage1:call('storage_space_count', {'TRUNCATE_TABLE'})
+
+    t.assert_equals(err, nil)
+    t.assert_equals(res, true)
+    t.assert_equals(count_1,0)
+    t.assert_equals(count_2,0)
+end
+
 g9.before_each(function()
     local storage1 = cluster:server('master-1-1').net_box
     local storage2 = cluster:server('master-2-1').net_box
