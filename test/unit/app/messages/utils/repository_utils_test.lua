@@ -17,38 +17,49 @@
 --- DateTime: 4/17/20 2:04 PM
 ---
 
-local repository_utils = require('app.messages.utils.repository_utils')
-local t = require('luatest')
+local repository_utils = require("app.messages.utils.repository_utils")
+local t = require("luatest")
 
-local g = t.group('repository_utils.reload_repo_from_files')
+local g = t.group("repository_utils.reload_repo_from_files")
 
-g.test_read_simple_configs = function ()
-    local files = {'test/unit/data/config_files/ADG_INPUT_PROCESSOR.yml',
-                   'test/unit/data/config_files/ADG_KAFKA_CONNECTOR.yml'}
+g.test_read_simple_configs = function()
+    local files = {
+        "test/unit/data/config_files/ADG_INPUT_PROCESSOR.yml",
+        "test/unit/data/config_files/ADG_KAFKA_CONNECTOR.yml",
+    }
 
     local options = repository_utils.reload_repo_from_files(files)
 
+    t.assert_covers(
+        options,
+        {
+            ["ADG_INPUT_PROCESSOR_001"] = {
+                status = "error",
+                errorCode = "ADG_INPUT_PROCESSOR_001",
+                error = "ERROR: Cannot find parse function",
+            },
+        }
+    )
 
-    t.assert_covers(options,{['ADG_INPUT_PROCESSOR_001'] = {
-        status = 'error' ,
-        errorCode = 'ADG_INPUT_PROCESSOR_001',
-        error = 'ERROR: Cannot find parse function'
-    }})
-
-    t.assert_covers(options,{['ADG_KAFKA_CONNECTOR_002'] = {
-        status = 'error' ,
-        errorCode = 'ADG_KAFKA_CONNECTOR_002',
-        error = 'ERROR: Did not receive rows from input processor'
-    }})
+    t.assert_covers(
+        options,
+        {
+            ["ADG_KAFKA_CONNECTOR_002"] = {
+                status = "error",
+                errorCode = "ADG_KAFKA_CONNECTOR_002",
+                error = "ERROR: Did not receive rows from input processor",
+            },
+        }
+    )
 end
 
 g.test_read_empty_configs = function()
     local options = repository_utils.reload_repo_from_files({})
-    t.assert_equals(options,{})
+    t.assert_equals(options, {})
 end
 
 g.test_read_not_yaml_configs = function()
-    local files = {'test/unit/data/simple_files/multiline.txt','test/unit/data/simple_files/singleline.txt'}
+    local files = { "test/unit/data/simple_files/multiline.txt", "test/unit/data/simple_files/singleline.txt" }
     local options = repository_utils.reload_repo_from_files(files)
-    t.assert_equals(options,{})
+    t.assert_equals(options, {})
 end

@@ -17,37 +17,37 @@
 --- DateTime: 4/17/20 2:03 PM
 ---
 
-local message_utils = require('app.messages.utils.message_utils')
-local json = require('json')
-local t = require('luatest')
+local message_utils = require("app.messages.utils.message_utils")
+local json = require("json")
+local t = require("luatest")
 
-local g = t.group('message_utils.get_message_code')
-
+local g = t.group("message_utils.get_message_code")
 
 g.test_get_from_valid_repo = function()
-    local  repo = {['ADG_INPUT_PROCESSOR_001'] = {
-        status = 'error' ,
-        errorCode = 'ADG_INPUT_PROCESSOR_001',
-        error = 'ERROR: Cannot find parse function'
-    }}
+    local repo = {
+        ["ADG_INPUT_PROCESSOR_001"] = {
+            status = "error",
+            errorCode = "ADG_INPUT_PROCESSOR_001",
+            error = "ERROR: Cannot find parse function",
+        },
+    }
 
-    local value = message_utils.get_message_code(repo,'ADG_INPUT_PROCESSOR_001')
-    t.assert_equals(value,json.encode(repo['ADG_INPUT_PROCESSOR_001']))
+    local value = message_utils.get_message_code(repo, "ADG_INPUT_PROCESSOR_001")
+    t.assert_equals(value, json.encode(repo["ADG_INPUT_PROCESSOR_001"]))
 
-    local value2 = message_utils.get_message_code(repo,'ADG_INPUT_PROCESSOR_002')
-    t.assert_equals(value2,json.encode({'ERROR: code ADG_INPUT_PROCESSOR_002 not found'}))
+    local value2 = message_utils.get_message_code(repo, "ADG_INPUT_PROCESSOR_002")
+    t.assert_equals(value2, json.encode({ "ERROR: code ADG_INPUT_PROCESSOR_002 not found" }))
 
-    local value3 = message_utils.get_message_code(repo,'ADG_INPUT_PROCESSOR_001',{test = 'test'})
-    local test_value = repo['ADG_INPUT_PROCESSOR_001']
-    test_value['opts'] = {test = 'test'}
-    t.assert_equals(value3,json.encode(test_value))
-
+    local value3 = message_utils.get_message_code(repo, "ADG_INPUT_PROCESSOR_001", { test = "test" })
+    local test_value = repo["ADG_INPUT_PROCESSOR_001"]
+    test_value["opts"] = { test = "test" }
+    t.assert_equals(value3, json.encode(test_value))
 end
 
-g.test_invalid_import = function ()
-    t.assert_error(message_utils.get_message_code,nil,nil)
-    t.assert_error(message_utils.get_message_code,{},nil)
+g.test_invalid_import = function()
+    t.assert_error(message_utils.get_message_code, nil, nil)
+    t.assert_error(message_utils.get_message_code, {}, nil)
 
-    local value = message_utils.get_message_code({}, '')
-    t.assert_equals(value,json.encode({'ERROR: code  not found'}))
+    local value = message_utils.get_message_code({}, "")
+    t.assert_equals(value, json.encode({ "ERROR: code  not found" }))
 end

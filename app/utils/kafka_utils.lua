@@ -12,23 +12,20 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
-local config_utils = require('app.utils.config_utils')
-local brokers =  {}
+local config_utils = require("app.utils.config_utils")
+local brokers = {}
 local topics = {}
 local options = {}
 
-
 local function init_kafka_opts()
-     brokers = config_utils.get_kafka_bootstrap(config_utils.get_config())
-     topics = config_utils.get_all_topics(config_utils.get_config())
-     options = config_utils.get_consumer_options(config_utils.get_config())
-
+    brokers = config_utils.get_kafka_bootstrap(config_utils.get_config())
+    topics = config_utils.get_all_topics(config_utils.get_config())
+    options = config_utils.get_consumer_options(config_utils.get_config())
 end
 
 local function get_brokers()
     return brokers
 end
-
 
 local function get_topics()
     return topics
@@ -38,11 +35,9 @@ local function get_options()
     return options
 end
 
-
 return {
     init_kafka_opts = init_kafka_opts,
     get_brokers = get_brokers,
     get_topics = get_topics,
-    get_options = get_options
+    get_options = get_options,
 }
-

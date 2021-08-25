@@ -12,11 +12,11 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
-local tnt_kafka = require('kafka')
-local log = require('log')
-local misc_utils = require('app.utils.misc_utils')
-local fiber = require('fiber')
-local checks = require('checks')
+local tnt_kafka = require("kafka")
+local log = require("log")
+local misc_utils = require("app.utils.misc_utils")
+local fiber = require("fiber")
+local checks = require("checks")
 
 local producer = nil
 local errors = {}
@@ -27,7 +27,7 @@ local function get_producer()
 end
 
 local function create(brokers, options, additional_opts)
-    checks('string', 'table', 'table')
+    checks("string", "table", "table")
     local err
     errors = {}
     logs = {}
@@ -46,15 +46,13 @@ local function create(brokers, options, additional_opts)
     end
 
     for key, value in pairs(options) do
-        if type(key) ~= 'string' and type(value) ~= 'string' then
+        if type(key) ~= "string" and type(value) ~= "string" then
             options[key] = nil
             options[tostring(key)] = tostring(value)
-
-        elseif type(key) ~= 'string' then
+        elseif type(key) ~= "string" then
             options[key] = nil
             options[tostring(key)] = tostring(value)
-
-        elseif type(value) ~= 'string' then
+        elseif type(value) ~= "string" then
             options[key] = tostring(value)
         end
     end
@@ -74,19 +72,20 @@ local function create(brokers, options, additional_opts)
 end
 
 local function produce_messages(topic_name, messages, is_async)
-    checks('string',  'table', 'boolean') --TODO normal message check
+    checks("string", "table", "boolean") --TODO normal message check
     if producer ~= nil then
         local err
         for _, v in ipairs(messages) do
             if is_async == false then
-                err = producer:produce({topic = topic_name, key = v['key'], value = v['value'] })
-            else err = producer:produce_async({topic = topic_name, key = v['key'], value = v['value'] })
+                err = producer:produce({ topic = topic_name, key = v["key"], value = v["value"] })
+            else
+                err = producer:produce_async({ topic = topic_name, key = v["key"], value = v["value"] })
             end
             if err ~= nil then
-                log.error("ERROR: got error '%s' while sending key:value '%s:%s", err, v['key'],v['value'])
+                log.error("ERROR: got error '%s' while sending key:value '%s:%s", err, v["key"], v["value"])
                 return false, err
             else
-               log.info("INFO: successfully sent key:value '%s:%s'", v['key'],v['value'])
+                log.info("INFO: successfully sent key:value '%s:%s'", v["key"], v["value"])
             end
         end
         return true, nil
@@ -94,34 +93,34 @@ local function produce_messages(topic_name, messages, is_async)
 end
 
 local function produce(topic_name, messages, opts)
-    checks('string', 'table' --TODO normal message check
-    , {
-        is_async = '?boolean',
-        sync_fibers_cnt = '?number'
-    })
+    checks(
+        "string",
+        "table", --TODO normal message check
+        {
+            is_async = "?boolean",
+            sync_fibers_cnt = "?number",
+        }
+    )
 
     if producer ~= nil then
-        if opts['is_async'] == nil then
-            opts['is_async'] = false
+        if opts["is_async"] == nil then
+            opts["is_async"] = false
         end
 
-        if opts['sync_fibers_cnt'] == nil then
-            opts['sync_fibers_cnt'] = 1
+        if opts["sync_fibers_cnt"] == nil then
+            opts["sync_fibers_cnt"] = 1
         end
-        if opts['is_async'] == true or (opts['is_async'] == false and opts['sync_fibers_cnt'] == 1) then --TODO Fix Error
-            local res,err = produce_messages(topic_name,messages,opts['is_async'])
-            return res,err
+        if opts["is_async"] == true or (opts["is_async"] == false and opts["sync_fibers_cnt"] == 1) then --TODO Fix Error
+            local res, err = produce_messages(topic_name, messages, opts["is_async"])
+            return res, err
         else
-            local splitted_messages = misc_utils.split_table_in_chunks(messages,opts['sync_fibers_cnt'])
-            for i=1,opts['sync_fibers_cnt'] do
-                fiber.create(produce_messages,topic_name,splitted_messages[i],opts['is_async'])
+            local splitted_messages = misc_utils.split_table_in_chunks(messages, opts["sync_fibers_cnt"])
+            for i = 1, opts["sync_fibers_cnt"] do
+                fiber.create(produce_messages, topic_name, splitted_messages[i], opts["is_async"])
             end
         end
     end
 end
-
-
-
 
 local function get_errors()
     return errors
@@ -147,5 +146,5 @@ return {
     get_errors = get_errors,
     get_logs = get_logs,
     close = close,
-    get_producer = get_producer
+    get_producer = get_producer,
 }

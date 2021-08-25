@@ -12,36 +12,39 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
-
-local url_utils = require('app.utils.url_utils')
-local error_repository = require('app.messages.error_repository')
-local success_repository = require('app.messages.success_repository')
+local url_utils = require("app.utils.url_utils")
+local error_repository = require("app.messages.error_repository")
+local success_repository = require("app.messages.success_repository")
 
 local function truncate_space_on_cluster(req)
-    local space_name = url_utils.url_decode(req:query_param('_space_name'))
+    local space_name = url_utils.url_decode(req:query_param("_space_name"))
     if space_name == nil then
-        return error_repository.return_http_response('TRUNCATE_SPACE_ON_CLUSTER_001')
+        return error_repository.return_http_response("TRUNCATE_SPACE_ON_CLUSTER_001")
     end
 
-    local ok,err = _G.truncate_space_on_cluster(space_name)
+    local ok, err = _G.truncate_space_on_cluster(space_name)
 
-    if ok then return success_repository.return_http_response('TRUNCATE_SPACE_ON_CLUSTER_001')
-    else error_repository.return_http_response('TRUNCATE_SPACE_ON_CLUSTER_002', {error = err})
+    if ok then
+        return success_repository.return_http_response("TRUNCATE_SPACE_ON_CLUSTER_001")
+    else
+        error_repository.return_http_response("TRUNCATE_SPACE_ON_CLUSTER_002", { error = err })
     end
 end
 
 local function truncate_space_on_cluster_post(req)
     local body = req:json()
     if body.spaceName == nil then
-        return error_repository.return_http_response('TRUNCATE_SPACE_ON_CLUSTER_001')
+        return error_repository.return_http_response("TRUNCATE_SPACE_ON_CLUSTER_001")
     end
-    local ok,err = _G.truncate_space_on_cluster(body.spaceName)
-    if ok then return success_repository.return_http_response('TRUNCATE_SPACE_ON_CLUSTER_001')
-    else error_repository.return_http_response('TRUNCATE_SPACE_ON_CLUSTER_002', {error = err})
+    local ok, err = _G.truncate_space_on_cluster(body.spaceName)
+    if ok then
+        return success_repository.return_http_response("TRUNCATE_SPACE_ON_CLUSTER_001")
+    else
+        error_repository.return_http_response("TRUNCATE_SPACE_ON_CLUSTER_002", { error = err })
     end
 end
 
 return {
     truncate_space_on_cluster = truncate_space_on_cluster,
-    truncate_space_on_cluster_post = truncate_space_on_cluster_post
+    truncate_space_on_cluster_post = truncate_space_on_cluster_post,
 }

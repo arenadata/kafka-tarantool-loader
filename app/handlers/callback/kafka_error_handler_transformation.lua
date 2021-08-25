@@ -18,103 +18,101 @@
 --- DateTime: 8/4/20 3:41 PM
 ---
 
-local fiber = require('fiber')
-local log = require('log')
-local checks = require('checks')
-local cartridge = require('cartridge')
-local pool = require('cartridge.pool')
-local error_repository = require('app.messages.error_repository')
+local fiber = require("fiber")
+local log = require("log")
+local checks = require("checks")
+local cartridge = require("cartridge")
+local pool = require("cartridge.pool")
+local error_repository = require("app.messages.error_repository")
 local TIMEOUT = 1
 
 local kafka_error_handler_transformation = {}
 kafka_error_handler_transformation.__index = kafka_error_handler_transformation
-kafka_error_handler_transformation.__type = 'error_transformation'
-kafka_error_handler_transformation.__call = function (cls, ...)
+kafka_error_handler_transformation.__type = "error_transformation"
+kafka_error_handler_transformation.__call = function(cls, ...)
     return cls.new(...)
 end
 
 local function unsubscribe(topic_name)
-    checks('string')
+    checks("string")
 
     -- get all kafka connectors
-    local kafka_connectors =  cartridge.rpc_get_candidates('app.roles.adg_kafka_connector',{leader_only = true})
+    local kafka_connectors = cartridge.rpc_get_candidates("app.roles.adg_kafka_connector", { leader_only = true })
 
     if #kafka_connectors == 0 then
-        return false,error_repository.get_error_code('API_KAFKA_001')
+        return false, error_repository.get_error_code("API_KAFKA_001")
     end
-
 
     local futures = {}
 
-    for _,connector in ipairs(kafka_connectors) do
-        local conn, err = pool.connect(connector, {wait_connected = 1.5})
+    for _, connector in ipairs(kafka_connectors) do
+        local conn, err = pool.connect(connector, { wait_connected = 1.5 })
         if conn == nil then
-            return false,error_repository.get_error_code('API_KAFKA_002',{err=err})
+            return false, error_repository.get_error_code("API_KAFKA_002", { err = err })
         else
-            local future = conn:call('unsubscribe_from_topic',
-                    {topic_name},{is_async=true})
-            table.insert(futures,future)
+            local future = conn:call("unsubscribe_from_topic", { topic_name }, { is_async = true })
+            table.insert(futures, future)
         end
     end
 
-    for _,future in ipairs(futures) do
+    for _, future in ipairs(futures) do
         future:wait_result(30)
-        local res,err = future:result()
+        local res, err = future:result()
 
         if res == nil then
-            return  false,error_repository.get_error_code('API_KAFKA_UNSUBSCRIPTION_002',{topicName = topic_name, err=err})
+            return false,
+                error_repository.get_error_code("API_KAFKA_UNSUBSCRIPTION_002", { topicName = topic_name, err = err })
         end
 
         if res[2] ~= nil then
-            return  false,error_repository.get_error_code('API_KAFKA_UNSUBSCRIPTION_002',{topicName = topic_name, err=res[2]})
+            return false,
+                error_repository.get_error_code(
+                    "API_KAFKA_UNSUBSCRIPTION_002",
+                    { topicName = topic_name, err = res[2] }
+                )
         end
 
         --Suggest that false|nil returned if topic not found
         if res[1] == false then
-            return  false,error_repository.get_error_code('API_KAFKA_UNSUBSCRIPTION_001',{topicName = topic_name})
+            return false, error_repository.get_error_code("API_KAFKA_UNSUBSCRIPTION_001", { topicName = topic_name })
         end
     end
 
-    return true,nil
+    return true, nil
 end
 
 local function send_msgs(msgs)
-    checks('table')
-    local state_master = cartridge.rpc_get_candidates('app.roles.adg_state', { leader_only = true })
+    checks("table")
+    local state_master = cartridge.rpc_get_candidates("app.roles.adg_state", { leader_only = true })
     if #state_master == 0 then
-        return false, 'ERROR: No app.roles.adg_state role found'
+        return false, "ERROR: No app.roles.adg_state role found"
     end
 
     local conn, _ = pool.connect(state_master[1]) -- always one master
     if conn == nil then
-        return false, 'ERROR: Cannot connect to app.roles.adg_state role'
+        return false, "ERROR: Cannot connect to app.roles.adg_state role"
     end
 
     -- answer?
-    conn:call("insert_kafka_error_msgs",
-            {msgs},
-            {is_async=true})
+    conn:call("insert_kafka_error_msgs", { msgs }, { is_async = true })
 
     return true, nil
-    end
-
+end
 
 function kafka_error_handler_transformation.init(channel_capacity)
     local self = setmetatable({}, kafka_error_handler_transformation)
     self.process_channel = fiber.channel(channel_capacity)
     self.process_fiber = fiber.new(function()
-
         local buffer = {}
         while true do
-            if (self.process_channel:is_closed()) then
-                log.warn('WARN: Channels closed in fiber %s', "kafka_error_msg_fiber")
+            if self.process_channel:is_closed() then
+                log.warn("WARN: Channels closed in fiber %s", "kafka_error_msg_fiber")
                 return
             end
 
             local input = self.process_channel:get(TIMEOUT)
 
             if input ~= nil then
-
                 -- type check
                 if type(input) ~= "table" then
                     log.warn("WARN: Bad message format in kafka error handler - %s", type(input))
@@ -139,7 +137,7 @@ function kafka_error_handler_transformation.init(channel_capacity)
                 local fiber_name = input.fiber_name
 
                 if fiber_name == nil or type(fiber_name) ~= "string" then
-                    fiber_name = 'unknown'
+                    fiber_name = "unknown"
                 end
 
                 -- trying to extract error timestamp
@@ -149,42 +147,40 @@ function kafka_error_handler_transformation.init(channel_capacity)
                     timestamp = 0
                 end
 
-                local unsubscribe_ok,unsubscribe_err = unsubscribe(msg.topic)
+                local unsubscribe_ok, unsubscribe_err = unsubscribe(msg.topic)
 
                 if unsubscribe_ok == nil or unsubscribe_ok == false then
-                    log.error("ERROR: Kafka error handler unsubscribe error - %s",unsubscribe_err)
+                    log.error("ERROR: Kafka error handler unsubscribe error - %s", unsubscribe_err)
                 end
 
-
-                table.insert(buffer,{
+                table.insert(buffer, {
                     topic_name = msg.topic,
                     partition_name = tostring(msg.partition),
                     offset = msg.offset,
                     key = msg.key,
-                    value = '',
+                    value = "",
                     fiber_name = fiber_name,
                     error_timestamp = timestamp,
-                    error_msg = err
+                    error_msg = err,
                 })
 
                 if #buffer >= 500 then
-                    local res,err = send_msgs(buffer)
+                    local res, err = send_msgs(buffer)
                     if res == nil or res == false then
-                        log.error("ERROR: Kafka error handler send error - %s",err)
+                        log.error("ERROR: Kafka error handler send error - %s", err)
                     end
                     buffer = {}
                 end
                 ::continue::
             else
-                local res,err = send_msgs(buffer)
+                local res, err = send_msgs(buffer)
                 if res == nil or res == false then
-                    log.error("ERROR: Kafka error handler send error - %s",err)
+                    log.error("ERROR: Kafka error handler send error - %s", err)
                 end
                 buffer = {}
             end
             fiber.yield()
         end
-
     end)
     self.process_fiber:name("kafka_error_msg_fiber")
     return self

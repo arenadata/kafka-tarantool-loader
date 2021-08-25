@@ -12,37 +12,36 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
-local log = require('log')
-local checks = require('checks')
-local kafka_consumer = require('app.consumers.kafka_consumer')
-local kafka_producer = require('app.producers.kafka_producer')
-local kafka_utils = require('app.utils.kafka_utils')
-local config_utils = require('app.utils.config_utils')
-local route_utils = require('app.utils.route_utils')
-local schema_utils = require('app.utils.schema_utils')
-local fiber = require('fiber')
-local cartridge = require('cartridge')
-local prometheus = require('metrics.plugins.prometheus')
-local fun = require('fun')
-local error_repository = require('app.messages.error_repository')
-local success_repository = require('app.messages.success_repository')
-local validate_utils = require('app.utils.validate_utils')
-local json = require('json')
-local vshard = require('vshard')
-local metrics = require('app.metrics.metrics_storage')
-local errors = require('errors')
-local yaml = require('yaml')
-local role_name = 'app.roles.adg_kafka_connector'
-local last_topics = {}  -- luacheck: ignore last_topics
+local log = require("log")
+local checks = require("checks")
+local kafka_consumer = require("app.consumers.kafka_consumer")
+local kafka_producer = require("app.producers.kafka_producer")
+local kafka_utils = require("app.utils.kafka_utils")
+local config_utils = require("app.utils.config_utils")
+local route_utils = require("app.utils.route_utils")
+local schema_utils = require("app.utils.schema_utils")
+local fiber = require("fiber")
+local cartridge = require("cartridge")
+local prometheus = require("metrics.plugins.prometheus")
+local fun = require("fun")
+local error_repository = require("app.messages.error_repository")
+local success_repository = require("app.messages.success_repository")
+local validate_utils = require("app.utils.validate_utils")
+local json = require("json")
+local vshard = require("vshard")
+local metrics = require("app.metrics.metrics_storage")
+local errors = require("errors")
+local yaml = require("yaml")
+local role_name = "app.roles.adg_kafka_connector"
+local last_topics = {} -- luacheck: ignore last_topics
 local garbage_fiber = nil
 local is_consumer_config_change = false -- luacheck: ignore is_consumer_config_change
-local is_producer_config_change = false-- luacheck: ignore is_producer_config_change
+local is_producer_config_change = false -- luacheck: ignore is_producer_config_change
 local producer = nil
 local default_consumer = nil
 local err_storage = errors.new_class("Kafka storage error")
 local topic_x_consumers = {}
-local cartridge_rpc = require('cartridge.rpc')
-
+local cartridge_rpc = require("cartridge.rpc")
 
 _G.get_messages_from_kafka = nil
 _G.send_messages_to_kafka = nil
@@ -59,53 +58,66 @@ local function stop()
 end
 
 local function validate_config(conf_new, conf_old)
-    error_repository.init_error_repo('en')
-    success_repository.init_success_repo('en')
-    if type(box.cfg) == 'table' and not box.cfg.read_only then
-
-        if (conf_old ~= nil) then
+    error_repository.init_error_repo("en")
+    success_repository.init_success_repo("en")
+    if type(box.cfg) == "table" and not box.cfg.read_only then
+        if conf_old ~= nil then
             last_topics = config_utils.get_all_topics(conf_old)
         end
 
-        local kafka_bootstrap = yaml.decode(conf_new['kafka_bootstrap.yml'] or [[bootstrap_connection_string: "localhost:9092"]])
-        local is_bootstrap_config_ok, bootstrap_config_err = validate_utils.check_kafka_bootstrap_definition(kafka_bootstrap)
+        local kafka_bootstrap = yaml.decode(
+            conf_new["kafka_bootstrap.yml"] or [[bootstrap_connection_string: "localhost:9092"]]
+        )
+        local is_bootstrap_config_ok, bootstrap_config_err = validate_utils.check_kafka_bootstrap_definition(
+            kafka_bootstrap
+        )
 
         if not is_bootstrap_config_ok then
             return false, bootstrap_config_err
         end
 
-        local kafka_topics = yaml.decode(conf_new['kafka_topics.yml'] or [[]]) or {}
--- luacheck: max line length 180
-        local kafka_consumers = yaml.decode(conf_new['kafka_consume.yml'] or [[]]) or { ['topics'] = {}, ['properties'] = {}, ['custom_properties'] = {} }
-        local kafka_producers = yaml.decode(conf_new['kafka_produce.yml'] or [[]]) or { ['properties'] = {}, ['custom_properties'] = {} }
+        local kafka_topics = yaml.decode(conf_new["kafka_topics.yml"] or [[]]) or {}
+        -- luacheck: max line length 180
+        local kafka_consumers = yaml.decode(conf_new["kafka_consume.yml"] or [[]])
+            or { ["topics"] = {}, ["properties"] = {}, ["custom_properties"] = {} }
+        local kafka_producers = yaml.decode(conf_new["kafka_produce.yml"] or [[]])
+            or { ["properties"] = {}, ["custom_properties"] = {} }
 
-        local is_topic_defs_ok, topic_defs_err = validate_utils.check_topic_definition(kafka_consumers['topics'], kafka_topics)
+        local is_topic_defs_ok, topic_defs_err = validate_utils.check_topic_definition(
+            kafka_consumers["topics"],
+            kafka_topics
+        )
 
         if not is_topic_defs_ok then
             return false, topic_defs_err
         end
 
-        local options_to_check = { kafka_consumers['properties'], kafka_consumers['custom_properties'],
-                                   kafka_producers['properties'], kafka_producers['custom_properties'] }
+        local options_to_check = {
+            kafka_consumers["properties"],
+            kafka_consumers["custom_properties"],
+            kafka_producers["properties"],
+            kafka_producers["custom_properties"],
+        }
 
-        local is_options_defs_ok, options_defs_err = validate_utils.check_options_for_type(options_to_check, 'string')
+        local is_options_defs_ok, options_defs_err = validate_utils.check_options_for_type(options_to_check, "string")
 
         if not is_options_defs_ok then
             return false, options_defs_err
         end
 
-        if conf_old['kafka_bootstrap.yml'] ~= conf_new['kafka_bootstrap.yml'] then
+        if conf_old["kafka_bootstrap.yml"] ~= conf_new["kafka_bootstrap.yml"] then
             is_consumer_config_change = true
             is_producer_config_change = true
-        elseif conf_old['kafka_consume.yml'] ~= conf_new['kafka_consume.yml'] and
-                conf_old['kafka_produce.yml'] ~= conf_old['kafka_produce.yml'] then
+        elseif
+            conf_old["kafka_consume.yml"] ~= conf_new["kafka_consume.yml"]
+            and conf_old["kafka_produce.yml"] ~= conf_old["kafka_produce.yml"]
+        then
             is_consumer_config_change = true
             is_producer_config_change = true
-
-        elseif conf_old['kafka_consume.yml'] ~= conf_new['kafka_consume.yml'] then
+        elseif conf_old["kafka_consume.yml"] ~= conf_new["kafka_consume.yml"] then
             is_consumer_config_change = true
             is_producer_config_change = false
-        elseif conf_old['kafka_produce.yml'] ~= conf_old['kafka_produce.yml'] then
+        elseif conf_old["kafka_produce.yml"] ~= conf_old["kafka_produce.yml"] then
             is_producer_config_change = true
             is_consumer_config_change = false
         else
@@ -126,19 +138,18 @@ local function apply_config(conf, opts)
     kafka_utils.init_kafka_opts()
     route_utils.init_routes()
 
-
     return true
 end
 
 local function extract_last_messages_from_batch(batch)
     --TODO is channel ordered?
-    checks('table')
+    checks("table")
     local result = {}
 
     for _, v in ipairs(batch) do
         local current_topic = v:topic()
         local current_partition = v:partition()
-        local key = current_topic .. '_' .. current_partition
+        local key = current_topic .. "_" .. current_partition
         local current_offset = v:offset()
         if result[key] == nil then
             result[key] = v
@@ -149,14 +160,13 @@ local function extract_last_messages_from_batch(batch)
         end
     end
     return result
-
 end
 
 -- luacheck: ignore create_messages_hash_map
 local function create_messages_hash_map(messages)
     local res = {}
     for _, v in ipairs(messages) do
-        res[v:topic() .. ':' .. tostring(v:partition()) .. ':' .. tostring(v:offset())] = v
+        res[v:topic() .. ":" .. tostring(v:partition()) .. ":" .. tostring(v:offset())] = v
     end
     return res
 end
@@ -164,11 +174,11 @@ end
 --TODO Refactor
 -- luacheck: ignore extract_last_valid_messages_from_proccessing
 local function extract_last_valid_messages_from_proccessing(batch)
-    checks('table')
+    checks("table")
     local keys = {}
 
     for _, v in pairs(batch) do
-        local l = v['topic'] .. ':' .. v['partition']
+        local l = v["topic"] .. ":" .. v["partition"]
         if keys[l] == nil then
             keys[l] = { v }
         else
@@ -178,15 +188,15 @@ local function extract_last_valid_messages_from_proccessing(batch)
 
     for _, v in pairs(keys) do
         table.sort(v, function(a, b)
-            return a['offset'] < b['offset']
+            return a["offset"] < b["offset"]
         end)
     end
 
     local res = {}
 
     for _, v in pairs(keys) do
-        if #v == 1 and v[1]['result'] == true then
-            table.insert(res, v[1]['topic'] .. ':' .. tostring(v[1]['partition']) .. ':' .. tostring(v[1]['offset']))
+        if #v == 1 and v[1]["result"] == true then
+            table.insert(res, v[1]["topic"] .. ":" .. tostring(v[1]["partition"]) .. ":" .. tostring(v[1]["offset"]))
         end
 
         if #v > 1 then
@@ -195,42 +205,53 @@ local function extract_last_valid_messages_from_proccessing(batch)
                 local prev_value = v[i - 1]
                 local cur_value = v[i]
 
-                if prev_value['result'] == true and cur_value['result'] == false then
--- luacheck: max line length 180
-                    table.insert(res, prev_value['topic'] .. ':' .. tostring(prev_value['partition']) .. ':' .. tostring(prev_value['offset']))
+                if prev_value["result"] == true and cur_value["result"] == false then
+                    -- luacheck: max line length 180
+                    table.insert(
+                        res,
+                        prev_value["topic"]
+                            .. ":"
+                            .. tostring(prev_value["partition"])
+                            .. ":"
+                            .. tostring(prev_value["offset"])
+                    )
                 end
 
-                if cur_value['result'] == false or (i == 2 and prev_value['result'] == false) then
+                if cur_value["result"] == false or (i == 2 and prev_value["result"] == false) then
                     true_sign = false
                 end
 
                 if true_sign == true and i == #v then
-                    table.insert(res, cur_value['topic'] .. ':' .. tostring(cur_value['partition']) .. ':' .. tostring(cur_value['offset']))
+                    table.insert(
+                        res,
+                        cur_value["topic"]
+                            .. ":"
+                            .. tostring(cur_value["partition"])
+                            .. ":"
+                            .. tostring(cur_value["offset"])
+                    )
                 end
             end
-
         end
-
     end
 
     return res
 end
 
 local function serialize_kafka_messages(batch)
-    checks('table')
+    checks("table")
     local result = {}
     for _, v in ipairs(batch) do
         table.insert(
-                result,
-                { topic = v:topic(), partition = v:partition(), offset = v:offset(), key = v:key(),
-                  value = v:value() })
+            result,
+            { topic = v:topic(), partition = v:partition(), offset = v:offset(), key = v:key(), value = v:value() }
+        )
     end
     return result
 end
 
 local function get_messages_from_kafka()
     while true do
-
         if not cartridge.is_healthy() then
             fiber.sleep(5)
         end
@@ -238,26 +259,30 @@ local function get_messages_from_kafka()
         local batch = kafka_consumer.get_message_from_channel()
         if #batch > 0 then
             local last_messages = extract_last_messages_from_batch(batch)
-            log.info('INFO: Sending data from kafka_connector to input processor')
+            log.info("INFO: Sending data from kafka_connector to input processor")
 
             local serialized_kafka_msgs = serialize_kafka_messages(batch)
 
             local return_values = cartridge.rpc_call(
-                    'app.roles.adg_input_processor',
-                    'insert_messages_from_kafka',
-                    { serialized_kafka_msgs, 'parse_avro', 'parse_avro' })
+                "app.roles.adg_input_processor",
+                "insert_messages_from_kafka",
+                { serialized_kafka_msgs, "parse_avro", "parse_avro" }
+            )
 
             if return_values == nil then
                 --TODO Send messages to kafka
                 for _, v in ipairs(serialized_kafka_msgs) do
-                    metrics.kafka_messages_total_counter:inc(1, { status = 'error' })
--- luacheck: ignore send_messages_to_kafka
+                    metrics.kafka_messages_total_counter:inc(1, { status = "error" })
+                    -- luacheck: ignore send_messages_to_kafka
                     local rpc_send_ok_ok, rpc_send_ok_err = send_messages_to_kafka(
-                        route_utils.get_topic_error()[v['topic']],
-                        { key = v['key'], value = error_repository.get_error_code('ADG_KAFKA_CONNECTOR_002', {
-                            source = v['topic'],
-                            destination = 'Unknown'
-                        }) },
+                        route_utils.get_topic_error()[v["topic"]],
+                        {
+                            key = v["key"],
+                            value = error_repository.get_error_code("ADG_KAFKA_CONNECTOR_002", {
+                                source = v["topic"],
+                                destination = "Unknown",
+                            }),
+                        },
                         { is_async = true }
                     )
                     if not rpc_send_ok_ok then
@@ -269,24 +294,25 @@ local function get_messages_from_kafka()
             end
 
             local valid_messages, not_valid_messages = fun.partition(
--- luacheck: ignore k
+                -- luacheck: ignore k
                 function(k, v)
-                        return v['result'] == true
-                    end, return_values
+                    return v["result"] == true
+                end,
+                return_values
             )
 
             if fun.length(not_valid_messages) > 0 then
-                log.info('Sending errors to kafka')
+                log.info("Sending errors to kafka")
 
                 for k, v in pairs(fun.tomap(not_valid_messages)) do
-                    metrics.kafka_messages_total_counter:inc(1, { status = 'error' })
-                    local kafka_msg_errors = json.decode(v['error'])
-                    kafka_msg_errors.opts['source'] = v['topic']
-                    kafka_msg_errors.opts['destination'] = v['space']
--- luacheck: ignore send_messages_to_kafka
+                    metrics.kafka_messages_total_counter:inc(1, { status = "error" })
+                    local kafka_msg_errors = json.decode(v["error"])
+                    kafka_msg_errors.opts["source"] = v["topic"]
+                    kafka_msg_errors.opts["destination"] = v["space"]
+                    -- luacheck: ignore send_messages_to_kafka
                     local rpc_send_ok_ok, rpc_send_ok_err = send_messages_to_kafka(
-                        route_utils.get_topic_error()[v['topic']],
-                        { [1] = { key = v['key'], value = json.encode(kafka_msg_errors) } },
+                        route_utils.get_topic_error()[v["topic"]],
+                        { [1] = { key = v["key"], value = json.encode(kafka_msg_errors) } },
                         { is_async = true }
                     )
                     if not rpc_send_ok_ok then
@@ -298,16 +324,21 @@ local function get_messages_from_kafka()
             end
 
             if fun.length(valid_messages) > 0 then
-                log.info('Sending success msg to kafka')
+                log.info("Sending success msg to kafka")
                 for k, v in pairs(fun.tomap(valid_messages)) do
-                    metrics.kafka_messages_total_counter:inc(1, { status = 'success' })
--- luacheck: ignore send_messages_to_kafka
+                    metrics.kafka_messages_total_counter:inc(1, { status = "success" })
+                    -- luacheck: ignore send_messages_to_kafka
                     local rpc_send_ok_ok, rpc_send_ok_err = send_messages_to_kafka(
-                        route_utils.get_topic_success()[v['topic']],
-                        { [1] = { key = v['key'], value = success_repository.get_success_code('ADG_KAFKA_CONNECTOR_001', {
-                            source = v['topic'],
-                            destination = v['space']
-                        }) } },
+                        route_utils.get_topic_success()[v["topic"]],
+                        {
+                            [1] = {
+                                key = v["key"],
+                                value = success_repository.get_success_code("ADG_KAFKA_CONNECTOR_001", {
+                                    source = v["topic"],
+                                    destination = v["space"],
+                                }),
+                            },
+                        },
                         { is_async = true }
                     )
                     if not rpc_send_ok_ok then
@@ -318,21 +349,20 @@ local function get_messages_from_kafka()
                 --TODO Error check
             end
 
-            log.warn('INFO: Commiting to kafka')
+            log.warn("INFO: Commiting to kafka")
             local commit_ok, commit_err = kafka_consumer.commit(last_messages)
             if commit_ok == true then
-                log.warn('INFO: Commit succeseful')
+                log.warn("INFO: Commit succeseful")
             else
-                return nil, error_repository.get_error_code(
-                    'ADG_KAFKA_CONNECTOR_001', {
+                return nil,
+                    error_repository.get_error_code("ADG_KAFKA_CONNECTOR_001", {
                         messages = last_messages,
-                        error = commit_err
-                    }
-                ) --TODO Agg with consumer error
+                        error = commit_err,
+                    }) --TODO Agg with consumer error
             end
             fiber.sleep(0.2)
         else
-            log.info('INFO: No new messages from kafka')
+            log.info("INFO: No new messages from kafka")
             fiber.sleep(0.2)
         end
         fiber.sleep(0.2)
@@ -341,7 +371,7 @@ end
 
 -- luacheck: ignore opts
 local function send_messages_to_kafka(topic_name, messages, opts)
-    local is_send, err = producer:produce_async(topic_name,messages)
+    local is_send, err = producer:produce_async(topic_name, messages)
     return is_send, err
 end
 
@@ -350,109 +380,113 @@ local function get_metric()
 end
 
 local function subscribe_to_topic_fiber_old(topic_name, max_number_of_messages, avro_schema)
-    checks('string', 'number', '?string')
-    local kafka_topics = box.space['_KAFKA_TOPIC']
+    checks("string", "number", "?string")
+    local kafka_topics = box.space["_KAFKA_TOPIC"]
 
     if kafka_topics == nil then
-        return  false, error_repository.get_error_code('STORAGE_001', { table = '_KAFKA_TOPIC' })
+        return false, error_repository.get_error_code("STORAGE_001", { table = "_KAFKA_TOPIC" })
     end
 
     box.begin()
-    local res, err = err_storage:pcall(
-            function()
+    local res, err = err_storage:pcall(function()
+        local cnt = kafka_topics:count(topic_name)
 
-                local cnt = kafka_topics:count(topic_name)
+        kafka_topics:put(
+            kafka_topics:frommap({
+                TOPIC_NAME = topic_name,
+                MAX_NUMBER_OF_MESSAGES_PER_PARTITION = max_number_of_messages,
+                AVRO_SCHEMA = avro_schema,
+            })
+        )
+        if cnt == 1 and topic_x_consumers[topic_name] ~= nil then
+            return false
+        end
 
-                kafka_topics:put(kafka_topics:frommap({ TOPIC_NAME = topic_name,
-                                                        MAX_NUMBER_OF_MESSAGES_PER_PARTITION = max_number_of_messages,
-                                                        AVRO_SCHEMA = avro_schema }))
-                if cnt == 1 and topic_x_consumers[topic_name] ~= nil then
-                    return false
-                end
-
-                return true
-            end)
+        return true
+    end)
 
     if res == false then
-        return  true, nil
+        return true, nil
     end
 
     if err ~= nil then
         box.rollback()
-        return  false, error_repository.get_error_code('STORAGE_003', { error = err })
+        return false, error_repository.get_error_code("STORAGE_003", { error = err })
     end
 
     box.commit()
-    local is_consumer_created, consumer = kafka_consumer.init(kafka_utils.get_brokers()):set_options(
-            kafka_utils.get_options()
-    ):build()
+    local is_consumer_created, consumer = kafka_consumer.init(kafka_utils.get_brokers())
+        :set_options(kafka_utils.get_options())
+        :build()
     if not is_consumer_created then
-        return  false, consumer
+        return false, consumer
     end
 
     local is_subscribed, subscribe_err = consumer:subscribe({ topic_name })
 
     if not is_subscribed then
-        return  false, subscribe_err
+        return false, subscribe_err
     end
 
     topic_x_consumers[topic_name] = consumer
     fiber.sleep(5)
-    return  true, nil
+    return true, nil
 end
 
-local function subscribe_to_topic_fiber(topic_name,
-                                           spaces,
-                                           avro_schema,
-                                           max_number_of_messages_per_cb,
-                                           max_number_of_seconds_per_cb,
-                                           cb_function_name,
-                                           cb_function_param)
-    checks('string','table','?string','?number','?number','?string','?table')
+local function subscribe_to_topic_fiber(
+    topic_name,
+    spaces,
+    avro_schema,
+    max_number_of_messages_per_cb,
+    max_number_of_seconds_per_cb,
+    cb_function_name,
+    cb_function_param
+)
+    checks("string", "table", "?string", "?number", "?number", "?string", "?table")
 
-    if (max_number_of_messages_per_cb ~= nil or max_number_of_seconds_per_cb ~= nil) and
-            cb_function_name == nil then
-        return false, 'ERROR: Please specify cb_function_name param'
+    if (max_number_of_messages_per_cb ~= nil or max_number_of_seconds_per_cb ~= nil) and cb_function_name == nil then
+        return false, "ERROR: Please specify cb_function_name param"
     end
 
     max_number_of_messages_per_cb = max_number_of_messages_per_cb or 1000 -- TODO default to config
     max_number_of_seconds_per_cb = max_number_of_seconds_per_cb or 600 -- TODO default to config
 
-
-    local kafka_topics = box.space['_KAFKA_TOPIC']
+    local kafka_topics = box.space["_KAFKA_TOPIC"]
 
     if kafka_topics == nil then
-        return  false, error_repository.get_error_code('STORAGE_001', { table = '_KAFKA_TOPIC' })
+        return false, error_repository.get_error_code("STORAGE_001", { table = "_KAFKA_TOPIC" })
     end
 
     box.begin()
-    local res, err = err_storage:pcall(
-            function()
+    local res, err = err_storage:pcall(function()
+        local cnt = kafka_topics:count(topic_name)
 
-                local cnt = kafka_topics:count(topic_name)
+        kafka_topics:put(
+            kafka_topics:frommap({
+                TOPIC_NAME = topic_name,
+                MAX_NUMBER_OF_MESSAGES_PER_PARTITION_WITH_CB_CALL = max_number_of_messages_per_cb,
+                SPACE_NAMES = spaces,
+                AVRO_SCHEMA = avro_schema,
+                CALLBACK_FUNCTION_NAME = cb_function_name,
+                CALLBACK_FUNCTION_PARAMS = cb_function_param,
+                MAX_IDLE_SECONDS_BEFORE_CB_CALL = max_number_of_seconds_per_cb,
+            })
+        )
+        if cnt == 1 and topic_x_consumers[topic_name] ~= nil then
+            return false
+        end
 
-                kafka_topics:put(kafka_topics:frommap({ TOPIC_NAME = topic_name,
-                                                        MAX_NUMBER_OF_MESSAGES_PER_PARTITION_WITH_CB_CALL = max_number_of_messages_per_cb,
-                                                        SPACE_NAMES =spaces ,
-                                                        AVRO_SCHEMA = avro_schema ,
-                                                        CALLBACK_FUNCTION_NAME = cb_function_name,
-                                                        CALLBACK_FUNCTION_PARAMS = cb_function_param,
-                                                        MAX_IDLE_SECONDS_BEFORE_CB_CALL = max_number_of_seconds_per_cb}))
-                if cnt == 1 and topic_x_consumers[topic_name] ~= nil then
-                    return false
-                end
-
-                return true
-            end)
+        return true
+    end)
 
     if res == false then
         box.rollback()
-        return  true, nil
+        return true, nil
     end
 
     if err ~= nil then
         box.rollback()
-        return  false, error_repository.get_error_code('STORAGE_003', { error = err })
+        return false, error_repository.get_error_code("STORAGE_003", { error = err })
     end
 
     box.commit()
@@ -460,69 +494,67 @@ local function subscribe_to_topic_fiber(topic_name,
     local is_subscribed, subscribe_err = default_consumer:subscribe({ topic_name })
 
     if not is_subscribed then
-        return  false, subscribe_err
+        return false, subscribe_err
     end
 
-    return  true, nil
+    return true, nil
 end
 
 local function unsubscribe_from_topic_fiber(topic_name)
-    checks('string')
-    local kafka_topics = box.space['_KAFKA_TOPIC']
-    local kafka_topics_prev = box.space['_KAFKA_TOPIC_PREV']
+    checks("string")
+    local kafka_topics = box.space["_KAFKA_TOPIC"]
+    local kafka_topics_prev = box.space["_KAFKA_TOPIC_PREV"]
     if kafka_topics == nil then
-        return  false, error_repository.get_error_code('STORAGE_001', { table = '_KAFKA_TOPIC' })
+        return false, error_repository.get_error_code("STORAGE_001", { table = "_KAFKA_TOPIC" })
     end
 
     if kafka_topics_prev == nil then
-        return  false, error_repository.get_error_code('STORAGE_001', { table = '_KAFKA_TOPIC_PREV' })
+        return false, error_repository.get_error_code("STORAGE_001", { table = "_KAFKA_TOPIC_PREV" })
     end
 
     box.begin()
-    local topic_found, err = err_storage:pcall(
-            function()
-                local cnt = kafka_topics:count(topic_name)
-                if cnt == 1 then
-                    kafka_topics_prev:put(kafka_topics:get(topic_name))
-                    kafka_topics:delete(topic_name)
-                    return true
-                end
-                return true
-            end)
+    local topic_found, err = err_storage:pcall(function()
+        local cnt = kafka_topics:count(topic_name)
+        if cnt == 1 then
+            kafka_topics_prev:put(kafka_topics:get(topic_name))
+            kafka_topics:delete(topic_name)
+            return true
+        end
+        return true
+    end)
 
     if err ~= nil then
         box.rollback()
-        return  false, error_repository.get_error_code('STORAGE_003', { error = err })
+        return false, error_repository.get_error_code("STORAGE_003", { error = err })
     end
 
     box.commit()
 
     if topic_found then
-
         local is_unsubscribe, unsubscribe_err = default_consumer:unsubscribe({ topic_name })
 
         if not is_unsubscribe then
-            return  false, unsubscribe_err
+            return false, unsubscribe_err
         end
 
-        return  true, nil
+        return true, nil
     end
 
-    return  false, nil  -- topic not found for 404.
+    return false, nil -- topic not found for 404.
 end
 
 local function dataload_from_topic_fiber(topic_name, spaces, max_number_of_messages, avro_schema)
-    checks('string', 'table', '?number', '?string')
-    local kafka_topics = box.space['_KAFKA_TOPIC']
+    checks("string", "table", "?number", "?string")
+    local kafka_topics = box.space["_KAFKA_TOPIC"]
 
     if kafka_topics == nil then
-        return  {false, error = error_repository.get_error_code('STORAGE_001', { table = '_KAFKA_TOPIC' }), amount = 0}
+        return { false, error = error_repository.get_error_code("STORAGE_001", { table = "_KAFKA_TOPIC" }), amount = 0 }
     end
 
     local init_data = kafka_topics:get(topic_name)
 
     if init_data == nil then
-        return   {false, error = 'ERROR: Please subscribe first', amount = 0}
+        return { false, error = "ERROR: Please subscribe first", amount = 0 }
     end
 
     avro_schema = avro_schema or init_data.AVRO_SCHEMA
@@ -532,19 +564,27 @@ local function dataload_from_topic_fiber(topic_name, spaces, max_number_of_messa
     local msg_polled, msgs = consumer:poll_messages(max_number_of_messages)
 
     if not msg_polled then
-        return {false, error = msgs, amount = 0 }
+        return { false, error = msgs, amount = 0 }
     end
     if msgs.amount > 0 then
-        local serialized_kafka_msgs = fun.map(function(v) return v:value() end,msgs.result):totable()
-        local msg_with_max_offset = fun.max_by(function (a,b) if a:offset() > b:offset() then return a else return b end end,
-                msgs.result)
-        local msg_process_status ,msg_process_err = cartridge.rpc_call(
-                'app.roles.adg_input_processor',
-                'insert_messages_from_kafka',
-                {serialized_kafka_msgs,'parse_binary_avro','parse_binary_avro',spaces,avro_schema})
+        local serialized_kafka_msgs = fun.map(function(v)
+            return v:value()
+        end, msgs.result):totable()
+        local msg_with_max_offset = fun.max_by(function(a, b)
+            if a:offset() > b:offset() then
+                return a
+            else
+                return b
+            end
+        end, msgs.result)
+        local msg_process_status, msg_process_err = cartridge.rpc_call(
+            "app.roles.adg_input_processor",
+            "insert_messages_from_kafka",
+            { serialized_kafka_msgs, "parse_binary_avro", "parse_binary_avro", spaces, avro_schema }
+        )
 
         if msg_process_status == nil then
-            return {false, error = msg_process_err or 'ERROR: insert_messages_from_kafka failed', amount = 0 }
+            return { false, error = msg_process_err or "ERROR: insert_messages_from_kafka failed", amount = 0 }
         end
 
         if not msg_process_status[1] then
@@ -554,88 +594,101 @@ local function dataload_from_topic_fiber(topic_name, spaces, max_number_of_messa
         local is_msgs_committed, msgs_commit_err = consumer:commit(msg_with_max_offset)
 
         if not is_msgs_committed then
-            return {false, error = msgs_commit_err, amount = msg_process_status[2].amount}
+            return { false, error = msgs_commit_err, amount = msg_process_status[2].amount }
         end
 
-        return {true,amount = msgs.amount}
-
+        return { true, amount = msgs.amount }
     else
-        return {true,amount = 0}
+        return { true, amount = 0 }
     end
-
-
-
 end
 
 -- luacheck: ignore subscribe_to_topic_old
 local function subscribe_to_topic_old(topic_name, max_number_of_messages, avro_schema)
-    checks('string', 'number', '?string')
+    checks("string", "number", "?string")
     local f = fiber.new(subscribe_to_topic_fiber_old, topic_name, max_number_of_messages, avro_schema)
-    f:name('s_' .. topic_name:sub(1, 10) .. '_' .. max_number_of_messages)
+    f:name("s_" .. topic_name:sub(1, 10) .. "_" .. max_number_of_messages)
     f:set_joinable(true)
     local is_fiber_ok, res = f:join()
     if is_fiber_ok then
         return res
     else
-        return  is_fiber_ok, res
+        return is_fiber_ok, res
     end
 end
 
-local function subscribe_to_topic(   topic_name,
-                                     spaces,
-                                     avro_schema,
-                                     max_number_of_messages_per_cb,
-                                     max_number_of_seconds_per_cb,
-                                     cb_function_name,
-                                     cb_function_param)
-    checks('string','table','?string','?number','?number','?string','?table')
-    local f = fiber.new(subscribe_to_topic_fiber, topic_name, spaces, avro_schema,
-            max_number_of_messages_per_cb,max_number_of_seconds_per_cb,cb_function_name,cb_function_param)
-    f:name('s_' .. topic_name:sub(1, 10) .. '_' .. table.concat(spaces,','):sub(1,10))
+local function subscribe_to_topic(
+    topic_name,
+    spaces,
+    avro_schema,
+    max_number_of_messages_per_cb,
+    max_number_of_seconds_per_cb,
+    cb_function_name,
+    cb_function_param
+)
+    checks("string", "table", "?string", "?number", "?number", "?string", "?table")
+    local f = fiber.new(
+        subscribe_to_topic_fiber,
+        topic_name,
+        spaces,
+        avro_schema,
+        max_number_of_messages_per_cb,
+        max_number_of_seconds_per_cb,
+        cb_function_name,
+        cb_function_param
+    )
+    f:name("s_" .. topic_name:sub(1, 10) .. "_" .. table.concat(spaces, ","):sub(1, 10))
     f:set_joinable(true)
     local is_fiber_ok, res = f:join()
     if is_fiber_ok then
         return res
     else
-        return  is_fiber_ok, res
+        return is_fiber_ok, res
     end
 end
 
 local function unsubscribe_from_topic(topic_name)
-    checks('string')
+    checks("string")
     local f = fiber.new(unsubscribe_from_topic_fiber, topic_name)
-    f:name('uns_' .. topic_name:sub(1, 10))
+    f:name("uns_" .. topic_name:sub(1, 10))
     f:set_joinable(true)
     local is_fiber_ok, res = f:join()
     if is_fiber_ok then
         return res
     else
-        return  is_fiber_ok, res
+        return is_fiber_ok, res
     end
 end
 
 local function dataload_from_topic(topic_name, spaces, max_number_of_messages, avro_schema)
-    checks('string', 'table', '?number', '?string')
+    checks("string", "table", "?number", "?string")
     local f = fiber.new(dataload_from_topic_fiber, topic_name, spaces, max_number_of_messages, avro_schema)
-    f:name('dload_' .. topic_name:sub(1, 10))
+    f:name("dload_" .. topic_name:sub(1, 10))
     f:set_joinable(true)
     local is_fiber_ok, res = f:join()
     if is_fiber_ok then
-        return res[1],res.error,res.amount
+        return res[1], res.error, res.amount
     else
-        return  is_fiber_ok, res
+        return is_fiber_ok, res
     end
 end
 
 local function subscribe_to_all_topics()
-    local kafka_topics = box.space['_KAFKA_TOPIC']
+    local kafka_topics = box.space["_KAFKA_TOPIC"]
     if kafka_topics == nil then
-        return false, error_repository.get_error_code('STORAGE_001', { table = '_KAFKA_TOPIC' })
+        return false, error_repository.get_error_code("STORAGE_001", { table = "_KAFKA_TOPIC" })
     end
 
     for _, v in kafka_topics.index.TOPIC_NAME:pairs() do
-        local res,err = subscribe_to_topic(v.TOPIC_NAME,v.SPACE_NAMES, v.AVRO_SCHEMA , v.MAX_NUMBER_OF_MESSAGES_PER_PARTITION_WITH_CB_CALL
-        , v.MAX_IDLE_SECONDS_BEFORE_CB_CALL ,v.CALLBACK_FUNCTION_NAME,v.CALLBACK_FUNCTION_PARAMS)
+        local res, err = subscribe_to_topic(
+            v.TOPIC_NAME,
+            v.SPACE_NAMES,
+            v.AVRO_SCHEMA,
+            v.MAX_NUMBER_OF_MESSAGES_PER_PARTITION_WITH_CB_CALL,
+            v.MAX_IDLE_SECONDS_BEFORE_CB_CALL,
+            v.CALLBACK_FUNCTION_NAME,
+            v.CALLBACK_FUNCTION_PARAMS
+        )
         if not res then
             return false, err
         end
@@ -645,78 +698,69 @@ local function subscribe_to_all_topics()
 end
 
 local function init_metatables()
-    local kafka_topics = box.schema.space.create(
-            '_KAFKA_TOPIC',
-            {
-                format = {
-                    { 'TOPIC_NAME', 'string' },
-                    { 'MAX_NUMBER_OF_MESSAGES_PER_PARTITION_WITH_CB_CALL', 'unsigned' },
-                    { 'SPACE_NAMES', 'array'},
-                    { 'AVRO_SCHEMA', 'string', is_nullable = true },
-                    { 'CALLBACK_FUNCTION_NAME', 'string', is_nullable = true},
-                    { 'CALLBACK_FUNCTION_PARAMS', 'map', is_nullable = true},
-                    { 'MAX_IDLE_SECONDS_BEFORE_CB_CALL', 'unsigned', is_nullable = true}
-                }
-            , if_not_exists = true
-            }
-    )
-
-    kafka_topics:create_index('TOPIC_NAME', {
-        parts = { 'TOPIC_NAME' },
-        type = 'HASH',
-        if_not_exists = true
+    local kafka_topics = box.schema.space.create("_KAFKA_TOPIC", {
+        format = {
+            { "TOPIC_NAME", "string" },
+            { "MAX_NUMBER_OF_MESSAGES_PER_PARTITION_WITH_CB_CALL", "unsigned" },
+            { "SPACE_NAMES", "array" },
+            { "AVRO_SCHEMA", "string", is_nullable = true },
+            { "CALLBACK_FUNCTION_NAME", "string", is_nullable = true },
+            { "CALLBACK_FUNCTION_PARAMS", "map", is_nullable = true },
+            { "MAX_IDLE_SECONDS_BEFORE_CB_CALL", "unsigned", is_nullable = true },
+        },
+        if_not_exists = true,
     })
 
-    local kafka_topics_prev = box.schema.space.create(
-            '_KAFKA_TOPIC_PREV',
-            {
-                format = {
-                    { 'TOPIC_NAME', 'string' },
-                    { 'MAX_NUMBER_OF_MESSAGES_PER_PARTITION_WITH_CB_CALL', 'unsigned' },
-                    { 'SPACE_NAMES', 'array'},
-                    { 'AVRO_SCHEMA', 'string', is_nullable = true },
-                    { 'CALLBACK_FUNCTION_NAME', 'string', is_nullable = true},
-                    { 'CALLBACK_FUNCTION_PARAMS', 'map', is_nullable = true},
-                    { 'MAX_IDLE_SECONDS_BEFORE_CB_CALL', 'unsigned', is_nullable = true}
-                }
-            , if_not_exists = true
-            }
-    )
-
-    kafka_topics_prev:create_index('TOPIC_NAME_P', {
-        parts = { 'TOPIC_NAME' },
-        type = 'HASH',
-        if_not_exists = true
+    kafka_topics:create_index("TOPIC_NAME", {
+        parts = { "TOPIC_NAME" },
+        type = "HASH",
+        if_not_exists = true,
     })
 
-    local kafka_msgs = box.schema.space.create (
-            '_KAFKA_TOPIC_PARTITION_STAT',
-            {
-                format = {
-                    {'TOPIC_NAME', 'string'},
-                    {'PARTITION_NAME', 'string'},
-                    {'MSG_CNT', 'unsigned'},
-                    {'LAST_MSG_TIMESTAMP', 'number'}
-                }
-                , if_not_exists = true
-            }
-    )
+    local kafka_topics_prev = box.schema.space.create("_KAFKA_TOPIC_PREV", {
+        format = {
+            { "TOPIC_NAME", "string" },
+            { "MAX_NUMBER_OF_MESSAGES_PER_PARTITION_WITH_CB_CALL", "unsigned" },
+            { "SPACE_NAMES", "array" },
+            { "AVRO_SCHEMA", "string", is_nullable = true },
+            { "CALLBACK_FUNCTION_NAME", "string", is_nullable = true },
+            { "CALLBACK_FUNCTION_PARAMS", "map", is_nullable = true },
+            { "MAX_IDLE_SECONDS_BEFORE_CB_CALL", "unsigned", is_nullable = true },
+        },
+        if_not_exists = true,
+    })
 
-    kafka_msgs:create_index('IX_TOPIC_PARTITION', {
-        parts = {'TOPIC_NAME','PARTITION_NAME'},
-        type = 'HASH',
-        if_not_exists = true
+    kafka_topics_prev:create_index("TOPIC_NAME_P", {
+        parts = { "TOPIC_NAME" },
+        type = "HASH",
+        if_not_exists = true,
+    })
+
+    local kafka_msgs = box.schema.space.create("_KAFKA_TOPIC_PARTITION_STAT", {
+        format = {
+            { "TOPIC_NAME", "string" },
+            { "PARTITION_NAME", "string" },
+            { "MSG_CNT", "unsigned" },
+            { "LAST_MSG_TIMESTAMP", "number" },
+        },
+        if_not_exists = true,
+    })
+
+    kafka_msgs:create_index("IX_TOPIC_PARTITION", {
+        parts = { "TOPIC_NAME", "PARTITION_NAME" },
+        type = "HASH",
+        if_not_exists = true,
     })
 end
 
 local function get_schema()
-    for _, instance_uri in pairs(cartridge_rpc.get_candidates('app.roles.adg_storage', { leader_only = true })) do
-        return cartridge_rpc.call('app.roles.adg_storage', 'get_schema', nil, { uri = instance_uri })
+    for _, instance_uri in pairs(cartridge_rpc.get_candidates("app.roles.adg_storage", { leader_only = true })) do
+        return cartridge_rpc.call("app.roles.adg_storage", "get_schema", nil, { uri = instance_uri })
     end
 end
 
 local function init(opts)
-    rawset(_G, 'ddl', { get_schema = get_schema })
+    rawset(_G, "ddl", { get_schema = get_schema })
 
     _G.get_messages_from_kafka = get_messages_from_kafka
     _G.send_messages_to_kafka = send_messages_to_kafka
@@ -726,24 +770,22 @@ local function init(opts)
 
     kafka_utils.init_kafka_opts()
 
-    garbage_fiber = fiber.create(
-            function()
-                while true do
-                    collectgarbage('step', 20);
-                    fiber.sleep(0.2)
-                end
-            end
-    )
+    garbage_fiber = fiber.create(function()
+        while true do
+            collectgarbage("step", 20)
+            fiber.sleep(0.2)
+        end
+    end)
 
-    garbage_fiber:name('GARBAGE_COLLECTOR_FIBER')
+    garbage_fiber:name("GARBAGE_COLLECTOR_FIBER")
 
     local is_producer_ok -- luacheck: ignore is_producer_ok
     is_producer_ok, producer = kafka_producer.init(kafka_utils.get_brokers()):build()
 
     local is_default_consumer_ok -- luacheck: ignore is_default_consumer_ok
-    is_default_consumer_ok, default_consumer =  kafka_consumer.init(kafka_utils.get_brokers()):set_options(
-            kafka_utils.get_options()
-    ):build()
+    is_default_consumer_ok, default_consumer = kafka_consumer.init(kafka_utils.get_brokers())
+        :set_options(kafka_utils.get_options())
+        :build()
 
     default_consumer:init_poll_msg_fiber()
 
@@ -755,13 +797,11 @@ local function init(opts)
 
     local _, _ = subscribe_to_all_topics()
 
-    local httpd = cartridge.service_get('httpd')
-    httpd:route({method='GET', path = '/metrics'}, prometheus.collect_http)
+    local httpd = cartridge.service_get("httpd")
+    httpd:route({ method = "GET", path = "/metrics" }, prometheus.collect_http)
 
     return true
 end
-
-
 
 return {
     role_name = role_name,
@@ -777,7 +817,7 @@ return {
     unsubscribe_from_topic = unsubscribe_from_topic,
     dataload_from_topic = dataload_from_topic,
     dependencies = {
-        'cartridge.roles.crud-router',
-        'cartridge.roles.vshard-router'
-    }
+        "cartridge.roles.crud-router",
+        "cartridge.roles.vshard-router",
+    },
 }

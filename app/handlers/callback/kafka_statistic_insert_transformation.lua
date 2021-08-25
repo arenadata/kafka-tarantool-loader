@@ -17,20 +17,20 @@
 --- Created by ashitov.
 --- DateTime: 8/4/20 12:25 PM
 ---
-local fiber = require('fiber')
-local log = require('log')
-local checks = require('checks')
-local clock = require('clock')
+local fiber = require("fiber")
+local log = require("log")
+local checks = require("checks")
+local clock = require("clock")
 
 local kafka_statistic_insert_transformation = {}
 kafka_statistic_insert_transformation.__index = kafka_statistic_insert_transformation
-kafka_statistic_insert_transformation.__type = 'transformation'
-kafka_statistic_insert_transformation.__call = function (cls, ...)
+kafka_statistic_insert_transformation.__type = "transformation"
+kafka_statistic_insert_transformation.__call = function(cls, ...)
     return cls.new(...)
 end
 
-local function check_stat_callback(msg_cnt,msg_threshold,timestamp,timestamp_idle)
-    checks('number','?number', 'number','?number')
+local function check_stat_callback(msg_cnt, msg_threshold, timestamp, timestamp_idle)
+    checks("number", "?number", "number", "?number")
 
     if msg_threshold == nil and timestamp_idle == nil then
         return false
@@ -51,18 +51,19 @@ local function check_stat_callback(msg_cnt,msg_threshold,timestamp,timestamp_idl
     return false
 end
 
-local function process(msg,error_dest,fiber_name)
-
+local function process(msg, error_dest, fiber_name)
     local topic_name = msg.msg.topic
     local partition_name = tostring(msg.msg.partition)
 
     if topic_name == nil then
         log.error("ERROR: Cannot find topic name in kafka message")
         if error_dest ~= nil then
-            error_dest:put({msg = msg.msg,
-                            err = "ERROR: Cannot find topic name in kafka message",
-                            fiber = fiber_name,
-                            timestamp = clock.time()})
+            error_dest:put({
+                msg = msg.msg,
+                err = "ERROR: Cannot find topic name in kafka message",
+                fiber = fiber_name,
+                timestamp = clock.time(),
+            })
         end
         return nil
     end
@@ -70,101 +71,100 @@ local function process(msg,error_dest,fiber_name)
     if partition_name == nil then
         log.error("ERROR: Cannot find partition name in kafka message")
         if error_dest ~= nil then
-            error_dest:put({msg = msg.msg,
-                            err = "ERROR: Cannot find partition name in kafka message",
-                            fiber = fiber_name,
-                            timestamp = clock.time()})
+            error_dest:put({
+                msg = msg.msg,
+                err = "ERROR: Cannot find partition name in kafka message",
+                fiber = fiber_name,
+                timestamp = clock.time(),
+            })
         end
         return nil
     end
 
-    local state =  box.space['_KAFKA_TOPIC_PARTITION_STAT']
+    local state = box.space["_KAFKA_TOPIC_PARTITION_STAT"]
 
     if state == nil then
         log.error("ERROR: Cannot find _KAFKA_TOPIC_PARTITION_STAT space on app.roles.adg_kafka_connector")
         if error_dest ~= nil then
-            error_dest:put({msg = msg.msg,
-                            err = "ERROR: Cannot find _KAFKA_TOPIC_PARTITION_STAT space on app.roles.adg_kafka_connector",
-                            fiber = fiber_name,
-                            timestamp = clock.time()})
+            error_dest:put({
+                msg = msg.msg,
+                err = "ERROR: Cannot find _KAFKA_TOPIC_PARTITION_STAT space on app.roles.adg_kafka_connector",
+                fiber = fiber_name,
+                timestamp = clock.time(),
+            })
         end
         return nil
     end
 
-    state:upsert(
-            {topic_name,partition_name,1,clock.time()},
-            {
-                {'+',3,1},
-                {'=',4,clock.time()}
-            }
-    )
+    state:upsert({ topic_name, partition_name, 1, clock.time() }, {
+        { "+", 3, 1 },
+        { "=", 4, clock.time() },
+    })
 
-    local updated_state = state:get({topic_name,partition_name})
+    local updated_state = state:get({ topic_name, partition_name })
     local msg_cnt = updated_state.MSG_CNT
     local timestamp = updated_state.LAST_MSG_TIMESTAMP
 
     local msg_with_stat = table.deepcopy(msg)
 
-
     --- callback check
-    msg_with_stat['stat'] = {}
-    msg_with_stat['stat']['msg_cnt'] = msg_cnt
-    msg_with_stat['stat']['timestamp'] = timestamp
+    msg_with_stat["stat"] = {}
+    msg_with_stat["stat"]["msg_cnt"] = msg_cnt
+    msg_with_stat["stat"]["timestamp"] = timestamp
 
     local msg_threshold = msg.msg.cnt_cb_call
     local msg_idle = msg.msg.sec_cb_call
 
-    msg_with_stat['stat']['msg_threshold'] = msg_threshold
-    msg_with_stat['stat']['timeout_idle'] = msg_idle
+    msg_with_stat["stat"]["msg_threshold"] = msg_threshold
+    msg_with_stat["stat"]["timeout_idle"] = msg_idle
 
-    local is_callback_required = check_stat_callback(msg_cnt,msg_threshold,timestamp,msg_idle)
+    local is_callback_required = check_stat_callback(msg_cnt, msg_threshold, timestamp, msg_idle)
 
--- luacheck: ignore msg
+    -- luacheck: ignore msg
     msg = nil
 
     if is_callback_required then
-        state:delete({topic_name,partition_name})
+        state:delete({ topic_name, partition_name })
         return msg_with_stat
     end
-
-
 end
 
-local function create_fiber(self,process_function, fiber_name,source,error_dest)
-    local process_fiber = fiber.new(
-            function()
-                while true do
-                    if (source:is_closed() or self.process_channel:is_closed()) then
-                        log.warn('WARN: Channels closed in fiber %s', fiber_name)
-                        return
-                    end
-                    local input = source:get()
-                    if input ~= nil then
-                        local result = process_function(input,error_dest,fiber_name)
-                        if result ~= nil then
-                            local sent = self.process_channel:put(result)
-                            if not sent then
-                                log.error("ERROR: %s fiber send error",fiber_name)
-                                if error_dest ~= nil then
-                                    error_dest:put({msg = result.msg,
-                                                    err = string.format("ERROR: %s fiber send error",fiber_name),
-                                                    fiber = fiber_name,
-                                                    timestamp = clock.time()})
-                                end
-                            end
+local function create_fiber(self, process_function, fiber_name, source, error_dest)
+    local process_fiber = fiber.new(function()
+        while true do
+            if source:is_closed() or self.process_channel:is_closed() then
+                log.warn("WARN: Channels closed in fiber %s", fiber_name)
+                return
+            end
+            local input = source:get()
+            if input ~= nil then
+                local result = process_function(input, error_dest, fiber_name)
+                if result ~= nil then
+                    local sent = self.process_channel:put(result)
+                    if not sent then
+                        log.error("ERROR: %s fiber send error", fiber_name)
+                        if error_dest ~= nil then
+                            error_dest:put({
+                                msg = result.msg,
+                                err = string.format("ERROR: %s fiber send error", fiber_name),
+                                fiber = fiber_name,
+                                timestamp = clock.time(),
+                            })
                         end
                     end
-                    fiber.yield()
                 end
-            end)
+            end
+            fiber.yield()
+        end
+    end)
     process_fiber:name(fiber_name)
     return process_fiber
 end
 
-function kafka_statistic_insert_transformation.init(channel_capacity,source,error_dest)
+function kafka_statistic_insert_transformation.init(channel_capacity, source, error_dest)
     local self = setmetatable({}, kafka_statistic_insert_transformation)
     self.process_channel = fiber.channel(channel_capacity)
-    self.process_fiber = create_fiber(self,process,"kafka_msg_stat_fiber",source,error_dest)
+    self.process_fiber = create_fiber(self, process, "kafka_msg_stat_fiber", source, error_dest)
     return self
 end
 

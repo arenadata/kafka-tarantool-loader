@@ -12,11 +12,11 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
-local version_utils = require('app.utils.version_utils')
+local version_utils = require("app.utils.version_utils")
 
 -- luacheck: ignore req
 local function get_version(req)
-    return {status = 200, body = version_utils.get_version_json()}
+    return { status = 200, body = version_utils.get_version_json() }
 end
 
-return {get_version = get_version}
+return { get_version = get_version }

@@ -12,40 +12,40 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
-local cartridge = require('cartridge')
-local checks = require('checks')
-local schema_utils = require('app.utils.schema_utils')
-local route_utils = require('app.utils.route_utils')
-local sql_insert = require('app.utils.sql_insert')
-local yaml = require('yaml')
-local log = require('log')
-local errors = require('errors')
-local vshard = require('vshard')
-local sql_select = require('app.utils.sql_select')
-local fiber = require('fiber')
-local pool = require('cartridge.pool')
-local metrics = require('app.metrics.metrics_storage')
-local set = require('app.entities.set')
-local misc_utils = require('app.utils.misc_utils')
-local prometheus = require('metrics.plugins.prometheus')
-local api_timeout_config = require('app.utils.api_timeout_config')
-local cartridge_rpc = require('cartridge.rpc')
+local cartridge = require("cartridge")
+local checks = require("checks")
+local schema_utils = require("app.utils.schema_utils")
+local route_utils = require("app.utils.route_utils")
+local sql_insert = require("app.utils.sql_insert")
+local yaml = require("yaml")
+local log = require("log")
+local errors = require("errors")
+local vshard = require("vshard")
+local sql_select = require("app.utils.sql_select")
+local fiber = require("fiber")
+local pool = require("cartridge.pool")
+local metrics = require("app.metrics.metrics_storage")
+local set = require("app.entities.set")
+local misc_utils = require("app.utils.misc_utils")
+local prometheus = require("metrics.plugins.prometheus")
+local api_timeout_config = require("app.utils.api_timeout_config")
+local cartridge_rpc = require("cartridge.rpc")
 
-local role_name = 'app.roles.adg_api'
+local role_name = "app.roles.adg_api"
 
 local garbage_fiber = nil
-local cluster_config_handler = require('app.handlers.cluster_config_handler')
-local get_all_metrics_handler = require('app.handlers.get_all_metrics_handler')
-local etl_handler = require('app.handlers.etl_handler')
-local truncate_space_handler = require('app.handlers.truncate_space_handler')
-local kafka_handler = require('app.handlers.kafka_handler')
-local ddl_handler = require('app.handlers.ddl_handler')
-local version_handler = require('app.handlers.version_handler')
+local cluster_config_handler = require("app.handlers.cluster_config_handler")
+local get_all_metrics_handler = require("app.handlers.get_all_metrics_handler")
+local etl_handler = require("app.handlers.etl_handler")
+local truncate_space_handler = require("app.handlers.truncate_space_handler")
+local kafka_handler = require("app.handlers.kafka_handler")
+local ddl_handler = require("app.handlers.ddl_handler")
+local version_handler = require("app.handlers.version_handler")
 
-local success_repository = require('app.messages.success_repository')
-local error_repository = require('app.messages.error_repository')
+local success_repository = require("app.messages.success_repository")
+local error_repository = require("app.messages.error_repository")
 
-local fun = require('fun')
+local fun = require("fun")
 
 _G.set_ddl = nil
 _G.get_ddl = nil
@@ -69,64 +69,57 @@ _G.api_timeouts = nil
 
 local err_vshard_router = errors.new_class("Vshard routing error")
 
-
 local function set_ddl(ddl)
-    checks('string')
+    checks("string")
 
     local res, err = _G.cartridge_set_schema(ddl)
-
 
     if res == nil then
         return nil, err
     end
 
-    local storages =  cartridge.rpc_get_candidates('app.roles.adg_storage',{leader_only = true})
+    local storages = cartridge.rpc_get_candidates("app.roles.adg_storage", { leader_only = true })
 
-    for _,storage in ipairs(storages) do
-
+    for _, storage in ipairs(storages) do
         local conn, err = pool.connect(storage)
         if conn == nil then
             log.error(err)
             return nil, err
         end
 
-        local res,err = conn:call('set_schema_ddl',{},{is_async=false})
+        local res, err = conn:call("set_schema_ddl", {}, { is_async = false })
 
         if res == nil then
             log.error(err)
-            return nil,err
+            return nil, err
         end
     end
-
 
     return true
 end
 
-
-
 ---sync_ddl_schema_with_storage
 ---@param storage string
 local function sync_ddl_schema_with_storage(storage)
-    checks('string')
+    checks("string")
 
-    local storages =  set.Set(cartridge.rpc_get_candidates('app.roles.adg_storage',{leader_only = true}))
+    local storages = set.Set(cartridge.rpc_get_candidates("app.roles.adg_storage", { leader_only = true }))
 
     if storages[storage] then
-
         local conn, err = pool.connect(storage)
         if conn == nil then
             log.error(err)
             return nil, err
         end
 
-        local schema,err = conn:call('get_storage_ddl',{},{is_async=false})
+        local schema, err = conn:call("get_storage_ddl", {}, { is_async = false })
 
         if schema == nil then
             log.error(err)
-            return nil,err
+            return nil, err
         end
 
-        local res,err = err_vshard_router:pcall(_G.cartridge_set_schema, yaml.encode(schema))
+        local res, err = err_vshard_router:pcall(_G.cartridge_set_schema, yaml.encode(schema))
         if res == nil then
             log.error(err)
             return nil, err
@@ -135,25 +128,25 @@ local function sync_ddl_schema_with_storage(storage)
         return true, nil
     end
 
-    return false,storage .. ' dont have app.roles.adg_storage role'
+    return false, storage .. " dont have app.roles.adg_storage role"
 end
 
 ---truncate_space_on_cluster - function to truncate space on cluster.
 ---@param space_name string  - space name to truncate.
 ---@return boolean | table - true,nil if dropped | false,error - otherwise.
 local function truncate_space_on_cluster(space_name)
-    checks('string')
-    local storages =  cartridge.rpc_get_candidates('app.roles.adg_storage',{leader_only = true})
+    checks("string")
+    local storages = cartridge.rpc_get_candidates("app.roles.adg_storage", { leader_only = true })
 
-    for _,cand in ipairs(storages) do
+    for _, cand in ipairs(storages) do
         local conn, err = pool.connect(cand)
         if conn == nil then
-            return false,err
+            return false, err
         else
-            local is_space_truncated, space_truncate_err  = conn:call(
-                'truncate_space',
+            local is_space_truncated, space_truncate_err = conn:call(
+                "truncate_space",
                 { space_name },
-                { timeout = 30, is_async=false }
+                { timeout = 30, is_async = false }
             )
 
             if is_space_truncated ~= true then
@@ -170,41 +163,46 @@ end
 ---@param spaces string  - list of spaces to drop.
 ---@param schema_ddl_correction boolean - flag, that shows update ddl schema or not. Defualt - True.
 ---@return table | string - dropped spaces,nil | dropped_spaces,error.
-local function drop_spaces_on_cluster(spaces,prefix,schema_ddl_correction)
-    checks('?table','?string','?boolean')
+local function drop_spaces_on_cluster(spaces, prefix, schema_ddl_correction)
+    checks("?table", "?string", "?boolean")
 
     if schema_ddl_correction == nil then
         schema_ddl_correction = true
     end
-    local dropped_spaces,spaces_drop_err
-    local storages =  cartridge.rpc_get_candidates('app.roles.adg_storage',{leader_only = true})
+    local dropped_spaces, spaces_drop_err
+    local storages = cartridge.rpc_get_candidates("app.roles.adg_storage", { leader_only = true })
 
-    for _,cand in ipairs(storages) do
+    for _, cand in ipairs(storages) do
         local conn, err = pool.connect(cand)
         if conn == nil then
-            return nil,err
+            return nil, err
         else
-
             if spaces ~= nil then
-                dropped_spaces,spaces_drop_err  = conn:call('drop_spaces',{spaces},{timeout = 30, is_async=false})
+                dropped_spaces, spaces_drop_err = conn:call(
+                    "drop_spaces",
+                    { spaces },
+                    { timeout = 30, is_async = false }
+                )
             elseif prefix ~= nil then
-                dropped_spaces,spaces_drop_err  = conn:call('drop_spaces_with_prefix',{prefix},{timeout = 30, is_async=false})
+                dropped_spaces, spaces_drop_err = conn:call(
+                    "drop_spaces_with_prefix",
+                    { prefix },
+                    { timeout = 30, is_async = false }
+                )
             else
-                return nil,'ERROR: spaces and prefix is nil'
+                return nil, "ERROR: spaces and prefix is nil"
             end
 
             if spaces_drop_err ~= nil then
-                return dropped_spaces,spaces_drop_err
+                return dropped_spaces, spaces_drop_err
             end
-
         end
         fiber.sleep(0.01) -- Wait async replicas for processing changes.
     end
 
-
-    if schema_ddl_correction == true and not (dropped_spaces == nil or next(dropped_spaces) ==  nil) then
+    if schema_ddl_correction == true and not (dropped_spaces == nil or next(dropped_spaces) == nil) then
         local current_ddl_schema = yaml.decode(cartridge.get_schema())
-        for _,v in ipairs(dropped_spaces) do
+        for _, v in ipairs(dropped_spaces) do
             current_ddl_schema.spaces[v] = nil
         end
         local tries_cnt = 0
@@ -217,7 +215,7 @@ local function drop_spaces_on_cluster(spaces,prefix,schema_ddl_correction)
             else
                 log.error(schema_patch_err)
                 fiber.sleep(0.5)
-                goto retry  --TODO: WTF?
+                goto retry
             end
         end
     end
@@ -235,7 +233,7 @@ local function drop_all()
         end
     end
 
-    local res, err = cartridge.config_patch_clusterwide({schema=""})
+    local res, err = cartridge.config_patch_clusterwide({ schema = "" })
 
     if res == nil then
         return nil, err
@@ -245,12 +243,12 @@ local function drop_all()
 end
 
 local function space_len(space_name)
-    checks('string')
+    checks("string")
     local replicas, _ = vshard.router.routeall()
 
     local result = 0
     for _, replica in pairs(replicas) do
-        local res, err = replica:callro("storage_space_len", {space_name})
+        local res, err = replica:callro("storage_space_len", { space_name })
 
         if res == nil then
             return nil, err
@@ -265,10 +263,8 @@ end
 local function load_lines(space_name, lines)
     checks("string", "table")
 
-
     local space = schema_utils.get_schema_ddl().spaces[space_name]
-     or schema_utils.get_schema_ddl().spaces[string.upper(space_name)]
-
+        or schema_utils.get_schema_ddl().spaces[string.upper(space_name)]
 
     if space == nil then
         return nil, errors.new("ERROR: no_such_space", "No such space: %s", space_name)
@@ -286,24 +282,17 @@ local function load_lines(space_name, lines)
 
         local tuple, err_bucket = route_utils.set_bucket_id(space_name, line, vshard.router.bucket_count())
 
-
         if tuple == nil then
             return nil, err_bucket
         end
         table.insert(tuples, tuple)
     end
 
-
     local futures = {}
 
-
     for server, per_server in pairs(route_utils.tuples_by_server(tuples, space_name, vshard.router.bucket_count())) do
-        local future = server:call(
-            'insert_tuples',
-            {{[space_name]=per_server}},
-            {is_async=true}
-        )
-        table.insert(futures,future)
+        local future = server:call("insert_tuples", { { [space_name] = per_server } }, { is_async = true })
+        table.insert(futures, future)
     end
 
     for _, future in ipairs(futures) do
@@ -323,24 +312,21 @@ local function query(query, params)
     local lower_query = string.lower(query)
 
     if string.match(lower_query, "^%s*insert%s+") then
-        local sql_res, err = sql_insert.get_tuples(
-            query, params,vshard.router.bucket_count())
+        local sql_res, err = sql_insert.get_tuples(query, params, vshard.router.bucket_count())
 
         if sql_res == nil then
             return nil, err
         end
 
-        local by_bucket_id = sql_insert.tuples_by_bucket_id(
-            sql_res.inserted_tuples, vshard.router.bucket_count())
-
+        local by_bucket_id = sql_insert.tuples_by_bucket_id(sql_res.inserted_tuples, vshard.router.bucket_count())
 
         for bucket_id, tuples in pairs(by_bucket_id) do
             local res, err = err_vshard_router:pcall(
                 vshard.router.call,
                 bucket_id,
-                'write',
-                'insert_tuples',
-                {tuples}
+                "write",
+                "insert_tuples",
+                { tuples }
             )
 
             if res == nil then
@@ -349,35 +335,30 @@ local function query(query, params)
         end
 
         return sql_res.sql_result
-
     elseif string.match(lower_query, "^%s*insert%s+into+%s+[%a%d_]+[(]*%a*[)]*%s+select+") then
-
-        local storages =  cartridge.rpc_get_candidates('app.roles.adg_storage',{leader_only = true})
+        local storages = cartridge.rpc_get_candidates("app.roles.adg_storage", { leader_only = true })
         if #storages == 0 then
-            log.error('ERROR: storage to execute ddl not found')
+            log.error("ERROR: storage to execute ddl not found")
         end
 
-        for _,cand in ipairs(storages) do
-            log.info('INFO: Storage for ddl execution ' .. cand)
+        for _, cand in ipairs(storages) do
+            log.info("INFO: Storage for ddl execution " .. cand)
 
             local conn, err = pool.connect(cand)
             if conn == nil then
                 log.error(err)
             else
-            local res,err = conn:call('execute_sql',{query, params},{is_async=false})
+                local res, err = conn:call("execute_sql", { query, params }, { is_async = false })
 
-            if res == nil or res == false then
-                return nil, err
-            end
-
+                if res == nil or res == false then
+                    return nil, err
+                end
             end
         end
 
         return true
-
     elseif string.match(lower_query, "^%s*select%s+") then
-        local replicas, err = sql_select.get_replicas(
-            query, params)
+        local replicas, err = sql_select.get_replicas(query, params)
 
         if replicas == nil then
             return nil, err
@@ -393,11 +374,11 @@ local function query(query, params)
                 -- received at this timeout, will be return error and res=nil
                 local res, err = replica:callro("execute_sql", { query, params })
 
-                buffer:put({data=res, err=err})
+                buffer:put({ data = res, err = err })
             end)
         end
 
-        for _=1, fibers_count do
+        for _ = 1, fibers_count do
             local msg = buffer:get()
 
             if msg.data == nil then
@@ -412,35 +393,35 @@ local function query(query, params)
         end
 
         return result
+    elseif
+        string.match(lower_query, "^%s*create%s+")
+        or string.match(lower_query, "^%s*alter%s+")
+        or string.match(lower_query, "^%s*drop%s+")
+        or string.match(lower_query, "^%s*truncate%s+")
+    then
+        local storages = cartridge.rpc_get_candidates("app.roles.adg_storage", { leader_only = true })
+        if #storages == 0 then
+            log.error("ERROR: storage to execute ddl not found")
+        end
 
-    elseif string.match(lower_query, "^%s*create%s+") or string.match(lower_query, "^%s*alter%s+")
-           or string.match(lower_query, "^%s*drop%s+") or string.match(lower_query, "^%s*truncate%s+") then
+        for _, cand in ipairs(storages) do
+            log.info("INFO: Storage for ddl execution " .. cand)
 
-            local storages =  cartridge.rpc_get_candidates('app.roles.adg_storage',{leader_only = true})
-            if #storages == 0 then
-                log.error('ERROR: storage to execute ddl not found')
-            end
-
-            for _,cand in ipairs(storages) do
-                log.info('INFO: Storage for ddl execution ' .. cand)
-
-                local conn, err = pool.connect(cand)
-                if conn == nil then
-                    log.error(err)
-                else
-                local res,err = conn:call('execute_sql',{query, params},{is_async=false})
+            local conn, err = pool.connect(cand)
+            if conn == nil then
+                log.error(err)
+            else
+                local res, err = conn:call("execute_sql", { query, params }, { is_async = false })
 
                 if res == nil or res == false then
                     return nil, err
                 end
-
-                end
             end
+        end
 
         return true
-
     else
-        return nil, errors.new('Unknown query type')
+        return nil, errors.new("Unknown query type")
     end
 
     return true -- luacheck: ignore 511
@@ -450,52 +431,54 @@ local function get_metric()
     return metrics.export(role_name)
 end
 
+local function transfer_data_to_scd_table_on_cluster(
+    stage_data_table_name,
+    actual_data_table_name,
+    historical_data_table_name,
+    delta_number
+)
+    checks("string", "string", "string", "number")
 
-local function transfer_data_to_scd_table_on_cluster(stage_data_table_name,actual_data_table_name,historical_data_table_name, delta_number)
-    checks('string', 'string','string', 'number')
-
-    local storages =  cartridge.rpc_get_candidates('app.roles.adg_storage',{leader_only = true}) --TODO Move to single function
+    local storages = cartridge.rpc_get_candidates("app.roles.adg_storage", { leader_only = true }) --TODO Move to single function
     if #storages == 0 then
-        return false, error_repository.get_error_code('VROUTER_REPLICA_GET_001', {role='app.roles.adg_storage'})
+        return false, error_repository.get_error_code("VROUTER_REPLICA_GET_001", { role = "app.roles.adg_storage" })
     end
 
     local futures = {}
-    for _,cand in ipairs(storages) do
+    for _, cand in ipairs(storages) do
         local conn, err = pool.connect(cand)
         if conn == nil then
-            return nil, error_repository.get_error_code(
-                'VROUTER_REPLICA_GET_001', {
-                    role = 'app.roles.adg_storage',
-                    error = err
-                }
-            )
+            return nil,
+                error_repository.get_error_code("VROUTER_REPLICA_GET_001", {
+                    role = "app.roles.adg_storage",
+                    error = err,
+                })
         else
             local future, err = conn:call(
-                'transfer_stage_data_to_scd_table',
-                { stage_data_table_name,actual_data_table_name, historical_data_table_name, delta_number },
+                "transfer_stage_data_to_scd_table",
+                { stage_data_table_name, actual_data_table_name, historical_data_table_name, delta_number },
                 { is_async = true }
             )
             if err ~= nil then
                 return nil, err
             end
-            table.insert(futures,future)
+            table.insert(futures, future)
         end
     end
 
-    for _,future in ipairs(futures) do
+    for _, future in ipairs(futures) do
         future:wait_result(_G.api_timeouts:get_transfer_stage_data_to_scd_table_timeout())
         local res, err = future:result()
         if res == nil then
-            return nil, error_repository.get_error_code(
-                'STORAGE_003', {
-                    func='transfer_stage_data_to_scd_table',
+            return nil,
+                error_repository.get_error_code("STORAGE_003", {
+                    func = "transfer_stage_data_to_scd_table",
                     stage_data_table_name = stage_data_table_name,
                     actual_data_table_name = actual_data_table_name,
                     historical_data_table_name = historical_data_table_name,
                     delta_number = delta_number,
-                    error = err
-                }
-            )
+                    error = err,
+                })
         end
 
         if res[1] == false or res[1] == nil then
@@ -506,57 +489,59 @@ local function transfer_data_to_scd_table_on_cluster(stage_data_table_name,actua
     return true, nil
 end
 
-local function reverse_history_in_scd_table_on_cluster(stage_data_table_name, actual_data_table_name,
-                                                       historical_data_table_name, delta_number, batch_size)
-    checks('string','string','string','number','?number')
+local function reverse_history_in_scd_table_on_cluster(
+    stage_data_table_name,
+    actual_data_table_name,
+    historical_data_table_name,
+    delta_number,
+    batch_size
+)
+    checks("string", "string", "string", "number", "?number")
 
-    local storages =  cartridge.rpc_get_candidates('app.roles.adg_storage',{leader_only = true}) --TODO Move to single function
+    local storages = cartridge.rpc_get_candidates("app.roles.adg_storage", { leader_only = true }) --TODO Move to single function
     if #storages == 0 then
-        return false, error_repository.get_error_code(
-            'VROUTER_REPLICA_GET_001', {
-                role = 'app.roles.adg_storage'
-            }
-        )
+        return false,
+            error_repository.get_error_code("VROUTER_REPLICA_GET_001", {
+                role = "app.roles.adg_storage",
+            })
     end
 
     local futures = {}
-    for _,cand in ipairs(storages) do
+    for _, cand in ipairs(storages) do
         local conn, err = pool.connect(cand)
         if conn == nil then
-            return false, error_repository.get_error_code(
-                'VROUTER_REPLICA_GET_001', {
-                    role = 'app.roles.adg_storage',
-                    error = err
-                }
-            )
+            return false,
+                error_repository.get_error_code("VROUTER_REPLICA_GET_001", {
+                    role = "app.roles.adg_storage",
+                    error = err,
+                })
         else
             local future, err = conn:call(
-                'reverse_history_in_scd_table',
-                { stage_data_table_name,actual_data_table_name, historical_data_table_name, delta_number, batch_size },
+                "reverse_history_in_scd_table",
+                { stage_data_table_name, actual_data_table_name, historical_data_table_name, delta_number, batch_size },
                 { is_async = true }
             )
             if err ~= nil then
                 return nil, err
             end
-            table.insert(futures,future)
+            table.insert(futures, future)
         end
     end
 
-    for _,future in ipairs(futures) do
+    for _, future in ipairs(futures) do
         future:wait_result(360)
         local res, err = future:result()
         if res == nil then
-            return nil, error_repository.get_error_code(
-                'STORAGE_003', {
-                    func='reverse_history_in_scd_table',
+            return nil,
+                error_repository.get_error_code("STORAGE_003", {
+                    func = "reverse_history_in_scd_table",
                     stage_data_table_name = stage_data_table_name,
                     actual_data_table_name = actual_data_table_name,
                     historical_data_table_name = historical_data_table_name,
                     delta_number = delta_number,
                     batch_size = batch_size,
-                    error = err
-                }
-            )
+                    error = err,
+                })
         end
 
         if res[1] == false or res[1] == nil then
@@ -567,27 +552,28 @@ local function reverse_history_in_scd_table_on_cluster(stage_data_table_name, ac
     return true, nil
 end
 
-
 local function transfer_data_to_scd_table_on_cluster_cb(params)
-    checks('table')
+    checks("table")
 
+    local space_name = params["_space"]
+    local stage_data_table_name = params["_stage_data_table_name"]
+    local actual_data_table_name = params["_actual_data_table_name"]
+    local historical_data_table_name = params["_historical_data_table_name"]
+    local delta_number = params["_delta_number"]
+    local res, err = transfer_data_to_scd_table_on_cluster(
+        stage_data_table_name,
+        actual_data_table_name,
+        historical_data_table_name,
+        delta_number
+    )
 
-        local space_name = params['_space']
-        local stage_data_table_name = params['_stage_data_table_name']
-        local actual_data_table_name = params['_actual_data_table_name']
-        local historical_data_table_name = params['_historical_data_table_name']
-        local delta_number = params['_delta_number']
-        local res,err = transfer_data_to_scd_table_on_cluster(stage_data_table_name, actual_data_table_name,
-                                                              historical_data_table_name, delta_number)
+    if res ~= true then
+        log.error(err)
+        return res, err
+    end
+    log.info("INFO: %s space successful processed", space_name)
 
-        if res ~= true then
-            log.error(err)
-            return res,err
-        end
-        log.info('INFO: %s space successful processed', space_name)
-
-
-    return true,nil
+    return true, nil
 end
 
 ---prepare_plan_for_massive_select - method that generate split for query by batch_size.
@@ -595,32 +581,32 @@ end
 ---@param batch_size number - a number of rows in one subquery (limit, offset).
 ---@return table - boolean | {[storage] = {limit = ?, offset = ?} table.
 local function prepare_plan_for_massive_select(query, batch_size)
-    checks('string','number')
+    checks("string", "number")
 
     if not string.match(string.lower(query), "^%s*select%s+") then
-        return false,error_repository.get_error_code('ADG_OUTPUT_PROCESSOR_003',{query=query})
+        return false, error_repository.get_error_code("ADG_OUTPUT_PROCESSOR_003", { query = query })
     end
 
-    local replicas, err = sql_select.get_replicas(
-            query, {})
+    local replicas, err = sql_select.get_replicas(query, {})
 
     if err ~= nil then
-        return false, error_repository.get_error_code('VROUTER_REPLICA_GET_001', {query=query,desc=err})
+        return false, error_repository.get_error_code("VROUTER_REPLICA_GET_001", { query = query, desc = err })
     end
 
     local split_query = {}
 
-    for _,cand in pairs(replicas) do
+    for _, cand in pairs(replicas) do
         local row_cnt, row_cnt_err = cand:callbre(
-                'execute_sql',
-                {string.format("select count(*) from (%s);",query)},
-                {is_async=false}
+            "execute_sql",
+            { string.format("select count(*) from (%s);", query) },
+            { is_async = false }
         )
-        if row_cnt_err~= nil then
-            return false, error_repository.get_error_code('VSTORAGE_SQL_SELECT_001', {sql_err=row_cnt_err,query=query})
+        if row_cnt_err ~= nil then
+            return false,
+                error_repository.get_error_code("VSTORAGE_SQL_SELECT_001", { sql_err = row_cnt_err, query = query })
         end
 
-        local split = misc_utils.generate_limit_offset(row_cnt['rows'][1][1],batch_size)
+        local split = misc_utils.generate_limit_offset(row_cnt["rows"][1][1], batch_size)
         split_query[cand] = split
     end
 
@@ -631,13 +617,14 @@ end
 ---@param plan table - {[storage] = {limit = ?, offset = ?} table.
 ---@return table - boolean | {[output_processor] = {[storage] = {limit = ?, offset = ?}} table.
 local function prepare_output_processors_for_plan(plan)
-    checks('table')
-    local output_processors = cartridge.rpc_get_candidates('app.roles.adg_output_processor')
+    checks("table")
+    local output_processors = cartridge.rpc_get_candidates("app.roles.adg_output_processor")
 
     if #output_processors == 0 then
-        return false, error_repository.get_error_code('VROUTER_REPLICA_GET_001', {role='app.roles.adg_output_processor'})
+        return false,
+            error_repository.get_error_code("VROUTER_REPLICA_GET_001", { role = "app.roles.adg_output_processor" })
     end
-    return true, fun.zip(plan,fun.cycle(output_processors)):tomap()
+    return true, fun.zip(plan, fun.cycle(output_processors)):tomap()
 end
 
 ---execute_query_for_massive_select - method, that's execute processor_function
@@ -646,11 +633,11 @@ end
 ---@param params table - table with params needed by processor_function.
 ---@return boolean|string
 local function execute_query_for_massive_select(processor_function, params)
-    checks('string', 'table')
-    local batch_size = params['batch_size'] or 1000
-    local select_query = params['query'] or ''
+    checks("string", "table")
+    local batch_size = params["batch_size"] or 1000
+    local select_query = params["query"] or ""
 
-    local is_plan_ok, plan = prepare_plan_for_massive_select(select_query,batch_size)
+    local is_plan_ok, plan = prepare_plan_for_massive_select(select_query, batch_size)
 
     if not is_plan_ok then
         return false, plan
@@ -668,16 +655,14 @@ local function execute_query_for_massive_select(processor_function, params)
     local stream_total = misc_utils.table_length(plan_mapping)
     for replica, output_processor in pairs(plan_mapping) do
         stream_number = stream_number + 1
-        local conn, err = pool.connect(output_processor,{wait_connected = 60})
+        local conn, err = pool.connect(output_processor, { wait_connected = 60 })
         if conn == nil then
-            return nil, error_repository.get_error_code(
-                'VROUTER_REPLICA_GET_001', {
-                    role = 'app.roles.adg_output_processor',
-                    error = err
-                }
-            )
+            return nil,
+                error_repository.get_error_code("VROUTER_REPLICA_GET_001", {
+                    role = "app.roles.adg_output_processor",
+                    error = err,
+                })
         end
-
 
         local future, err = conn:call(
             processor_function,
@@ -687,92 +672,91 @@ local function execute_query_for_massive_select(processor_function, params)
         if err ~= nil then
             return nil, err
         end
-        table.insert(futures,future)
+        table.insert(futures, future)
     end
 
-    for _,future in ipairs(futures) do
+    for _, future in ipairs(futures) do
         future:wait_result(360)
         local res, err = future:result()
 
         if res == nil then
-            return nil, error_repository.get_error_code(
-                'ADG_OUTPUT_PROCESSOR_001', {
-                    error = err
-                }
-            )
+            return nil,
+                error_repository.get_error_code("ADG_OUTPUT_PROCESSOR_001", {
+                    error = err,
+                })
         end
 
         if res[1] == false or res[1] == nil then
-            return nil, error_repository.get_error_code(
-                'VROUTER_REPLICA_GET_001', {
-                    role = 'app.roles.adg_output_processor',
-                    error = err or res[2]
-                }
-            )
+            return nil,
+                error_repository.get_error_code("VROUTER_REPLICA_GET_001", {
+                    role = "app.roles.adg_output_processor",
+                    error = err or res[2],
+                })
         end
     end
 
-
-    return true, success_repository.get_success_code('ADG_OUTPUT_PROCESSOR_002')
-
+    return true, success_repository.get_success_code("ADG_OUTPUT_PROCESSOR_002")
 end
 
-local function execute_query_for_massive_select_to_kafka(topic_name, query, batch_size,table_name,avro_schema)
-    return execute_query_for_massive_select('send_query_to_kafka_with_plan',
-            {topic_name = topic_name, query = query,batch_size=batch_size,table_name = table_name,avro_schema=avro_schema})
-
+local function execute_query_for_massive_select_to_kafka(topic_name, query, batch_size, table_name, avro_schema)
+    return execute_query_for_massive_select(
+        "send_query_to_kafka_with_plan",
+        { topic_name = topic_name, query = query, batch_size = batch_size, table_name = table_name, avro_schema = avro_schema }
+    )
 end
 
 local function get_storage_space_schema(space_names)
-    checks('table')
+    checks("table")
     local space_names_set = set.Set(space_names)
--- luacheck: ignore v
-    return yaml.encode({spaces = fun.filter(function(k,v) return space_names_set[k] end, schema_utils.get_schema_ddl().spaces):tomap()})
+    -- luacheck: ignore v
+    return yaml.encode({
+        spaces = fun.filter(function(k, v)
+            return space_names_set[k]
+        end, schema_utils.get_schema_ddl().spaces):tomap(),
+    })
 end
 
-local function delete_data_from_scd_table_sql_on_cluster (space_name, where_condition)
-    checks('string', '?string')
+local function delete_data_from_scd_table_sql_on_cluster(space_name, where_condition)
+    checks("string", "?string")
 
-    local storages =  cartridge.rpc_get_candidates('app.roles.adg_storage',{leader_only = true})
+    local storages = cartridge.rpc_get_candidates("app.roles.adg_storage", { leader_only = true })
     if #storages == 0 then
-        return false, error_repository.get_error_code('VROUTER_REPLICA_GET_001', {role='app.roles.adg_storage'})
+        return false, error_repository.get_error_code("VROUTER_REPLICA_GET_001", { role = "app.roles.adg_storage" })
     end
 
     local futures = {}
-    for _,cand in ipairs(storages) do
+    for _, cand in ipairs(storages) do
         local conn, err = pool.connect(cand)
         if conn == nil then
-            return false, error_repository.get_error_code(
-                'VROUTER_REPLICA_GET_001', {
-                    role = 'app.roles.adg_storage',
-                    error = err
-                }
-            )
+            return false,
+                error_repository.get_error_code("VROUTER_REPLICA_GET_001", {
+                    role = "app.roles.adg_storage",
+                    error = err,
+                })
         else
             local future, future_err = conn:call(
-                'delete_data_from_scd_table_sql',
-                {space_name, where_condition},
+                "delete_data_from_scd_table_sql",
+                { space_name, where_condition },
                 { is_async = true }
             )
             if future_err ~= nil then
                 return false, future_err
             end
-            table.insert(futures,future)
+            table.insert(futures, future)
         end
     end
 
-    for _,future in ipairs(futures) do
+    for _, future in ipairs(futures) do
         future:wait_result(360)
         local res, err = future:result()
         if res == nil then
-            return false, error_repository.get_error_code(
-                'STORAGE_003', {
-                    func='delete_data_from_scd_table_sql',
+            return false,
+                error_repository.get_error_code("STORAGE_003", {
+                    func = "delete_data_from_scd_table_sql",
                     space_name = space_name,
                     where_condition = where_condition,
-                    err = err
-                }
-            )
+                    err = err,
+                })
         end
 
         if res[1] == false or res[1] == nil or res[2] ~= nil then
@@ -781,7 +765,6 @@ local function delete_data_from_scd_table_sql_on_cluster (space_name, where_cond
     end
 
     return true, nil
-
 end
 
 --- Get checksum for a subset of data on cluster
@@ -791,53 +774,56 @@ end
 --- @param column_list table - optional, columns list for calculate checksum
 --- @param normalization number - optional, coefficient of increasing the possible number
 ---                               of records within the delta. (positive integer greater than or equal to 1, default 1).
-local function get_scd_table_checksum_on_cluster(actual_data_table_name, historical_data_table_name,
-                                                 delta_number, column_list, normalization)
-    checks('string','string','number','?table','?number')
+local function get_scd_table_checksum_on_cluster(
+    actual_data_table_name,
+    historical_data_table_name,
+    delta_number,
+    column_list,
+    normalization
+)
+    checks("string", "string", "number", "?table", "?number")
 
-    local storages =  cartridge.rpc_get_candidates('app.roles.adg_storage',{leader_only = true})
+    local storages = cartridge.rpc_get_candidates("app.roles.adg_storage", { leader_only = true })
     if #storages == 0 then
-        return false, error_repository.get_error_code('VROUTER_REPLICA_GET_001', {role='app.roles.adg_storage'})
+        return false, error_repository.get_error_code("VROUTER_REPLICA_GET_001", { role = "app.roles.adg_storage" })
     end
 
     local futures = {}
-    for _,cand in ipairs(storages) do
+    for _, cand in ipairs(storages) do
         local conn, err = pool.connect(cand)
         if conn == nil then
-            return false, error_repository.get_error_code(
-                'VROUTER_REPLICA_GET_001', {
-                    role = 'app.roles.adg_storage',
-                    error = err
-                }
-            )
+            return false,
+                error_repository.get_error_code("VROUTER_REPLICA_GET_001", {
+                    role = "app.roles.adg_storage",
+                    error = err,
+                })
         else
             local future, future_err = conn:call(
-                'get_scd_table_checksum',
-                {actual_data_table_name, historical_data_table_name, delta_number, column_list, normalization},
+                "get_scd_table_checksum",
+                { actual_data_table_name, historical_data_table_name, delta_number, column_list, normalization },
                 { is_async = true }
             )
             if future_err ~= nil then
                 return false, future_err
             end
-            table.insert(futures,future)
+            table.insert(futures, future)
         end
     end
 
     local result = 0
-    for _,future in ipairs(futures) do
+    for _, future in ipairs(futures) do
         future:wait_result(_G.api_timeouts:get_scd_table_checksum_timeout())
         local res, err = future:result()
         if res == nil then
-            return false, error_repository.get_error_code(
-                'STORAGE_003', {
-                    func='delete_data_from_scd_table_sql',
+            return false,
+                error_repository.get_error_code("STORAGE_003", {
+                    func = "delete_data_from_scd_table_sql",
                     actual_data_table_name = actual_data_table_name,
                     historical_data_table_name = historical_data_table_name,
                     delta_number = delta_number,
                     column_list = column_list,
-                    err = err
-                }
-            )
+                    err = err,
+                })
         end
 
         if res[1] == false or res[1] == nil then
@@ -851,39 +837,52 @@ local function get_scd_table_checksum_on_cluster(actual_data_table_name, histori
 end
 
 local function init_kafka_routes()
-    local httpd = cartridge.service_get('httpd')
+    local httpd = cartridge.service_get("httpd")
 
-    httpd:route({method='POST', path = 'api/v1/kafka/subscription'}, kafka_handler.subscribe_to_topic_on_cluster)
-    httpd:route({method='DELETE', path = 'api/v1/kafka/subscription/:topicName'}, kafka_handler.unsubscribe_from_topic_on_cluster)
-    httpd:route({method='POST', path = 'api/v1/kafka/dataload'}, kafka_handler.dataload_from_topic_on_cluster)
+    httpd:route({ method = "POST", path = "api/v1/kafka/subscription" }, kafka_handler.subscribe_to_topic_on_cluster)
+    httpd:route(
+        { method = "DELETE", path = "api/v1/kafka/subscription/:topicName" },
+        kafka_handler.unsubscribe_from_topic_on_cluster
+    )
+    httpd:route({ method = "POST", path = "api/v1/kafka/dataload" }, kafka_handler.dataload_from_topic_on_cluster)
 
+    httpd:route(
+        { method = "POST", path = "api/v1/kafka/dataunload/query" },
+        kafka_handler.dataunload_query_to_topic_on_cluster
+    )
+    httpd:route(
+        { method = "POST", path = "api/v1/kafka/dataunload/table" },
+        kafka_handler.dataunload_table_to_topic_on_cluster
+    )
 
-    httpd:route({method='POST', path = 'api/v1/kafka/dataunload/query'}, kafka_handler.dataunload_query_to_topic_on_cluster)
-    httpd:route({method='POST', path = 'api/v1/kafka/dataunload/table'}, kafka_handler.dataunload_table_to_topic_on_cluster)
-
-    httpd:route({method='POST', path = 'api/v1/kafka/callback'}, kafka_handler.register_kafka_callback_function)
-    httpd:route({method='GET', path = 'api/v1/kafka/callbacks'}, kafka_handler.get_kafka_callback_functions)
-    httpd:route({method='DELETE', path = 'api/v1/kafka/callback/:callbackFunctionName'},kafka_handler.delete_kafka_callback_function)
-
+    httpd:route({ method = "POST", path = "api/v1/kafka/callback" }, kafka_handler.register_kafka_callback_function)
+    httpd:route({ method = "GET", path = "api/v1/kafka/callbacks" }, kafka_handler.get_kafka_callback_functions)
+    httpd:route(
+        { method = "DELETE", path = "api/v1/kafka/callback/:callbackFunctionName" },
+        kafka_handler.delete_kafka_callback_function
+    )
 end
 
 local function init_ddl_routes()
-    local httpd = cartridge.service_get('httpd')
-    httpd:route({method='DELETE', path = 'api/v1/ddl/table/:tableName'}, ddl_handler.add_table_to_delete_batch)
-    httpd:route({method='DELETE', path = 'api/v1/ddl/table/queuedDelete'}, ddl_handler.queued_tables_delete)
-    httpd:route({method='POST', path = 'api/v1/ddl/table/queuedCreate'}, ddl_handler.queued_tables_create)
-    httpd:route({method='DELETE', path = 'api/v1/ddl/table/queuedDelete/prefix/:tablePrefix'}, ddl_handler.queued_prefix_delete)
-    httpd:route({method='POST', path = 'api/v1/ddl/table/schema'}, ddl_handler.get_storage_space_schema)
+    local httpd = cartridge.service_get("httpd")
+    httpd:route({ method = "DELETE", path = "api/v1/ddl/table/:tableName" }, ddl_handler.add_table_to_delete_batch)
+    httpd:route({ method = "DELETE", path = "api/v1/ddl/table/queuedDelete" }, ddl_handler.queued_tables_delete)
+    httpd:route({ method = "POST", path = "api/v1/ddl/table/queuedCreate" }, ddl_handler.queued_tables_create)
+    httpd:route(
+        { method = "DELETE", path = "api/v1/ddl/table/queuedDelete/prefix/:tablePrefix" },
+        ddl_handler.queued_prefix_delete
+    )
+    httpd:route({ method = "POST", path = "api/v1/ddl/table/schema" }, ddl_handler.get_storage_space_schema)
 end
 
 local function get_schema()
-    for _, instance_uri in pairs(cartridge_rpc.get_candidates('app.roles.adg_storage', { leader_only = true })) do
-        return cartridge_rpc.call('app.roles.adg_storage', 'get_schema', nil, { uri = instance_uri })
+    for _, instance_uri in pairs(cartridge_rpc.get_candidates("app.roles.adg_storage", { leader_only = true })) do
+        return cartridge_rpc.call("app.roles.adg_storage", "get_schema", nil, { uri = instance_uri })
     end
 end
 
 local function init(opts) -- luacheck: no unused args
-    rawset(_G, 'ddl', { get_schema = get_schema })
+    rawset(_G, "ddl", { get_schema = get_schema })
 
     _G.set_ddl = set_ddl
     _G.get_ddl = get_ddl
@@ -904,34 +903,47 @@ local function init(opts) -- luacheck: no unused args
     _G.get_scd_table_checksum_on_cluster = get_scd_table_checksum_on_cluster
     _G.api_timeouts = api_timeout_config.get_api_timeout_opts()
 
-    garbage_fiber = fiber.create(
-        function() while true do collectgarbage('step', 20);
-            fiber.sleep(0.2) end end
+    garbage_fiber = fiber.create(function()
+        while true do
+            collectgarbage("step", 20)
+            fiber.sleep(0.2)
+        end
+    end)
+    garbage_fiber:name("GARBAGE_COLLECTOR_FIBER")
+
+    local httpd = cartridge.service_get("httpd")
+
+    httpd:route({ method = "GET", path = "/metrics" }, prometheus.collect_http)
+
+    httpd:route({ method = "GET", path = "/api/get_config" }, cluster_config_handler.cluster_config_handler)
+
+    httpd:route({ method = "GET", path = "api/metrics/get_all_metrics" }, get_all_metrics_handler.get_all_metrics)
+
+    httpd:route({ method = "GET", path = "api/etl/transfer_data_to_scd_table" }, etl_handler.transfer_data_to_scd_table)
+
+    httpd:route(
+        { method = "POST", path = "/api/v1/ddl/table/reverseHistoryTransfer" },
+        etl_handler.reverse_history_in_scd_table
     )
-    garbage_fiber:name('GARBAGE_COLLECTOR_FIBER')
 
-    local httpd = cartridge.service_get('httpd')
+    httpd:route(
+        { method = "GET", path = "api/etl/truncate_space_on_cluster" },
+        truncate_space_handler.truncate_space_on_cluster
+    )
 
-    httpd:route({method='GET', path = '/metrics'}, prometheus.collect_http)
+    httpd:route(
+        { method = "POST", path = "api/etl/truncate_space_on_cluster" },
+        truncate_space_handler.truncate_space_on_cluster_post
+    )
 
-    httpd:route({method='GET', path = '/api/get_config'} ,
-    cluster_config_handler.cluster_config_handler)
+    httpd:route(
+        { method = "POST", path = "api/etl/delete_data_from_scd_table" },
+        etl_handler.delete_data_from_scd_table_sql
+    )
 
-    httpd:route({method='GET',path = 'api/metrics/get_all_metrics'}, get_all_metrics_handler.get_all_metrics)
+    httpd:route({ method = "POST", path = "api/etl/get_scd_table_checksum" }, etl_handler.get_scd_table_checksum)
 
-    httpd:route({method='GET', path = 'api/etl/transfer_data_to_scd_table'}, etl_handler.transfer_data_to_scd_table)
-
-    httpd:route({method='POST', path = '/api/v1/ddl/table/reverseHistoryTransfer'}, etl_handler.reverse_history_in_scd_table)
-
-    httpd:route({method='GET', path = 'api/etl/truncate_space_on_cluster'}, truncate_space_handler.truncate_space_on_cluster)
-
-    httpd:route({method='POST', path = 'api/etl/truncate_space_on_cluster'}, truncate_space_handler.truncate_space_on_cluster_post)
-
-    httpd:route({method='POST', path = 'api/etl/delete_data_from_scd_table'}, etl_handler.delete_data_from_scd_table_sql)
-
-    httpd:route({method='POST', path = 'api/etl/get_scd_table_checksum'}, etl_handler.get_scd_table_checksum)
-
-    httpd:route({method='GET', path = 'versions'}, version_handler.get_version)
+    httpd:route({ method = "GET", path = "versions" }, version_handler.get_version)
 
     init_kafka_routes()
     init_ddl_routes()
@@ -946,7 +958,7 @@ local function stop()
 end
 
 local function validate_config(conf_new, conf_old) -- luacheck: no unused args
-    if type(box.cfg) ~= 'function' and not box.cfg.read_only then -- luacheck: ignore 542
+    if type(box.cfg) ~= "function" and not box.cfg.read_only then -- luacheck: ignore 542
     end
     return true
 end
@@ -955,8 +967,8 @@ local function apply_config(conf, opts) -- luacheck: no unused args
     _G.api_timeouts = api_timeout_config.get_api_timeout_opts()
 
     schema_utils.init_schema_ddl()
-    error_repository.init_error_repo('en')
-    success_repository.init_success_repo('en')
+    error_repository.init_error_repo("en")
+    success_repository.init_success_repo("en")
     if opts.is_master and pcall(vshard.storage.info) == false then
         schema_utils.drop_all()
         if conf.schema ~= nil then
@@ -966,8 +978,6 @@ local function apply_config(conf, opts) -- luacheck: no unused args
     end
     return true
 end
-
-
 
 return {
     role_name = role_name,
@@ -984,7 +994,7 @@ return {
     reverse_history_in_scd_table_on_cluster = reverse_history_in_scd_table_on_cluster,
     get_storage_space_schema = get_storage_space_schema,
     dependencies = {
-        'cartridge.roles.crud-router',
-        'cartridge.roles.vshard-router'
-    }
+        "cartridge.roles.crud-router",
+        "cartridge.roles.vshard-router",
+    },
 }

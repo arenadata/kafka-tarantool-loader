@@ -12,52 +12,46 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
-local avro_schema = require('avro_schema')
-local checks = require('checks')
+local avro_schema = require("avro_schema")
+local checks = require("checks")
 
 local function check_avro_schema_compatibility(old_schema, new_schema, opts)
-    checks('table', 'table', {
-        is_downgrade = '?boolean'
+    checks("table", "table", {
+        is_downgrade = "?boolean",
     })
     local downgrade_string = nil
 
-    if opts['is_downgrade'] == true then
-        downgrade_string = 'downgrade'
+    if opts["is_downgrade"] == true then
+        downgrade_string = "downgrade"
     end
 
-    local ok = avro_schema.are_compatible(old_schema,new_schema,downgrade_string)
+    local ok = avro_schema.are_compatible(old_schema, new_schema, downgrade_string)
     return ok
-
 end
 
-
 local function validate_avro_data(schema, data)
-
     if not avro_schema.is(schema) then
-        return false,nil
+        return false, nil
     end
 
-    local ok,res = avro_schema.validate(schema,data)
+    local ok, res = avro_schema.validate(schema, data)
 
-    return ok,res
+    return ok, res
 end
 
 local function compile_avro_schema(schema)
-    checks('table')
+    checks("table")
     if not avro_schema.is(schema) then
         return false, nil
     end
 
     local ok, methods = avro_schema.compile(schema)
 
-    return ok,methods
-
+    return ok, methods
 end
-
-
 
 return {
     check_avro_schema_compatibility = check_avro_schema_compatibility,
     validate_avro_data = validate_avro_data,
-    compile_avro_schema = compile_avro_schema
+    compile_avro_schema = compile_avro_schema,
 }

@@ -12,39 +12,38 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
-local json = require('json')
-local digest = require('digest')
+local json = require("json")
+local digest = require("digest")
 
 local users = nil --Users repo
 
 local function basic_auth_handler(req)
-    local auth = req:header('authorization')
-    if not auth or not auth:find('Basic ') then
-      return {
-        status = 401,
-        body = json.encode({message = 'Missing Authorization Header'})
-      }
+    local auth = req:header("authorization")
+    if not auth or not auth:find("Basic ") then
+        return {
+            status = 401,
+            body = json.encode({ message = "Missing Authorization Header" }),
+        }
     end
 
-  local base64_credentials = auth:split(' ')[2]
-  local credentials = digest.base64_decode(base64_credentials)
-  local username = credentials:split(':')[1]
-  local password = credentials:split(':')[2]
+    local base64_credentials = auth:split(" ")[2]
+    local credentials = digest.base64_decode(base64_credentials)
+    local username = credentials:split(":")[1]
+    local password = credentials:split(":")[2]
 
+    local user = users.authenticate(username, password)
+    if not user then
+        return {
+            status = 401,
+            body = json.encode({ message = "Invalid Authentication Credentials" }),
+        }
+    end
 
-  local user = users.authenticate(username, password)
-  if not user then
-    return {
-      status = 401,
-      body = json.encode({message = 'Invalid Authentication Credentials'})
-    }
-  end
+    req.user = user
 
-  req.user = user
-
-  return req:next()
+    return req:next()
 end
 
 return {
-  basic_auth_handler = basic_auth_handler
+    basic_auth_handler = basic_auth_handler,
 }

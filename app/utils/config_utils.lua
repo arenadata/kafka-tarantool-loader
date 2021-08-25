@@ -12,19 +12,19 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
-local yaml = require('yaml')
-local checks = require('checks')
-local cartridge = require('cartridge')
-local file_utils = require('app.utils.file_utils')
-local misc_utils = require('app.utils.misc_utils')
+local yaml = require("yaml")
+local checks = require("checks")
+local cartridge = require("cartridge")
+local file_utils = require("app.utils.file_utils")
+local misc_utils = require("app.utils.misc_utils")
 
 local function parse_file_conf(file)
-checks('string')
+    checks("string")
 
-    local config,err = pcall(file_utils.read_file(file))
+    local config, err = pcall(file_utils.read_file(file))
 
     if err == nil then
-        local res, err =  yaml.decode(config)
+        local res, err = yaml.decode(config)
 
         if res == nil then
             return nil, err
@@ -33,18 +33,16 @@ checks('string')
         return res
     end
 
-    return nil,err
-
+    return nil, err
 end
 
 local function get_config()
-
     local cluster_config = cartridge.config_get_deepcopy()
 
     if cluster_config == nil then
-        return parse_file_conf('/usr/share/tarantool/memstorage/conf/kafka_config.yml')
-
-    else return cluster_config
+        return parse_file_conf("/usr/share/tarantool/memstorage/conf/kafka_config.yml")
+    else
+        return cluster_config
     end
 end
 
@@ -53,16 +51,16 @@ local function get_topics_x_targets(conf)
         return {}
     end
 
-    if conf['kafka_topics'] == nil then
+    if conf["kafka_topics"] == nil then
         return {}
     end
-    local topics = conf['kafka_topics']
-    if type(topics) == 'string' then
+    local topics = conf["kafka_topics"]
+    if type(topics) == "string" then
         topics = {}
     end
     local result = {}
-    for k,v in pairs(topics) do
-        result[k] = v['target_table']
+    for k, v in pairs(topics) do
+        result[k] = v["target_table"]
     end
     return result
 end
@@ -72,16 +70,16 @@ local function get_topics_x_schema_key(conf)
         return {}
     end
 
-    if conf['kafka_topics'] == nil then
+    if conf["kafka_topics"] == nil then
         return {}
     end
-    local topics = conf['kafka_topics']
-    if type(topics) == 'string' then
+    local topics = conf["kafka_topics"]
+    if type(topics) == "string" then
         topics = {}
     end
     local result = {}
-    for k,v in pairs(topics) do
-        result[k] = v['schema_key']
+    for k, v in pairs(topics) do
+        result[k] = v["schema_key"]
     end
     return result
 end
@@ -91,57 +89,54 @@ local function get_topics_x_schema_data(conf)
         return {}
     end
 
-    if conf['kafka_topics'] == nil then
+    if conf["kafka_topics"] == nil then
         return {}
     end
-    local topics = conf['kafka_topics']
+    local topics = conf["kafka_topics"]
     local result = {}
-    if type(topics) == 'string' then
+    if type(topics) == "string" then
         topics = {}
     end
-    for k,v in pairs(topics) do
-        result[k] = v['schema_data']
+    for k, v in pairs(topics) do
+        result[k] = v["schema_data"]
     end
     return result
 end
-
 
 local function get_topics_x_error(conf)
     if conf == nil then
         return {}
     end
 
-    if conf['kafka_topics'] == nil then
+    if conf["kafka_topics"] == nil then
         return {}
     end
-    local topics = conf['kafka_topics']
-    if type(topics) == 'string' then
+    local topics = conf["kafka_topics"]
+    if type(topics) == "string" then
         topics = {}
     end
     local result = {}
-    for k,v in pairs(topics) do
-        result[k] = v['error_topic']
+    for k, v in pairs(topics) do
+        result[k] = v["error_topic"]
     end
     return result
 end
 
-
 local function get_topics_x_success(conf)
-
     if conf == nil then
         return {}
     end
 
-    if conf['kafka_topics'] == nil then
+    if conf["kafka_topics"] == nil then
         return {}
     end
-    local topics = conf['kafka_topics']
+    local topics = conf["kafka_topics"]
     local result = {}
-    if type(topics) == 'string' then
+    if type(topics) == "string" then
         topics = {}
     end
-    for k,v in pairs(topics) do
-        result[k] = v['success_topic']
+    for k, v in pairs(topics) do
+        result[k] = v["success_topic"]
     end
     return result
 end
@@ -151,13 +146,15 @@ local function get_consumer_options(conf)
         return {}
     end
 
-    if conf['kafka_consume'] == nil then
+    if conf["kafka_consume"] == nil then
         return {}
     end
-    local consumers = conf['kafka_consume']
-    local properties = consumers['properties']
+    local consumers = conf["kafka_consume"]
+    local properties = consumers["properties"]
 
-    if type(properties) == 'string' then properties = {} end
+    if type(properties) == "string" then
+        properties = {}
+    end
     return properties
 end
 
@@ -165,25 +162,25 @@ local function get_consumer_x_type(conf)
     if conf == nil then
         return {}
     end
-    if conf['kafka_consume'] == nil then
+    if conf["kafka_consume"] == nil then
         return {}
     end
-    local consumers = conf['kafka_consume']
+    local consumers = conf["kafka_consume"]
     local result = {}
-    for k,v in pairs(consumers) do
-        result[k] = v['consumer_type']
+    for k, v in pairs(consumers) do
+        result[k] = v["consumer_type"]
     end
     return result
 end
 
-
 local function get_kafka_bootstrap(conf)
     if conf == nil then
-        return '127.0.0.1'
+        return "127.0.0.1"
     end
-     if conf['kafka_bootstrap'] == nil then
-        return '127.0.0.1'
-    else return conf['kafka_bootstrap']['bootstrap_connection_string']
+    if conf["kafka_bootstrap"] == nil then
+        return "127.0.0.1"
+    else
+        return conf["kafka_bootstrap"]["bootstrap_connection_string"]
     end
 end
 
@@ -192,15 +189,15 @@ local function get_consumer_x_topic(conf)
         return {}
     end
 
-    if conf['kafka_consume'] == nil then
+    if conf["kafka_consume"] == nil then
         return {}
     end
-    local consumers = conf['kafka_consume']
+    local consumers = conf["kafka_consume"]
     local result = {}
-    for k,v in pairs(consumers) do
-        result[k] = v['topics']
+    for k, v in pairs(consumers) do
+        result[k] = v["topics"]
     end
-    return result;
+    return result
 end
 
 local function get_all_topics(conf)
@@ -208,37 +205,36 @@ local function get_all_topics(conf)
         return {}
     end
 
-    if conf['kafka_consume'] == nil then
+    if conf["kafka_consume"] == nil then
         return {}
     end
-    local consumers = conf['kafka_consume']
-    return consumers['topics'] or {};
+    local consumers = conf["kafka_consume"]
+    return consumers["topics"] or {}
 end
-
 
 local function get_ddl_schema(conf)
     if conf == nil then
         return {}
     end
-    if conf['schema'] == nil then
+    if conf["schema"] == nil then
         return {}
     end
-    local schema = conf['schema']
+    local schema = conf["schema"]
     return schema
 end
 
-
 local function contains(t, e)
-    for i = 1,#t do
-      if t[i] == e then return true end
+    for i = 1, #t do
+        if t[i] == e then
+            return true
+        end
     end
     return false
-  end
+end
 
-
-local function check_topic_def(topics_x_targets,consumer_x_topic)
-    for _,v in pairs(consumer_x_topic) do
-        for _,t in ipairs(v) do
+local function check_topic_def(topics_x_targets, consumer_x_topic)
+    for _, v in pairs(consumer_x_topic) do
+        for _, t in ipairs(v) do
             if topics_x_targets[t] == nil then
                 return false
             end
@@ -249,24 +245,23 @@ local function check_topic_def(topics_x_targets,consumer_x_topic)
 end
 
 local function check_target_spaces_def(topics_x_targets, spaces)
-    for _,v in pairs(topics_x_targets) do
-        if not contains(spaces,v) then
-        return false
+    for _, v in pairs(topics_x_targets) do
+        if not contains(spaces, v) then
+            return false
         end
     end
-    return true;
+    return true
 end
 
 local function get_scheduler_tasks(conf)
-
     if conf == nil then
         return {}
     end
 
-    if conf['scheduler_tasks'] == nil then
+    if conf["scheduler_tasks"] == nil then
         return {}
     end
-    local tasks = conf['scheduler_tasks']
+    local tasks = conf["scheduler_tasks"]
     return tasks
 end
 
@@ -275,14 +270,12 @@ local function get_schema_registry_opts(conf)
         return {}
     end
 
-    if conf['kafka_schema_registry'] == nil then
+    if conf["kafka_schema_registry"] == nil then
         return {}
     end
-    local schema_registry = conf['kafka_schema_registry']
+    local schema_registry = conf["kafka_schema_registry"]
     return schema_registry
 end
-
-
 
 local function print_conf(conf)
     local topics_x_targets = get_topics_x_targets(conf)
@@ -291,19 +284,15 @@ local function print_conf(conf)
     local consumer_x_topic = get_consumer_x_topic(conf)
     local spaces = get_ddl_schema(conf)
 
-    print(check_topic_def(topics_x_targets,consumer_x_topic))
-    print(check_target_spaces_def(topics_x_targets,spaces))
-
+    print(check_topic_def(topics_x_targets, consumer_x_topic))
+    print(check_target_spaces_def(topics_x_targets, spaces))
 
     misc_utils.print_table(topics_x_targets)
     misc_utils.print_table(consumer_options)
     misc_utils.print_table(consumer_x_type)
     misc_utils.print_table(consumer_x_topic)
     misc_utils.print_table(spaces)
-
-
 end
-
 
 return {
     get_kafka_bootstrap = get_kafka_bootstrap,
@@ -315,9 +304,9 @@ return {
     get_scheduler_tasks = get_scheduler_tasks,
     print_conf = print_conf,
     parse_file_conf = parse_file_conf,
-    get_schema_registry_opts= get_schema_registry_opts,
-    get_topics_x_schema_key =get_topics_x_schema_key,
+    get_schema_registry_opts = get_schema_registry_opts,
+    get_topics_x_schema_key = get_topics_x_schema_key,
     get_topics_x_schema_data = get_topics_x_schema_data,
     get_topics_x_error = get_topics_x_error,
-    get_topics_x_success = get_topics_x_success
+    get_topics_x_success = get_topics_x_success,
 }

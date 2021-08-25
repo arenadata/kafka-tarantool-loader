@@ -16,26 +16,24 @@
 --- Created by ashitov.
 --- DateTime: 4/20/20 1:00 PM
 ---
-local t = require('luatest')
-local g = t.group('entities.set')
-local set = require('app.entities.set')
+local t = require("luatest")
+local g = t.group("entities.set")
+local set = require("app.entities.set")
 
-g.test_simple_cases = function ()
-    local list1 = {'a','b','c','d'}
-    local list2 = {'a','a','a'}
+g.test_simple_cases = function()
+    local list1 = { "a", "b", "c", "d" }
+    local list2 = { "a", "a", "a" }
     local list3 = {}
 
     local set1 = set.Set(list1)
     local set2 = set.Set(list2)
     local set3 = set.Set(list3)
 
-    t.assert_equals(set1,{a = true, b = true, c = true, d = true})
-    t.assert_equals(set2,{a = true})
-    t.assert_equals(set3,{})
-
-
+    t.assert_equals(set1, { a = true, b = true, c = true, d = true })
+    t.assert_equals(set2, { a = true })
+    t.assert_equals(set3, {})
 end
 
 g.test_bad_input = function()
-    t.assert_error(set.Set,nil)
+    t.assert_error(set.Set, nil)
 end

@@ -12,23 +12,22 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
-local metrics = require('metrics')
+local metrics = require("metrics")
 metrics.enable_default_metrics()
-local json_metrics = require('metrics.plugins.json')
-local json = require('json')
+local json_metrics = require("metrics.plugins.json")
+local json = require("json")
 
-local kafka_messages_total_counter = metrics.counter('kafka_messages_total')
-local kafka_messages_insert_rows_total_counter =  metrics.counter('kafka_messages_insert_rows')
-local api_select_queries_total_counter =   metrics.counter('api_select_queries')
-
+local kafka_messages_total_counter = metrics.counter("kafka_messages_total")
+local kafka_messages_insert_rows_total_counter = metrics.counter("kafka_messages_insert_rows")
+local api_select_queries_total_counter = metrics.counter("api_select_queries")
 
 local function export(role_name)
-    return {[role_name] = json.decode(json_metrics.export())}
+    return { [role_name] = json.decode(json_metrics.export()) }
 end
 
 return {
     kafka_messages_total_counter = kafka_messages_total_counter,
     kafka_messages_insert_rows_total_counter = kafka_messages_insert_rows_total_counter,
     api_select_queries_total_counter = api_select_queries_total_counter,
-    export = export
+    export = export,
 }

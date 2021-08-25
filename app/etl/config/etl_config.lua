@@ -16,18 +16,18 @@
 --- Created by ashitov.
 --- DateTime: 4/7/20 4:57 PM
 ---
-local config_utils = require('app.utils.config_utils')
+local config_utils = require("app.utils.config_utils")
 
 local function get_etl_scd_opts(conf)
     if conf == nil then
         return {}
     end
 
-    if conf['etl_scd'] == nil then
+    if conf["etl_scd"] == nil then
         return {}
     end
 
-    return conf['etl_scd']
+    return conf["etl_scd"]
 end
 
 local etl_scd_opts = get_etl_scd_opts(config_utils.get_config())
@@ -36,17 +36,16 @@ local function init_etl_opts()
     etl_scd_opts = get_etl_scd_opts(config_utils.get_config())
 end
 
-
 local function get_date_field_start_nm()
-    return etl_scd_opts.start_field_nm or 'sys_from'
+    return etl_scd_opts.start_field_nm or "sys_from"
 end
 
 local function get_date_field_end_nm()
-    return etl_scd_opts.end_field_nm or 'sys_to'
+    return etl_scd_opts.end_field_nm or "sys_to"
 end
 
 local function get_date_field_op_nm()
-    return etl_scd_opts.op_field_nm or 'sys_op'
+    return etl_scd_opts.op_field_nm or "sys_op"
 end
 
 local function get_date_field_start_index_nm()
@@ -68,5 +67,5 @@ return {
     get_date_field_op_nm = get_date_field_op_nm,
     get_date_field_start_index_nm = get_date_field_start_index_nm,
     get_date_field_end_index_nm = get_date_field_end_index_nm,
-    get_transfer_pause_rows_cnt = get_transfer_pause_rows_cnt
+    get_transfer_pause_rows_cnt = get_transfer_pause_rows_cnt,
 }

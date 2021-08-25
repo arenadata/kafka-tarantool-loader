@@ -17,13 +17,13 @@
 --- DateTime: 6/2/20 1:51 PM
 ---
 
-local avro = require('avro')
-local checks = require('checks')
-local json = require('json')
-local error_repository = require('app.messages.error_repository')
-local misc_utils = require('app.utils.misc_utils')
-local file_utils = require('app.utils.file_utils')
-local fio = require('fio')
+local avro = require("avro")
+local checks = require("checks")
+local json = require("json")
+local error_repository = require("app.messages.error_repository")
+local misc_utils = require("app.utils.misc_utils")
+local file_utils = require("app.utils.file_utils")
+local fio = require("fio")
 
 local sync_size = 16
 local magic = string.char(0x4F, 0x62, 0x6A, 0x01)
@@ -38,19 +38,19 @@ local function generate_random_avro_file_name()
         random_number = math.random(65, 90)
         random_string = random_string .. string.char(random_number)
     end
-    return 'tarantool_avro' .. random_string .. '.avro'
+    return "tarantool_avro" .. random_string .. ".avro"
 end
 
 ---compile_avro_schema - method, that compiles JSON-string to Avro schema object.
 ---@param schema string - Avro schema in JSON-string.
 ---@return boolean,userdata|string - true|compiled Avro schema if process finished without error, else false|error.
 local function compile_avro_schema(schema)
-    checks('string')
+    checks("string")
     local ok, binary_schema = pcall(avro.Schema.new, avro.Schema, schema)
     if ok then
         return ok, binary_schema
     else
-        return ok, error_repository.get_error_code('AVRO_SCHEMA_002', { schema = schema, error = binary_schema })
+        return ok, error_repository.get_error_code("AVRO_SCHEMA_002", { schema = schema, error = binary_schema })
     end
 end
 
@@ -61,56 +61,45 @@ end
 ---@param table table - table {{}}, that need to clean.
 ---@return table - table, without Avro types, or input table without changes.
 local function clean_table_of_records_from_avro_types(table)
-    if type(table) ~= 'table' then
+    if type(table) ~= "table" then
         return table
     end
 
     if misc_utils.is_array(table) then
         for _, row in ipairs(table) do
             for elem, value in pairs(row) do
-                if type(value) == 'table' then
-                    if value['string'] ~= nil then
-                        row[elem] = tostring(value['string'])
-
-                    elseif value['int'] ~= nil then
-                        row[elem] = tonumber(value['int'])
-
-                    elseif value['long'] ~= nil then
-                        row[elem] = tonumber(value['long'])
-
-                    elseif value['float'] ~= nil then
-                        row[elem] = tonumber(value['float'])
-
-                    elseif value['double'] ~= nil then
-                        row[elem] = tostring(value['double'])
-
-                    elseif value['boolean'] ~= nil then
-                        row[elem] = value['boolean']
+                if type(value) == "table" then
+                    if value["string"] ~= nil then
+                        row[elem] = tostring(value["string"])
+                    elseif value["int"] ~= nil then
+                        row[elem] = tonumber(value["int"])
+                    elseif value["long"] ~= nil then
+                        row[elem] = tonumber(value["long"])
+                    elseif value["float"] ~= nil then
+                        row[elem] = tonumber(value["float"])
+                    elseif value["double"] ~= nil then
+                        row[elem] = tostring(value["double"])
+                    elseif value["boolean"] ~= nil then
+                        row[elem] = value["boolean"]
                     end
                 end
-
             end
         end
     else
         for elem, value in pairs(table) do
-            if type(value) == 'table' then
-                if value['string'] ~= nil then
-                    table[elem] = tostring(value['string'])
-
-                elseif value['int'] ~= nil then
-                    table[elem] = tonumber(value['int'])
-
-                elseif value['long'] ~= nil then
-                    table[elem] = tonumber(value['long'])
-
-                elseif value['float'] ~= nil then
-                    table[elem] = tonumber(value['float'])
-
-                elseif value['double'] ~= nil then
-                    table[elem] = tostring(value['double'])
-
-                elseif value['boolean'] ~= nil then
-                    table[elem] = value['boolean']
+            if type(value) == "table" then
+                if value["string"] ~= nil then
+                    table[elem] = tostring(value["string"])
+                elseif value["int"] ~= nil then
+                    table[elem] = tonumber(value["int"])
+                elseif value["long"] ~= nil then
+                    table[elem] = tonumber(value["long"])
+                elseif value["float"] ~= nil then
+                    table[elem] = tonumber(value["float"])
+                elseif value["double"] ~= nil then
+                    table[elem] = tostring(value["double"])
+                elseif value["boolean"] ~= nil then
+                    table[elem] = value["boolean"]
                 end
             end
         end
@@ -124,7 +113,7 @@ end
 ---@param table table - table [{},{}, ..., {}] to encode.
 ---@return string - avro binary string.
 local function encode_table_of_records_to_avro(schema, table)
-    checks('string', 'table')
+    checks("string", "table")
     local is_schema_compiled, compiled_schema = compile_avro_schema(schema)
 
     if is_schema_compiled == false then
@@ -195,7 +184,7 @@ end
 ---that contains location on the filesystem to save intermediate results.
 ---@return string -  avro binary string.
 local function encode_table_of_records_to_avro_object_container(schema, table, dir_to_safe)
-    checks('string', 'table', '?string')
+    checks("string", "table", "?string")
 
     local is_schema_compiled, compiled_schema = compile_avro_schema(schema)
 
@@ -209,7 +198,7 @@ local function encode_table_of_records_to_avro_object_container(schema, table, d
     --check dir
     if not fio.path.exists(dir_to_safe) then
         compiled_schema:release()
-        return false, dir_to_safe .. ' dir does not exists'
+        return false, dir_to_safe .. " dir does not exists"
     end
 
     local file_name = dir_to_safe .. generate_random_avro_file_name()
@@ -228,13 +217,12 @@ local function encode_table_of_records_to_avro_object_container(schema, table, d
         return false, raw_value
     end
 
-    local is_data_encoded, data_encoding_error = pcall(
-            function()
-                for _, row in ipairs(table) do
-                    raw_value:set_from_ast(row)
-                    writer:write_raw(raw_value)
-                end
-            end)
+    local is_data_encoded, data_encoding_error = pcall(function()
+        for _, row in ipairs(table) do
+            raw_value:set_from_ast(row)
+            writer:write_raw(raw_value)
+        end
+    end)
 
     if not is_data_encoded then
         writer:close()
@@ -273,33 +261,41 @@ end
 ---@param value string - encoded avro value.
 ---@return boolean|userdata - true|raw_value_wrapper if process finished without errors, else false|error.
 local function decode_avro_into_raw_value(compiled_schema, value)
-    checks('table', 'string')
+    checks("table", "string")
 
     local is_raw_actual_created, raw_actual = pcall(compiled_schema.new_raw_value, compiled_schema)
 
     if is_raw_actual_created == false then
-        return is_raw_actual_created, error_repository.get_error_code('AVRO_BINARY_DECODE_001',
-                { schema = compiled_schema.to_json(), value = value, error = raw_actual })
+        return is_raw_actual_created,
+            error_repository.get_error_code(
+                "AVRO_BINARY_DECODE_001",
+                { schema = compiled_schema.to_json(), value = value, error = raw_actual }
+            )
     end
 
     local is_resolver_created, resolver = pcall(avro.ResolvedWriter, compiled_schema, compiled_schema)
 
     if is_resolver_created == false then
         raw_actual:release()
-        return is_resolver_created, error_repository.get_error_code('AVRO_BINARY_DECODE_001',
-                { schema = compiled_schema.to_json(), value = value, error = resolver })
+        return is_resolver_created,
+            error_repository.get_error_code(
+                "AVRO_BINARY_DECODE_001",
+                { schema = compiled_schema.to_json(), value = value, error = resolver }
+            )
     end
 
     local is_value_decoded, value_decode_error = pcall(resolver.decode, resolver, value, raw_actual)
 
     if is_value_decoded == false then
         raw_actual:release()
-        return is_value_decoded, error_repository.get_error_code('AVRO_BINARY_DECODE_001',
-                { schema = compiled_schema.to_json(), value = value, error = value_decode_error })
+        return is_value_decoded,
+            error_repository.get_error_code(
+                "AVRO_BINARY_DECODE_001",
+                { schema = compiled_schema.to_json(), value = value, error = value_decode_error }
+            )
     end
 
     return true, raw_actual
-
 end
 
 ---decode_single_object_avro - method, that decode single object avro to lua table.
@@ -307,7 +303,7 @@ end
 ---@param value string - encoded avro value.
 ---@return boolean|table - true|{value=...,size=decoded_size} if process finished without errors, else false|error.
 local function decode_single_object_avro(compiled_schema, value)
-    checks('table', 'string')
+    checks("table", "string")
 
     local is_raw_decoded, raw_actual = decode_avro_into_raw_value(compiled_schema, value)
 
@@ -322,23 +318,28 @@ local function decode_single_object_avro(compiled_schema, value)
 
     if not is_decode_json_string_obtained then
         raw_actual:release()
-        return is_decode_json_string_obtained, error_repository.get_error_code('AVRO_BINARY_DECODE_001',
-                { schema = compiled_schema:to_json(), error = decoded_json_string })
+        return is_decode_json_string_obtained,
+            error_repository.get_error_code(
+                "AVRO_BINARY_DECODE_001",
+                { schema = compiled_schema:to_json(), error = decoded_json_string }
+            )
     end
 
     local is_json_valid, decoded_json = pcall(json.decode, decoded_json_string)
 
     if not is_json_valid then
-        return is_json_valid, error_repository.get_error_code('AVRO_BINARY_DECODE_001',
-                { json_string = decoded_json_string,
-                  schema = compiled_schema:to_json(), error = decoded_json })
+        return is_json_valid,
+            error_repository.get_error_code(
+                "AVRO_BINARY_DECODE_001",
+                { json_string = decoded_json_string, schema = compiled_schema:to_json(), error = decoded_json }
+            )
     end
 
     local decoded_value = clean_table_of_records_from_avro_types(decoded_json)
     raw_actual:release()
     compiled_schema:release()
 
-    return true, { ['value'] = decoded_value, ['size'] = encoded_size }
+    return true, { ["value"] = decoded_value, ["size"] = encoded_size }
 end
 
 local function decode_avro_long_size(compiled_schema, value)
@@ -352,8 +353,7 @@ local function decode_avro_long_size(compiled_schema, value)
     local size = tonumber(raw_actual:encoded_size())
 
     raw_actual:release()
-    return true, { ['value'] = value_decoded, ['size'] = size }
-
+    return true, { ["value"] = value_decoded, ["size"] = size }
 end
 
 ---decode_data_from_blocks - method, that decodes blocks of data in encoded Avro object container.
@@ -361,7 +361,7 @@ end
 ---@param value string - binary string, that contains blocks of avro object container.
 ---@return boolean|table - true|{data=...,block_count=n} if process finished without errors, else false|error.
 local function decode_data_from_blocks(schema, value)
-    checks('string', 'string')
+    checks("string", "string")
     --[[
     A file data block consists of:
 
@@ -390,7 +390,6 @@ local function decode_data_from_blocks(schema, value)
     end
 
     while size_of_decoded < size_of_value do
-
         --- decode long indicating the count of objects in this block.
         local ok1, l1 = decode_avro_long_size(compiled_schema_long, value)
 
@@ -417,8 +416,9 @@ local function decode_data_from_blocks(schema, value)
 
         while i <= l1.value do
             local ok3, data = decode_single_object_avro(
-                    compiled_schema,
-                    value:sub(shift_to_data + shift, shift_to_data + l2.value))
+                compiled_schema,
+                value:sub(shift_to_data + shift, shift_to_data + l2.value)
+            )
             shift = shift + data.size
             if not ok3 then
                 return false, data
@@ -436,24 +436,22 @@ local function decode_data_from_blocks(schema, value)
             table.insert(result, block_result)
         end
         block_count = block_count + 1
-
     end
     compiled_schema_long:release()
     compiled_schema:release()
-    return true, { ['data'] = result, block_count = block_count }
+    return true, { ["data"] = result, block_count = block_count }
 end
-
 
 ---extract_metadata - method, that extract avro metadata from avro object container.
 ---@param value string - binary string, that contains encoded avro object container.
 ---@return boolean|table - true|{value=...,size=decoded_size} if process finished without errors, else false|error.
 local function extract_metadata(value)
-    checks('string')
+    checks("string")
 
     local is_avro = value:sub(1, 4) == magic
 
     if not is_avro then
-        return false, error_repository.get_error_code('AVRO_BINARY_DECODE_003', { value = value }) --TODO Not avro
+        return false, error_repository.get_error_code("AVRO_BINARY_DECODE_003", { value = value }) --TODO Not avro
     end
 
     --[[
@@ -474,15 +472,13 @@ local function extract_metadata(value)
     local is_schema_decoded, metadata = decode_single_object_avro(compiled_schema, value:sub(string.len(magic) + 1))
 
     if not is_schema_decoded then
-        return false, error_repository.get_error_code('AVRO_BINARY_DECODE_002',
-                { schema = schema, error = metadata }) --TODO Not valid schema
+        --TODO Not valid schema
+        return false, error_repository.get_error_code("AVRO_BINARY_DECODE_002", { schema = schema, error = metadata })
     end
 
     compiled_schema:release()
     return true, metadata
-
 end
-
 
 ---decode_object_container_avro - method, that decode avro object container with lua string decoding.
 ---@param value string -  binary string, that contains encoded avro object container.
@@ -490,7 +486,7 @@ end
 ---@return boolean|table - true|table if process finished without errors, else false|error.
 -- luacheck: ignore decode_object_container_avro
 local function decode_object_container_avro(value, input_schema)
-    checks('string', '?string')
+    checks("string", "?string")
 
     local is_schema_decoded, metadata = extract_metadata(value)
 
@@ -501,17 +497,23 @@ local function decode_object_container_avro(value, input_schema)
     local is_data_decoded, decoded_data
 
     if input_schema ~= nil then
-        is_data_decoded, decoded_data = decode_data_from_blocks(input_schema,
-                value:sub(string.len(magic) + 1 + metadata.size + sync_size))
+        is_data_decoded, decoded_data = decode_data_from_blocks(
+            input_schema,
+            value:sub(string.len(magic) + 1 + metadata.size + sync_size)
+        )
     else
-        is_data_decoded, decoded_data = decode_data_from_blocks(metadata.value["avro.schema"],
-                value:sub(string.len(magic) + 1 + metadata.size + sync_size))
+        is_data_decoded, decoded_data = decode_data_from_blocks(
+            metadata.value["avro.schema"],
+            value:sub(string.len(magic) + 1 + metadata.size + sync_size)
+        )
     end
 
     if not is_data_decoded then
-        return false, error_repository.get_error_code('AVRO_BINARY_DECODE_002',
-                { schema = metadata.value["avro.schema"],
-                  error = decoded_data }) --TODO Not valid schema
+        return false,
+            error_repository.get_error_code(
+                "AVRO_BINARY_DECODE_002",
+                { schema = metadata.value["avro.schema"], error = decoded_data }
+            ) --TODO Not valid schema
     end
 
     if decoded_data.block_count == 1 then
@@ -524,11 +526,9 @@ local function decode_object_container_avro(value, input_schema)
             else
                 misc_utils.append_table(result, v)
             end
-
         end
         return true, clean_table_of_records_from_avro_types(result)
     end
-
 end
 
 ---transform_avro_binary_to_shm_file - support method, that saves avro binary value to file on filesystem.
@@ -537,20 +537,19 @@ end
 ---that contains location on the filesystem to save intermediate results.
 ---@return boolean|string - true|filename if process finished without errors, false|error otherwise.
 local function transform_avro_binary_to_shm_file(value, dir_to_safe)
-    checks('string', '?string')
+    checks("string", "?string")
 
     if dir_to_safe == nil then
         dir_to_safe = "/dev/shm/"
     end
     --check dir
     if not fio.path.exists(dir_to_safe) then
-        return false, dir_to_safe .. ' dir does not exists'
+        return false, dir_to_safe .. " dir does not exists"
     end
 
     local file_name = dir_to_safe .. generate_random_avro_file_name()
 
-    local res, err = file_utils.write_file(file_name, value, { "O_RDWR", "O_CREAT" },
-            { "S_IRUSR", "S_IWUSR" })
+    local res, err = file_utils.write_file(file_name, value, { "O_RDWR", "O_CREAT" }, { "S_IRUSR", "S_IWUSR" })
 
     if not res then
         return false, err
@@ -566,7 +565,7 @@ end
 ---@return boolean|table - true|table if process finished without errors, false|error otherwise.
 -- luacheck: ignore decode_records_object_container_avro_fast
 local function decode_records_object_container_avro_fast(value, dir_to_safe)
-    checks('string', '?string')
+    checks("string", "?string")
     local try_count = 1
     :: restart ::
 
@@ -608,9 +607,9 @@ local function decode_records_object_container_avro_fast(value, dir_to_safe)
         return false, del
     end
 
-    if #blocks_result == 1 and type(blocks_result[1]) ~= 'table' then
+    if #blocks_result == 1 and type(blocks_result[1]) ~= "table" then
         return true, clean_table_of_records_from_avro_types(json.decode(blocks_result[1]))
-    elseif #blocks_result > 1 and type(blocks_result[1]) == 'table' then
+    elseif #blocks_result > 1 and type(blocks_result[1]) == "table" then
         local result
         for _, v in ipairs(blocks_result) do
             if result == nil then
@@ -618,22 +617,19 @@ local function decode_records_object_container_avro_fast(value, dir_to_safe)
             else
                 misc_utils.append_table(result, clean_table_of_records_from_avro_types(json.decode(v)))
             end
-
         end
-        return true, result  -- for array of record
+        return true, result -- for array of record
     else
-
         local result = {}
         for _, v in ipairs(blocks_result) do
             table.insert(result, json.decode(v))
         end
         return true, clean_table_of_records_from_avro_types(result)
     end
-
 end
 
 local function decode_records_object_container_avro_memory(value)
-    checks('string')
+    checks("string")
 
     local is_reader_created, reader = pcall(avro.open, value, "m")
     if not is_reader_created then
@@ -659,22 +655,21 @@ local function decode_records_object_container_avro_memory(value)
     return true, blocks_result
 end
 
-
 ---decode - method, that decodes avro object container using C-wrapper.
 ---@param value string - binary string, that contains avro binary value.
 ---@param schema string - Optional avro schema in JSON-string.
 ---@return boolean|table - true|table if process finished without errors, false|error otherwise.
-local function decode(data,schema)
-    checks('string','?string')
+local function decode(data, schema)
+    checks("string", "?string")
 
     local is_confluent_avro = false
--- luacheck: ignore confluent_schema_id
+    -- luacheck: ignore confluent_schema_id
     local confluent_schema_id
     --check for wire format
     --https://docs.confluent.io/current/schema-registry/serdes-develop/index.html#wire-format
-    if data:sub(1,1) == confluent_magic then
+    if data:sub(1, 1) == confluent_magic then
         is_confluent_avro = true
-        confluent_schema_id = data:sub(2,4)
+        confluent_schema_id = data:sub(2, 4)
     end
 
     if schema == nil then
@@ -686,22 +681,21 @@ local function decode(data,schema)
             return false, compiled_schema
         end
 
-
-        local res,err
+        local res, err
         if is_confluent_avro then
-            res,err = decode_single_object_avro(compiled_schema,data:sub(6))
+            res, err = decode_single_object_avro(compiled_schema, data:sub(6))
         else
-            res,err = decode_single_object_avro(compiled_schema,data)
+            res, err = decode_single_object_avro(compiled_schema, data)
         end
 
         if not res then
             compiled_schema:release()
-            return false,err
+            return false, err
         end
 
         compiled_schema:release()
 
-        return res,err.value
+        return res, err.value
     end
 end
 
@@ -711,11 +705,12 @@ end
 ---@param table userdata -  table [{},{}, ..., {}] to encode.
 ---@param is_object_container boolean - decode to object container?
 ---@return boolean|string - true|string if process finished without errors, false|error otherwise.
-local function encode(schema,data,is_object_container)
-    checks('string','table','boolean')
+local function encode(schema, data, is_object_container)
+    checks("string", "table", "boolean")
     if is_object_container then
-        return encode_table_of_records_to_avro_object_container(schema,data)
-    else return encode_table_of_records_to_avro(schema,data)
+        return encode_table_of_records_to_avro_object_container(schema, data)
+    else
+        return encode_table_of_records_to_avro(schema, data)
     end
 end
 

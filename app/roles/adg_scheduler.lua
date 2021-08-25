@@ -12,22 +12,22 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
-local cartridge = require('cartridge')
-local prometheus = require('metrics.plugins.prometheus')
-local scheduler_utils = require('app.utils.scheduler_utils')
-local clock = require('clock')
-local log = require('log')
-local fiber = require('fiber')
-local pool = require('cartridge.pool')
-local schema_utils = require('app.utils.schema_utils')
-local vshard = require('vshard')
-local error_repository = require('app.messages.error_repository')
-local success_repository = require('app.messages.success_repository')
-local metrics = require('app.metrics.metrics_storage')
+local cartridge = require("cartridge")
+local prometheus = require("metrics.plugins.prometheus")
+local scheduler_utils = require("app.utils.scheduler_utils")
+local clock = require("clock")
+local log = require("log")
+local fiber = require("fiber")
+local pool = require("cartridge.pool")
+local schema_utils = require("app.utils.schema_utils")
+local vshard = require("vshard")
+local error_repository = require("app.messages.error_repository")
+local success_repository = require("app.messages.success_repository")
+local metrics = require("app.metrics.metrics_storage")
 
-local cartridge_rpc = require('cartridge.rpc')
+local cartridge_rpc = require("cartridge.rpc")
 
-local role_name = 'app.roles.adg_scheduler'
+local role_name = "app.roles.adg_scheduler"
 
 local garbage_fiber = nil
 
@@ -44,63 +44,62 @@ end
 
 -- luacheck: ignore conf_old
 local function validate_config(conf_new, conf_old)
-    if type(box.cfg) ~= 'function' and not box.cfg.read_only then
+    if type(box.cfg) ~= "function" and not box.cfg.read_only then
         if conf_new.schema ~= nil then -- luacheck: ignore 542
         end
     end
     return true
 end
 
-
 local function apply_config(conf, opts) -- luacheck: no unused args
-    if opts.is_master and  pcall(vshard.storage.info) == false then
+    if opts.is_master and pcall(vshard.storage.info) == false then
         schema_utils.drop_all()
         if conf.schema ~= nil then -- luacheck: ignore 542
         end
     end
-    if schedule_fiber ~= nil and schedule_fiber:status() ~= 'dead' then
+    if schedule_fiber ~= nil and schedule_fiber:status() ~= "dead" then
         schedule_fiber:cancel()
     end
     scheduler_utils.init_scheduler_tasks()
 
--- luacheck: ignore event_loop_run
+    -- luacheck: ignore event_loop_run
     schedule_fiber = fiber.create(event_loop_run)
-    if schedule_fiber ~= nil and schedule_fiber:status() ~= 'dead' then
-        schedule_fiber:name('SCHEDULER_FIBER')
+    if schedule_fiber ~= nil and schedule_fiber:status() ~= "dead" then
+        schedule_fiber:name("SCHEDULER_FIBER")
     end
-    error_repository.init_error_repo('en')
-    success_repository.init_success_repo('en')
+    error_repository.init_error_repo("en")
+    success_repository.init_success_repo("en")
     return true
 end
 
 local function event_loop_run()
     local tasks = scheduler_utils.get_current_periodical_tasks() or {}
     while true do
-        for k,v in pairs(tasks) do
+        for k, v in pairs(tasks) do
             local current_ts = math.floor(clock.time())
-            if(k == current_ts) then do
-                for _,v2 in ipairs(v) do
-                log.info('INFO: Starting task ' .. v2[2] .. ' on ' .. v2[1])
-                local candidates =  cartridge.rpc_get_candidates(v2[1])
-                if #candidates == 0 then
-                    log.error('ERROR: candidate not found')
-                end
-                for _,cand in ipairs(candidates) do
-                    log.info('INFO: Candidates for task ' .. cand)
-                   local conn, err = pool.connect(cand)
-                   if conn == nil then
-                        log.error(err)
-                   else
-                    conn:call(v2[2],v2[3],{is_async=true})
+            if k == current_ts then
+                do
+                    for _, v2 in ipairs(v) do
+                        log.info("INFO: Starting task " .. v2[2] .. " on " .. v2[1])
+                        local candidates = cartridge.rpc_get_candidates(v2[1])
+                        if #candidates == 0 then
+                            log.error("ERROR: candidate not found")
+                        end
+                        for _, cand in ipairs(candidates) do
+                            log.info("INFO: Candidates for task " .. cand)
+                            local conn, err = pool.connect(cand)
+                            if conn == nil then
+                                log.error(err)
+                            else
+                                conn:call(v2[2], v2[3], { is_async = true })
+                            end
+                        end
                     end
                 end
-                end
-            end
             end
             tasks = scheduler_utils.get_current_periodical_tasks() or {}
-
-    end
-    fiber.sleep(1)
+        end
+        fiber.sleep(1)
     end
 end
 
@@ -109,35 +108,34 @@ local function get_metric()
 end
 
 local function get_schema()
-    for _, instance_uri in pairs(cartridge_rpc.get_candidates('app.roles.adg_storage', { leader_only = true })) do
-        return cartridge_rpc.call('app.roles.adg_storage', 'get_schema', nil, { uri = instance_uri })
+    for _, instance_uri in pairs(cartridge_rpc.get_candidates("app.roles.adg_storage", { leader_only = true })) do
+        return cartridge_rpc.call("app.roles.adg_storage", "get_schema", nil, { uri = instance_uri })
     end
 end
 
 local function init(opts)
-    rawset(_G, 'ddl', { get_schema = get_schema })
+    rawset(_G, "ddl", { get_schema = get_schema })
 
     _G.event_loop_run = event_loop_run
     if opts.is_master then -- luacheck: ignore 542
     end
 
+    garbage_fiber = fiber.create(function()
+        while true do
+            collectgarbage("step", 20)
+            fiber.sleep(0.2)
+        end
+    end)
 
-    garbage_fiber = fiber.create(
-        function() while true do collectgarbage('step', 20);
-            fiber.sleep(0.2) end end
-    )
-
-    garbage_fiber:name('GARBAGE_COLLECTOR_FIBER')
+    garbage_fiber:name("GARBAGE_COLLECTOR_FIBER")
 
     _G.get_metric = get_metric
 
-    local httpd = cartridge.service_get('httpd')
-    httpd:route({method='GET', path = '/metrics'}, prometheus.collect_http)
+    local httpd = cartridge.service_get("httpd")
+    httpd:route({ method = "GET", path = "/metrics" }, prometheus.collect_http)
 
     return true
 end
-
-
 
 return {
     role_name = role_name,
@@ -148,7 +146,7 @@ return {
     get_metric = get_metric,
     get_schema = get_schema,
     dependencies = {
-        'cartridge.roles.crud-router',
-        'cartridge.roles.vshard-router'
-    }
+        "cartridge.roles.crud-router",
+        "cartridge.roles.vshard-router",
+    },
 }

@@ -12,19 +12,20 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
-local checks = require('checks')
+local checks = require("checks")
 
 ---Set - method to create set in Lua.
 ---@param list table - list of entities, that need to convert to set.
 ---@return table - table, that have structure set[item] = true
-local function Set (list)
-    checks('table')
+local function Set(list)
+    checks("table")
     local set = {}
-    for _, l in ipairs(list) do set[l] = true end
+    for _, l in ipairs(list) do
+        set[l] = true
+    end
     return set
-  end
+end
 
-
-  return {
-      Set = Set
-  }
+return {
+    Set = Set,
+}

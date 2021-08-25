@@ -12,22 +12,19 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
-local t = require('luatest')
+local t = require("luatest")
 
-local shared = require('test.helper')
+local shared = require("test.helper")
 
-local helper = {shared = shared}
-local success_repository = require('app.messages.success_repository')
-local error_repository = require('app.messages.error_repository')
+local helper = { shared = shared }
+local success_repository = require("app.messages.success_repository")
+local error_repository = require("app.messages.error_repository")
 
 t.before_suite(function()
-    box.cfg({work_dir = shared.datadir})
-    box.schema.user.grant(
-            'guest', 'read,write,execute', 'universe', nil, { if_not_exists = true }
-    )
-    error_repository.init_error_repo('en')
-    success_repository.init_success_repo('en')
+    box.cfg({ work_dir = shared.datadir })
+    box.schema.user.grant("guest", "read,write,execute", "universe", nil, { if_not_exists = true })
+    error_repository.init_error_repo("en")
+    success_repository.init_success_repo("en")
 end)
-
 
 return helper

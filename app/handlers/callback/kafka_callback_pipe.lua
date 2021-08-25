@@ -17,38 +17,33 @@
 --- Created by ashitov.
 --- DateTime: 8/4/20 12:30 PM
 ---
-local checks = require('checks')
-local log = require('log')
+local checks = require("checks")
+local log = require("log")
 
 local kafka_callback_pipe = {}
 kafka_callback_pipe.__index = kafka_callback_pipe
-kafka_callback_pipe.__call = function (cls, ...)
+kafka_callback_pipe.__call = function(cls, ...)
     return cls.new(...)
 end
 
-
-local function kafka_callback_pipe_init (builder)
-    checks('table')
+local function kafka_callback_pipe_init(builder)
+    checks("table")
     local self = setmetatable({}, kafka_callback_pipe)
     self.transformations = builder.transformations
-    return true,self
+    return true, self
 end
 
-
 function kafka_callback_pipe.process(self)
-    for k,v in ipairs(self.transformations) do
+    for k, v in ipairs(self.transformations) do
         v:init()
         log.info("INFO: transformation %i initialized", k)
     end
 end
 
-
-
-
 local kafka_callback_pipe_builder = {}
 kafka_callback_pipe_builder.__index = kafka_callback_pipe_builder
-kafka_callback_pipe_builder.__type = 'kafka_callback_pipe_builder'
-kafka_callback_pipe_builder.__call = function (cls, ...)
+kafka_callback_pipe_builder.__type = "kafka_callback_pipe_builder"
+kafka_callback_pipe_builder.__call = function(cls, ...)
     return cls.new(...)
 end
 
@@ -58,13 +53,13 @@ function kafka_callback_pipe_builder.init(init_message_channel)
     self.transformations = {}
 end
 
-function kafka_callback_pipe_builder.add_transformation(self,transformation)
-    checks('kafka_callback_pipe_builder','table')
-    table.insert(self.transformations,transformation)
+function kafka_callback_pipe_builder.add_transformation(self, transformation)
+    checks("kafka_callback_pipe_builder", "table")
+    table.insert(self.transformations, transformation)
     return self
 end
 
 function kafka_callback_pipe_builder.build(self)
-    checks('kafka_callback_pipe_builder')
+    checks("kafka_callback_pipe_builder")
     return kafka_callback_pipe_init(self)
 end

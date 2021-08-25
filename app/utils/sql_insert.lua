@@ -13,11 +13,10 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
+local checks = require("checks")
+local errors = require("errors")
 
-local checks = require('checks')
-local errors = require('errors')
-
-local route_utils = require('app.utils.route_utils')
+local route_utils = require("app.utils.route_utils")
 local inserted_tuples = {}
 local track_inserted_tuples = false
 
@@ -39,7 +38,7 @@ end
 
 local function install_triggers()
     for key, space in pairs(box.space) do
-        if not string.startswith(space.name, '_') and type(key) == 'string' then
+        if not string.startswith(space.name, "_") and type(key) == "string" then
             pcall(space.on_replace, space, nil, on_replace_trigger)
             space:on_replace(on_replace_trigger)
         end
@@ -48,30 +47,30 @@ end
 
 -- Get tuples that will be inserted by an sql statement
 local function get_tuples(sql_statement, params, bucket_count)
-    checks('string', 'table', "number")
+    checks("string", "table", "number")
 
     inserted_tuples = {}
     track_inserted_tuples = true
 
     --TODO refactor this shit
     local res, err = err_sql_insert:pcall(function()
-            box.begin()
--- luacheck: ignore sql_result
-            local sql_result = nil
--- luacheck: ignore err
-            local err = nil
-            if params == nil then
-                sql_result, err = err_sql_insert:pcall(box.execute, sql_statement)
-            else
-                sql_result, err = err_sql_insert:pcall(box.execute, sql_statement, params)
-            end
-            box.rollback()
+        box.begin()
+        -- luacheck: ignore sql_result
+        local sql_result = nil
+        -- luacheck: ignore err
+        local err = nil
+        if params == nil then
+            sql_result, err = err_sql_insert:pcall(box.execute, sql_statement)
+        else
+            sql_result, err = err_sql_insert:pcall(box.execute, sql_statement, params)
+        end
+        box.rollback()
 
-            if err ~= nil then
-                return nil, err
-            end
+        if err ~= nil then
+            return nil, err
+        end
 
-            return {sql_result = sql_result, inserted_tuples = inserted_tuples}
+        return { sql_result = sql_result, inserted_tuples = inserted_tuples }
     end)
 
     inserted_tuples = {}
@@ -122,5 +121,5 @@ end
 return {
     install_triggers = install_triggers,
     get_tuples = get_tuples,
-    tuples_by_bucket_id = tuples_by_bucket_id
+    tuples_by_bucket_id = tuples_by_bucket_id,
 }

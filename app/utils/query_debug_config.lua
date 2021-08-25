@@ -16,7 +16,7 @@
 --- Created by ikuznetsov.
 --- DateTime: 11/08/21 9:57 PM
 ---
-local config_utils = require('app.utils.config_utils')
+local config_utils = require("app.utils.config_utils")
 
 ---query profiler config
 local query_prof_opts = {
@@ -28,7 +28,7 @@ local query_prof_opts = {
 
     clear = function(self)
         self.enable_debug = false
-    end
+    end,
 }
 
 ---init query prof options
@@ -39,13 +39,13 @@ local function get_query_prof_opts()
         return {}
     end
 
-    if conf['query_debug'] ~= nil then
-        query_prof_opts.enable_debug = conf['query_debug']
+    if conf["query_debug"] ~= nil then
+        query_prof_opts.enable_debug = conf["query_debug"]
     end
 
     return query_prof_opts
 end
 
 return {
-    get_query_prof_opts = get_query_prof_opts
+    get_query_prof_opts = get_query_prof_opts,
 }

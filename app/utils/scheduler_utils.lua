@@ -12,39 +12,41 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
-local config_utils = require('app.utils.config_utils')
+local config_utils = require("app.utils.config_utils")
 local tasks_table = {}
-local cron = require('cron')
-local log = require('log')
-local checks = require('checks')
+local cron = require("cron")
+local log = require("log")
+local checks = require("checks")
 
 local function init_scheduler_tasks()
     tasks_table = config_utils.get_scheduler_tasks(config_utils.get_config())
 end
 
 local function get_periodical_tasks(tasks)
-    checks('table')
+    checks("table")
     local parsed = {}
     local result = {}
-    for _,v in pairs(tasks) do
-        if v['kind'] == 'periodical' then do
-            local schedule = v['schedule']
-            local role_name = v['rolename']
-            local funcname = v['funcname']
-            local args = v['args']
+    for _, v in pairs(tasks) do
+        if v["kind"] == "periodical" then
+            do
+                local schedule = v["schedule"]
+                local role_name = v["rolename"]
+                local funcname = v["funcname"]
+                local args = v["args"]
 
-            if parsed[schedule] == nil then
-                parsed[schedule] = {{role_name,funcname,args}}
-            else table.insert(parsed[schedule], {role_name,funcname,args})
+                if parsed[schedule] == nil then
+                    parsed[schedule] = { { role_name, funcname, args } }
+                else
+                    table.insert(parsed[schedule], { role_name, funcname, args })
+                end
             end
-        end
         end
     end
 
     for k in pairs(parsed) do
         local parsed_schedule, err = cron.parse(k)
         if not parsed_schedule then
-            log.error('ERROR: Cron parsing error ' .. err)
+            log.error("ERROR: Cron parsing error " .. err)
         else
             result[cron.next(parsed_schedule)] = parsed[k]
         end
@@ -53,14 +55,12 @@ local function get_periodical_tasks(tasks)
     return result
 end
 
-
 local function get_current_periodical_tasks()
     return get_periodical_tasks(tasks_table)
 end
 
-
 return {
     init_scheduler_tasks = init_scheduler_tasks,
     get_periodical_tasks = get_periodical_tasks,
-    get_current_periodical_tasks = get_current_periodical_tasks
+    get_current_periodical_tasks = get_current_periodical_tasks,
 }

@@ -16,13 +16,13 @@
 --- Created by ikuznetsov.
 --- DateTime: 30/7/21 7:57 PM
 ---
-local config_utils = require('app.utils.config_utils')
+local config_utils = require("app.utils.config_utils")
 
 local api_timeout_opts = {
     timeouts = {
-        transfer_stage_data_to_scd_tbl=86400, -- 1 day
-        scd_table_checksum=86400,
-        ddl_operation=20
+        transfer_stage_data_to_scd_tbl = 86400, -- 1 day
+        scd_table_checksum = 86400,
+        ddl_operation = 20,
     },
 
     get_transfer_stage_data_to_scd_table_timeout = function(self)
@@ -39,11 +39,11 @@ local api_timeout_opts = {
 
     clear = function(self)
         self.timeouts = {
-            transfer_stage_data_to_scd_tbl=86400,
-            scd_table_checksum=86400,
-            ddl_operation=20
+            transfer_stage_data_to_scd_tbl = 86400,
+            scd_table_checksum = 86400,
+            ddl_operation = 20,
         }
-    end
+    end,
 }
 
 local function get_api_timeout_opts()
@@ -53,13 +53,13 @@ local function get_api_timeout_opts()
         return {}
     end
 
-    if conf['api_timeout'] ~= nil then
-        api_timeout_opts.timeouts = conf['api_timeout']
+    if conf["api_timeout"] ~= nil then
+        api_timeout_opts.timeouts = conf["api_timeout"]
     end
 
     return api_timeout_opts
 end
 
 return {
-    get_api_timeout_opts = get_api_timeout_opts
+    get_api_timeout_opts = get_api_timeout_opts,
 }

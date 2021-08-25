@@ -12,17 +12,16 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
-
 local obj_type = {
-    TABLE   = 'space',
-    PREFIX = 'prefix'
+    TABLE = "space",
+    PREFIX = "prefix",
 }
 
 local ddl_type = {
-    CREATE_TABLE   = '0',
-    DROP_TABLE   = '1',
-    CREATE_DATABASE    = '2',
-    DROP_DATABASE    = '3',
+    CREATE_TABLE = "0",
+    DROP_TABLE = "1",
+    CREATE_DATABASE = "2",
+    DROP_DATABASE = "3",
 }
 
 return {

@@ -16,10 +16,10 @@
 --- Created by ashitov.
 --- DateTime: 5/12/20 2:40 PM
 ---
-local t = require('luatest')
-local g = t.group('integration_adg_input_processor.config')
+local t = require("luatest")
+local g = t.group("integration_adg_input_processor.config")
 
-local helper = require('test.helper.integration')
+local helper = require("test.helper.integration")
 local cluster = helper.cluster
 
 g.before_each(function()
@@ -28,28 +28,28 @@ end)
 
 g.test_schema_registry_options_errors = function()
     local config_copy = table.deepcopy(helper.cluster_config)
-    config_copy['kafka_schema_registry']['host'] = 123
-    t.assert_error(cluster.upload_config,cluster,config_copy)
-    config_copy['kafka_schema_registry']['port'] = 'abcd'
-    t.assert_error(cluster.upload_config,cluster,config_copy)
+    config_copy["kafka_schema_registry"]["host"] = 123
+    t.assert_error(cluster.upload_config, cluster, config_copy)
+    config_copy["kafka_schema_registry"]["port"] = "abcd"
+    t.assert_error(cluster.upload_config, cluster, config_copy)
 end
 
 g.test_schema_registry_options_errors2 = function()
     local config_copy = table.deepcopy(helper.cluster_config)
-    config_copy['kafka_schema_registry']['host'] = nil
-    t.assert_error(cluster.upload_config,cluster,config_copy)
+    config_copy["kafka_schema_registry"]["host"] = nil
+    t.assert_error(cluster.upload_config, cluster, config_copy)
 end
 
 g.test_schema_registry_options_errors3 = function()
     local config_copy = table.deepcopy(helper.cluster_config)
-    config_copy['kafka_schema_registry']['port'] = nil
-    t.assert_error(cluster.upload_config,cluster,config_copy)
+    config_copy["kafka_schema_registry"]["port"] = nil
+    t.assert_error(cluster.upload_config, cluster, config_copy)
 end
 
 g.test_schema_registry_options_success = function()
     local config_copy = table.deepcopy(helper.cluster_config)
-    config_copy['kafka_schema_registry']['host'] = 'localhost'
-    config_copy['kafka_schema_registry']['port'] = 8081
+    config_copy["kafka_schema_registry"]["host"] = "localhost"
+    config_copy["kafka_schema_registry"]["port"] = 8081
     local res = cluster:upload_config(config_copy)
-    t.assert_items_include(res,{reason='Ok'})
+    t.assert_items_include(res, { reason = "Ok" })
 end

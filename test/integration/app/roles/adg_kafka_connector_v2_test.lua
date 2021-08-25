@@ -17,33 +17,33 @@
 --- DateTime: 6/15/20 1:11 PM
 ---
 ---
-local t = require('luatest')
-local g = t.group('integration_adg_kafka_connector_v2.subscription')
-local g2 = t.group('integration_adg_kafka_connector_v2.unsubscription')
+local t = require("luatest")
+local g = t.group("integration_adg_kafka_connector_v2.subscription")
+local g2 = t.group("integration_adg_kafka_connector_v2.unsubscription")
 
-local helper = require('test.helper.integration')
+local helper = require("test.helper.integration")
 local cluster = helper.cluster
 --TODO kafka in docker
 
 g.before_each(function()
-    local kafka = cluster:server('kafka_connector-1').net_box
-    kafka:call('box.execute', {'truncate table _KAFKA_TOPIC'})
+    local kafka = cluster:server("kafka_connector-1").net_box
+    kafka:call("box.execute", { "truncate table _KAFKA_TOPIC" })
 end)
 
 g2.before_each(function()
-    local kafka = cluster:server('kafka_connector-1').net_box
-    kafka:call('box.execute', {'truncate table _KAFKA_TOPIC'})
+    local kafka = cluster:server("kafka_connector-1").net_box
+    kafka:call("box.execute", { "truncate table _KAFKA_TOPIC" })
 end)
 
 g.test_subscription_invalid_values = function()
-    local kafka = cluster:server('kafka_connector-1').net_box
-    t.assert_error(kafka.call,kafka, 'subscribe_to_topic', {'test_topic1', nil})
-    t.assert_error(kafka.call,kafka, 'subscribe_to_topic', {nil, 100})
+    local kafka = cluster:server("kafka_connector-1").net_box
+    t.assert_error(kafka.call, kafka, "subscribe_to_topic", { "test_topic1", nil })
+    t.assert_error(kafka.call, kafka, "subscribe_to_topic", { nil, 100 })
 end
 
 g2.test_unsubscription_invalid_values = function()
-    local kafka = cluster:server('kafka_connector-1').net_box
-    t.assert_error(kafka.call,kafka, 'subscribe_to_topic', {nil})
-    t.assert_error(kafka.call,kafka, 'subscribe_to_topic', {100})
-    t.assert_error(kafka.call,kafka, 'subscribe_to_topic', {{100}})
+    local kafka = cluster:server("kafka_connector-1").net_box
+    t.assert_error(kafka.call, kafka, "subscribe_to_topic", { nil })
+    t.assert_error(kafka.call, kafka, "subscribe_to_topic", { 100 })
+    t.assert_error(kafka.call, kafka, "subscribe_to_topic", { { 100 } })
 end

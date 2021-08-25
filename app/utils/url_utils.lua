@@ -18,32 +18,32 @@
 
 local char_to_hex = function(c)
     return string.format("%%%02X", string.byte(c))
-  end
+end
 
-  local function url_encode(url)
+local function url_encode(url)
     if url == nil then
-      return
+        return
     end
     url = url:gsub("\n", "\r\n")
     url = url:gsub("([^%w ])", char_to_hex)
     url = url:gsub(" ", "+")
     return url
-  end
+end
 
-  local hex_to_char = function(x)
+local hex_to_char = function(x)
     return string.char(tonumber(x, 16))
-  end
+end
 
-  local function url_decode(url)
+local function url_decode(url)
     if url == nil then
-      return
+        return
     end
     url = url:gsub("+", " ")
     url = url:gsub("%%(%x%x)", hex_to_char)
     return url
-  end
+end
 
-  return {
-      url_encode = url_encode,
-      url_decode = url_decode
-  }
+return {
+    url_encode = url_encode,
+    url_decode = url_decode,
+}

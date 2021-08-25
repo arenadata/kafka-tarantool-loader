@@ -18,146 +18,133 @@
 --- DateTime: 6/2/20 2:17 PM
 ---
 
-local bin_avro_utils = require('app.utils.bin_avro_utils')
-local file_utils = require('app.utils.file_utils')
-local json = require('json')
-local os = require('os')
-local t = require('luatest')
+local bin_avro_utils = require("app.utils.bin_avro_utils")
+local file_utils = require("app.utils.file_utils")
+local json = require("json")
+local os = require("os")
+local t = require("luatest")
 
-local g = t.group('bin_avro_utils.compile_avro_schema')
-local g2 = t.group('bin_avro_utils.encode_decode')
-local g3 = t.group('bin_avro_utils.performance')
-local g4 = t.group('bin.avro_utils.file_encode')
+local g = t.group("bin_avro_utils.compile_avro_schema")
+local g2 = t.group("bin_avro_utils.encode_decode")
+local g3 = t.group("bin_avro_utils.performance")
+local g4 = t.group("bin.avro_utils.file_encode")
 
 --TODO normal test API for encoding,decoding,perf,memory leaks
 
-
 g.test_wrong_format_input = function()
-    t.assert_error(bin_avro_utils.compile_avro_schema,nil)
-    t.assert_error(bin_avro_utils.compile_avro_schema,{["ab"] = 123})
+    t.assert_error(bin_avro_utils.compile_avro_schema, nil)
+    t.assert_error(bin_avro_utils.compile_avro_schema, { ["ab"] = 123 })
     t.assert_error(bin_avro_utils.compile_avro_schema, 123)
 end
 
-g.test_read_topicY_schema = function ()
-
-
-    local valid_schema,_ = file_utils.read_file('test/unit/data/avro_schemas/topicY_avro_schema_valid.json')
-    local invalid_schema,_ = file_utils.read_file('test/unit/data/avro_schemas/topicY_avro_schema_invalid.json')
-
+g.test_read_topicY_schema = function()
+    local valid_schema, _ = file_utils.read_file("test/unit/data/avro_schemas/topicY_avro_schema_valid.json")
+    local invalid_schema, _ = file_utils.read_file("test/unit/data/avro_schemas/topicY_avro_schema_invalid.json")
 
     local ok, res = bin_avro_utils.compile_avro_schema(valid_schema)
-    t.assert_equals(ok,true)
-    t.assert_equals(type(res),'table')
+    t.assert_equals(ok, true)
+    t.assert_equals(type(res), "table")
 
-    local ok2,res2 = bin_avro_utils.compile_avro_schema(invalid_schema)
-    t.assert_equals(ok2,false)
-    t.assert_str_contains(tostring(res2),'"ERROR:')
-
+    local ok2, res2 = bin_avro_utils.compile_avro_schema(invalid_schema)
+    t.assert_equals(ok2, false)
+    t.assert_str_contains(tostring(res2), '"ERROR:')
 end
 
-g.test_read_topicX_schema = function ()
-    local key_schema,_ = file_utils.read_file('test/unit/data/avro_schemas/topicX_avro_schema_key.json')
-    local value_schema,_ = file_utils.read_file('test/unit/data/avro_schemas/topicX_avro_schema_value.json')
+g.test_read_topicX_schema = function()
+    local key_schema, _ = file_utils.read_file("test/unit/data/avro_schemas/topicX_avro_schema_key.json")
+    local value_schema, _ = file_utils.read_file("test/unit/data/avro_schemas/topicX_avro_schema_value.json")
 
     local ok, res = bin_avro_utils.compile_avro_schema(key_schema)
-    t.assert_equals(ok,true)
-    t.assert_equals(type(res),'table')
+    t.assert_equals(ok, true)
+    t.assert_equals(type(res), "table")
 
     local ok2, res2 = bin_avro_utils.compile_avro_schema(value_schema)
-    t.assert_equals(ok2,true)
-    t.assert_equals(type(res2),'table')
-
+    t.assert_equals(ok2, true)
+    t.assert_equals(type(res2), "table")
 end
 
-g2.test_topicX_transformation = function ()
-    local value_schema,_ = file_utils.read_file('test/unit/data/avro_schemas/topicX_avro_schema_value.json')
-    local values = json.decode(file_utils.read_file('test/unit/data/avro_values/topicX_value_decoded.json'))
+g2.test_topicX_transformation = function()
+    local value_schema, _ = file_utils.read_file("test/unit/data/avro_schemas/topicX_avro_schema_value.json")
+    local values = json.decode(file_utils.read_file("test/unit/data/avro_values/topicX_value_decoded.json"))
 
-    local _,encoded_value = bin_avro_utils.encode(value_schema,values,false)
+    local _, encoded_value = bin_avro_utils.encode(value_schema, values, false)
 
-    local ok,decoded_value = bin_avro_utils.decode(encoded_value, value_schema)
+    local ok, decoded_value = bin_avro_utils.decode(encoded_value, value_schema)
 
-
-    t.assert_equals(ok,true)
-    t.assert_equals(decoded_value,bin_avro_utils.clean_table_of_records_from_avro_types(values))
+    t.assert_equals(ok, true)
+    t.assert_equals(decoded_value, bin_avro_utils.clean_table_of_records_from_avro_types(values))
 end
 
 g2.test_transformation_with_schema_in_data = function()
-    local encoded1,_ = file_utils.read_file('test/unit/data/avro_values/topicZ_value_encoded2.avro')
-    local decoded1,_ = file_utils.read_file('test/unit/data/avro_values/topicZ_value_decoded2.json')
+    local encoded1, _ = file_utils.read_file("test/unit/data/avro_values/topicZ_value_encoded2.avro")
+    local decoded1, _ = file_utils.read_file("test/unit/data/avro_values/topicZ_value_decoded2.json")
     local ok1, decoded_value1 = bin_avro_utils.decode(encoded1)
 
-    t.assert_equals(ok1,true)
-    t.assert_equals(decoded_value1,json.decode(decoded1))
+    t.assert_equals(ok1, true)
+    t.assert_equals(decoded_value1, json.decode(decoded1))
 
+    local encoded2, _ = file_utils.read_file("test/unit/data/avro_values/test2_value_encoded.avro")
+    local decoded2, _ = file_utils.read_file("test/unit/data/avro_values/test1_2_value_decoded.json")
+    local ok2, decoded_value2 = bin_avro_utils.decode(encoded2)
 
-    local encoded2,_ = file_utils.read_file('test/unit/data/avro_values/test2_value_encoded.avro')
-    local decoded2,_ = file_utils.read_file('test/unit/data/avro_values/test1_2_value_decoded.json')
-    local ok2, decoded_value2= bin_avro_utils.decode(encoded2)
+    t.assert_equals(ok2, true)
+    t.assert_equals(decoded_value2, json.decode(decoded2))
 
-    t.assert_equals(ok2,true)
-    t.assert_equals(decoded_value2,json.decode(decoded2))
+    local encoded3, _ = file_utils.read_file("test/unit/data/avro_values/test2_value_encoded.avro")
+    local decoded3, _ = file_utils.read_file("test/unit/data/avro_values/test1_2_value_decoded.json")
+    local ok3, decoded_value3 = bin_avro_utils.decode(encoded3)
 
+    t.assert_equals(ok3, true)
+    t.assert_equals(decoded_value3, json.decode(decoded3))
 
-    local encoded3,_ = file_utils.read_file('test/unit/data/avro_values/test2_value_encoded.avro')
-    local decoded3,_ = file_utils.read_file('test/unit/data/avro_values/test1_2_value_decoded.json')
-    local ok3, decoded_value3= bin_avro_utils.decode(encoded3)
-
-    t.assert_equals(ok3,true)
-    t.assert_equals(decoded_value3,json.decode(decoded3))
-
-    local encoded4,_ = file_utils.read_file('test/unit/data/avro_values/topicZ_value_encoded2.avro')
-    local decoded4,_ = file_utils.read_file('test/unit/data/avro_values/topicZ_value_decoded2.json')
+    local encoded4, _ = file_utils.read_file("test/unit/data/avro_values/topicZ_value_encoded2.avro")
+    local decoded4, _ = file_utils.read_file("test/unit/data/avro_values/topicZ_value_decoded2.json")
     local ok4, decoded_value4 = bin_avro_utils.decode(encoded4)
 
-    t.assert_equals(ok4,true)
-    t.assert_equals(decoded_value4,json.decode(decoded4))
-
-
+    t.assert_equals(ok4, true)
+    t.assert_equals(decoded_value4, json.decode(decoded4))
 end
 
 g2.test_transformation_with_schema2_in_data = function()
-    local encoded,_ = file_utils.read_file('test/unit/data/avro_values/test3_value_encoded.avro')
-    local decoded,_ = file_utils.read_file('test/unit/data/avro_values/test1_2_value_decoded.json')
+    local encoded, _ = file_utils.read_file("test/unit/data/avro_values/test3_value_encoded.avro")
+    local decoded, _ = file_utils.read_file("test/unit/data/avro_values/test1_2_value_decoded.json")
 
-    local ok, decoded_value= bin_avro_utils.decode(encoded)
+    local ok, decoded_value = bin_avro_utils.decode(encoded)
 
-    t.assert_equals(ok,true)
-    t.assert_equals(decoded_value,json.decode(decoded))
+    t.assert_equals(ok, true)
+    t.assert_equals(decoded_value, json.decode(decoded))
 end
 
 g2.test_transformation_with_schema2_in_data_fast = function()
-    local encoded,_ = file_utils.read_file('test/unit/data/avro_values/test3_value_encoded.avro')
-    local decoded,_ = file_utils.read_file('test/unit/data/avro_values/test1_2_value_decoded.json')
+    local encoded, _ = file_utils.read_file("test/unit/data/avro_values/test3_value_encoded.avro")
+    local decoded, _ = file_utils.read_file("test/unit/data/avro_values/test1_2_value_decoded.json")
 
-    local ok, decoded_value= bin_avro_utils.decode(encoded)
+    local ok, decoded_value = bin_avro_utils.decode(encoded)
 
-    t.assert_equals(ok,true)
-    t.assert_equals(decoded_value,json.decode(decoded))
+    t.assert_equals(ok, true)
+    t.assert_equals(decoded_value, json.decode(decoded))
 end
-
 
 local function test_decoding_avro_single_object(run_cnt)
     local start_time = os.clock()
-    for _=1,run_cnt,1 do
-        local value_schema,_ = file_utils.read_file('test/unit/data/avro_schemas/topicX_avro_schema_value.json')
-        local values = json.decode(file_utils.read_file('test/unit/data/avro_values/topicX_value_decoded.json'))
+    for _ = 1, run_cnt, 1 do
+        local value_schema, _ = file_utils.read_file("test/unit/data/avro_schemas/topicX_avro_schema_value.json")
+        local values = json.decode(file_utils.read_file("test/unit/data/avro_values/topicX_value_decoded.json"))
 
-        local ok1,encoded_value = bin_avro_utils.encode(value_schema,values,false)
-        t.assert_equals(ok1,true)
+        local ok1, encoded_value = bin_avro_utils.encode(value_schema, values, false)
+        t.assert_equals(ok1, true)
 
-        local ok2,decoded_value = bin_avro_utils.decode(encoded_value,value_schema)
+        local ok2, decoded_value = bin_avro_utils.decode(encoded_value, value_schema)
 
-        t.assert_equals(ok2,true)
-        t.assert_equals(decoded_value,bin_avro_utils.clean_table_of_records_from_avro_types(values))
+        t.assert_equals(ok2, true)
+        t.assert_equals(decoded_value, bin_avro_utils.clean_table_of_records_from_avro_types(values))
     end
     local end_time = os.clock()
-    return end_time - start_time <  run_cnt * 0.1
+    return end_time - start_time < run_cnt * 0.1
 end
 
-
 g3.test_perf_encoding_decoding_wo_schema = function()
-    t.assert_equals(test_decoding_avro_single_object(1000),true)
+    t.assert_equals(test_decoding_avro_single_object(1000), true)
 end
 
 g4.test_file_encode = function()

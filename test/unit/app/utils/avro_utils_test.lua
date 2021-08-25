@@ -13,14 +13,14 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
-local t = require('luatest')
-local avro_utils = require('app.utils.avro_utils')
-local avro_schema = require('avro_schema')
+local t = require("luatest")
+local avro_utils = require("app.utils.avro_utils")
+local avro_schema = require("avro_schema")
 local json = require("json")
 
-local g = t.group('avro_utils.validate_avro_data')
-local g2 = t.group('avro_utils.check_avro_schema_compatibility')
-local g3 = t.group('avro_utils.compile_avro_schema')
+local g = t.group("avro_utils.validate_avro_data")
+local g2 = t.group("avro_utils.check_avro_schema_compatibility")
+local g3 = t.group("avro_utils.compile_avro_schema")
 
 local _, nsud_schema_key = avro_schema.create(json.decode([[
     {
@@ -32,7 +32,7 @@ local _, nsud_schema_key = avro_schema.create(json.decode([[
     }
 ]]))
 
-local nsud_schema_key_values = {json.decode('{"requestId": "14234-234234-234234-234234"}')}
+local nsud_schema_key_values = { json.decode('{"requestId": "14234-234234-234234-234234"}') }
 
 local _, nsud_schema_msg = avro_schema.create(json.decode([[
     {
@@ -67,148 +67,140 @@ local nsud_schema_msg_values = json.decode([[
         ]
 ]])
 
-g.test_check_avro_schema_object = function ()
+g.test_check_avro_schema_object = function()
     local schema = {}
     local data = {}
-    local ok, err = avro_utils.validate_avro_data(schema,data)
+    local ok, err = avro_utils.validate_avro_data(schema, data)
     t.assert_equals(ok, false)
     t.assert_equals(err, nil)
 
     local nil_schema = nil
-    t.assert_equals(avro_utils.validate_avro_data(nil_schema,data), false)
+    t.assert_equals(avro_utils.validate_avro_data(nil_schema, data), false)
 end
 
 g.test_valid_data = function()
-    local _, test_schema = avro_schema.create ({
+    local _, test_schema = avro_schema.create({
         type = "record",
         name = "Frob",
         fields = {
-          { name = "foo", type = "int", default = 42},
-          { name = "bar", type = "string"},
-          { name = 'kek', type = 'string'}
-        }
+            { name = "foo", type = "int", default = 42 },
+            { name = "bar", type = "string" },
+            { name = "kek", type = "string" },
+        },
     })
 
-    local test_data = {foo = 1, bar = 'test', kek = 'test2'}
+    local test_data = { foo = 1, bar = "test", kek = "test2" }
 
-    local ok, _ = avro_utils.validate_avro_data(test_schema,test_data)
+    local ok, _ = avro_utils.validate_avro_data(test_schema, test_data)
     t.assert_equals(ok, true)
 
-    local ok, _ = avro_utils.validate_avro_data(nsud_schema_key,nsud_schema_key_values[1])
+    local ok, _ = avro_utils.validate_avro_data(nsud_schema_key, nsud_schema_key_values[1])
     t.assert_equals(ok, true)
 
-    local ok, _ = avro_utils.validate_avro_data(nsud_schema_msg,nsud_schema_msg_values)
+    local ok, _ = avro_utils.validate_avro_data(nsud_schema_msg, nsud_schema_msg_values)
     t.assert_equals(ok, true)
 end
 
-g.test_invalid_data = function ()
-    local _, test_schema = avro_schema.create ({
+g.test_invalid_data = function()
+    local _, test_schema = avro_schema.create({
         type = "record",
         name = "Frob",
         fields = {
-          { name = "foo", type = "int", default = 42},
-          { name = "bar", type = "string"},
-          { name = 'kek', type = 'string'}
-        }
+            { name = "foo", type = "int", default = 42 },
+            { name = "bar", type = "string" },
+            { name = "kek", type = "string" },
+        },
     })
 
     local test_data1 = {
-        [1] = {foo = 1, bar = 'test', kek = 'test2'},
-        [2] = {foo = '2', bar = 'test', kek = 'test2'},
-        [3] = {foo = 3, bar = 'test', kek = 'test2'}
+        [1] = { foo = 1, bar = "test", kek = "test2" },
+        [2] = { foo = "2", bar = "test", kek = "test2" },
+        [3] = { foo = 3, bar = "test", kek = "test2" },
     }
 
-    local ok, _ = avro_utils.validate_avro_data(test_schema,test_data1)
+    local ok, _ = avro_utils.validate_avro_data(test_schema, test_data1)
     t.assert_equals(ok, false)
 
     local test_data2 = {
-        [1] = {foo = 1, bar = 'test', kek = 'test2'},
-        [2] = {foo = '2', bar = 'test', kek = 'test2'},
-        [3] = {foo = 3, bar = 'test', kek = 'test2'}
+        [1] = { foo = 1, bar = "test", kek = "test2" },
+        [2] = { foo = "2", bar = "test", kek = "test2" },
+        [3] = { foo = 3, bar = "test", kek = "test2" },
     }
 
-    local ok, _ = avro_utils.validate_avro_data(test_schema,test_data2)
+    local ok, _ = avro_utils.validate_avro_data(test_schema, test_data2)
     t.assert_equals(ok, false)
 
     local test_data3 = {
-        [1] = {foo = 1, bar = 'test', kek = 'test2'},
-        [2] = {foo = '2', bar = 'test', kek = 'test2'},
-        [3] = {foo = 3, bar2 = 'test', kek = 'test2'}
+        [1] = { foo = 1, bar = "test", kek = "test2" },
+        [2] = { foo = "2", bar = "test", kek = "test2" },
+        [3] = { foo = 3, bar2 = "test", kek = "test2" },
     }
 
-    local ok, _ = avro_utils.validate_avro_data(test_schema,test_data3)
+    local ok, _ = avro_utils.validate_avro_data(test_schema, test_data3)
     t.assert_equals(ok, false)
 
     local empty_data = {}
 
-    local ok, err = avro_utils.validate_avro_data(test_schema,empty_data)
-    t.assert_equals(ok,false)
-    t.assert_equals(err,'Field bar missing')
-
+    local ok, err = avro_utils.validate_avro_data(test_schema, empty_data)
+    t.assert_equals(ok, false)
+    t.assert_equals(err, "Field bar missing")
 end
 
-g2.test_input_check = function ()
--- luacheck: ignore valid_schema
-    local _, valid_schema = avro_schema.create ({
+g2.test_input_check = function()
+    -- luacheck: ignore valid_schema
+    local _, valid_schema = avro_schema.create({
         type = "record",
         name = "Frob",
         fields = {
-          { name = "foo", type = "int", default = 42},
-          { name = "bar", type = "string"},
-          { name = 'kek', type = 'string'}
-}
-})
-
-
+            { name = "foo", type = "int", default = 42 },
+            { name = "bar", type = "string" },
+            { name = "kek", type = "string" },
+        },
+    })
 end
 
-g2.test_forward_check = function ()
+g2.test_forward_check = function() end
 
-end
+g2.test_backward_check = function() end
 
-g2.test_backward_check = function ()
-
-end
-
-
-g3.test_input_check = function ()
+g3.test_input_check = function()
     local nil_schema = nil
     local empty_table = {}
--- luacheck: ignore valid_schema
-    local _, valid_schema = avro_schema.create ({
+    -- luacheck: ignore valid_schema
+    local _, valid_schema = avro_schema.create({
         type = "record",
         name = "Frob",
         fields = {
-          { name = "foo", type = "int", default = 42},
-          { name = "bar", type = "string"},
-          { name = 'kek', type = 'string'}
-}
-})
+            { name = "foo", type = "int", default = 42 },
+            { name = "bar", type = "string" },
+            { name = "kek", type = "string" },
+        },
+    })
 
-      t.assert_error(avro_utils.compile_avro_schema,nil_schema)
+    t.assert_error(avro_utils.compile_avro_schema, nil_schema)
 
-      local ok,methods = avro_utils.compile_avro_schema(empty_table)
-      t.assert_equals(ok,false)
-      t.assert_equals(methods,nil)
+    local ok, methods = avro_utils.compile_avro_schema(empty_table)
+    t.assert_equals(ok, false)
+    t.assert_equals(methods, nil)
 
-      local ok, _ = avro_utils.compile_avro_schema(valid_schema)
-      t.assert_equals(ok,true)
+    local ok, _ = avro_utils.compile_avro_schema(valid_schema)
+    t.assert_equals(ok, true)
 end
 
-g3.test_simple_compile_check = function ()
-    local _, valid_schema = avro_schema.create ({
+g3.test_simple_compile_check = function()
+    local _, valid_schema = avro_schema.create({
         type = "record",
         name = "Frob",
         fields = {
-          { name = "foo", type = "int", default = 42},
-          { name = "bar", type = "string"},
-          { name = 'kek', type = 'string'}
-}
-})
-      local _, methods = avro_utils.compile_avro_schema(valid_schema)
+            { name = "foo", type = "int", default = 42 },
+            { name = "bar", type = "string" },
+            { name = "kek", type = "string" },
+        },
+    })
+    local _, methods = avro_utils.compile_avro_schema(valid_schema)
 
--- luacheck: ignore flatten unflatten xflatten flatten_msgpack unflatten_msgpack xflatten_msgpack get_types get_names
-      local valid_methods = {
+    -- luacheck: ignore flatten unflatten xflatten flatten_msgpack unflatten_msgpack xflatten_msgpack get_types get_names
+    local valid_methods = {
         flatten,
         unflatten,
         xflatten,
@@ -217,7 +209,7 @@ g3.test_simple_compile_check = function ()
         xflatten_msgpack,
         get_types,
         get_names,
-}
+    }
 
-      t.assert_items_include(methods,valid_methods)
+    t.assert_items_include(methods, valid_methods)
 end

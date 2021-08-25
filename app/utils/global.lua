@@ -13,8 +13,7 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
-
-local checks = require('checks')
+local checks = require("checks")
 
 if rawget(_G, "_global_default") == nil then
     _G._global_default = {}
@@ -82,13 +81,12 @@ local function create(module_name)
 
     local obj = {
         module_name = module_name,
-        new = new
+        new = new,
     }
-    setmetatable(
-        obj, {
-            __newindex = newindex,
-            __index = index
-        })
+    setmetatable(obj, {
+        __newindex = newindex,
+        __index = index,
+    })
     return obj
 end
 

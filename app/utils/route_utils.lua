@@ -12,16 +12,16 @@
 -- See the License for the specific language governing permissions and
 -- limitations under the License.
 
-local digest = require('digest')
-local schema_utils = require('app.utils.schema_utils')
-local config_utils = require('app.utils.config_utils')
+local digest = require("digest")
+local schema_utils = require("app.utils.schema_utils")
+local config_utils = require("app.utils.config_utils")
 local routes = {}
 local topic_error = {}
 local topic_success = {}
-local vshard = require('vshard')
-local checks = require('checks')
-local log = require('log')
-local error_repository = require('app.messages.error_repository')
+local vshard = require("vshard")
+local checks = require("checks")
+local log = require("log")
+local error_repository = require("app.messages.error_repository")
 
 local function init_routes()
     routes = config_utils.get_topics_x_targets(config_utils.get_config())
@@ -41,14 +41,13 @@ local function get_topic_success()
     return topic_success
 end
 
-
-local function get_bucket_id(space_name, tuple, bucket_count,is_record_type)
-    checks('string', 'cdata|table', 'number','?boolean')
+local function get_bucket_id(space_name, tuple, bucket_count, is_record_type)
+    checks("string", "cdata|table", "number", "?boolean")
     is_record_type = is_record_type or false
 
     local c = digest.murmur.new()
 
-    local fields = schema_utils.get_bucket_id_fields(space_name,is_record_type)
+    local fields = schema_utils.get_bucket_id_fields(space_name, is_record_type)
 
     for _, key in ipairs(fields) do
         c:update(tostring(tuple[key]))
@@ -57,22 +56,21 @@ local function get_bucket_id(space_name, tuple, bucket_count,is_record_type)
     return digest.guava(c:result(), bucket_count - 1) + 1
 end
 
-
 local function set_bucket_id(space_name, tuple, bucket_count, is_record_type)
     is_record_type = is_record_type or false
-    local bucket_id_field = schema_utils.get_field_by_name(space_name, 'bucket_id')
+    local bucket_id_field = schema_utils.get_field_by_name(space_name, "bucket_id")
 
     if bucket_id_field == nil then
         return tuple
     end
 
-    local bucket_id = get_bucket_id(space_name, tuple, bucket_count,is_record_type)
+    local bucket_id = get_bucket_id(space_name, tuple, bucket_count, is_record_type)
 
-    if type(tuple) == 'cdata' then
-        return tuple:update({{'=', bucket_id_field, bucket_id}})
+    if type(tuple) == "cdata" then
+        return tuple:update({ { "=", bucket_id_field, bucket_id } })
     else
         if is_record_type then
-            tuple['bucket_id'] = bucket_id
+            tuple["bucket_id"] = bucket_id
         else
             tuple[bucket_id_field] = bucket_id
         end
@@ -112,12 +110,13 @@ end
 
 local function get_space_by_topic(topic_name)
     if routes[topic_name] == nil then
-        return nil, error_repository.get_error_code('AVRO_SCHEMA_007', {topic_name = topic_name})
+        return nil, error_repository.get_error_code("AVRO_SCHEMA_007", { topic_name = topic_name })
     end
     local space = routes[topic_name]
     if space == nil then
-        return nil, error_repository.get_error_code('STORAGE_001', {space = space})
-    else return routes[topic_name], nil
+        return nil, error_repository.get_error_code("STORAGE_001", { space = space })
+    else
+        return routes[topic_name], nil
     end
 end
 
@@ -130,5 +129,5 @@ return {
     get_routes = get_routes,
     get_space_by_topic = get_space_by_topic,
     get_topic_error = get_topic_error,
-    get_topic_success = get_topic_success
+    get_topic_success = get_topic_success,
 }
