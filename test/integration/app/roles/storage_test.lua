@@ -412,7 +412,6 @@ g4.test_1k_rows_rollback_wo_index_wo_batch = function()
         { "EMPLOYEES_HOT", "EMPLOYEES_TRANSFER_2", "EMPLOYEES_TRANSFER_HIST_2", 2 }
     )
 
-    -- luacheck: max line length 150
     local res, err = storage:call(
         "reverse_history_in_scd_table",
         { "EMPLOYEES_HOT", "EMPLOYEES_TRANSFER_2", "EMPLOYEES_TRANSFER_HIST_2", 2, nil }
@@ -457,7 +456,6 @@ g4.test_1k_rows_rollback_wo_index_w_batch = function()
         { "EMPLOYEES_HOT", "EMPLOYEES_TRANSFER_2", "EMPLOYEES_TRANSFER_HIST_2", 2 }
     )
 
-    -- luacheck: max line length 160
     local res, err = storage:call(
         "reverse_history_in_scd_table",
         { "EMPLOYEES_HOT", "EMPLOYEES_TRANSFER_2", "EMPLOYEES_TRANSFER_HIST_2", 2, 100 }
@@ -510,7 +508,6 @@ g4.test_10k_rows_rollback_w_index_w_batch = function()
         { "EMPLOYEES_HOT", "EMPLOYEES_TRANSFER", "EMPLOYEES_TRANSFER_HIST", 3 }
     )
 
-    -- luacheck: max line length 150
     local res2, err2 = storage:call(
         "reverse_history_in_scd_table",
         { "EMPLOYEES_HOT", "EMPLOYEES_TRANSFER", "EMPLOYEES_TRANSFER_HIST", 3, 1000 }

@@ -163,12 +163,4 @@ add("test_futures_errors", function(g)
 
     res, err = conn:call("execute_query_for_massive_select_to_kafka", { "", "select ID from USER1" })
     check_future_error(err, "ADG_OUTPUT_PROCESSOR_001")
-
-    --TODO load_avro_lines function unused in code
-    --res, err = conn:call('load_avro_lines', { 'USER1', { 1, 2 } })
-    --err = json.decode(err)
-    --t.assert_equals(res, false)
-    --t.assert_equals(err.status, "error")
-    --t.assert_equals(err.errorCode, "STORAGE_003")
-    --t.assert_equals(err.opts.error, "fiber is cancelled")
 end)

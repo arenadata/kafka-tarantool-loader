@@ -133,20 +133,6 @@ local function generate_limit_offset(all_rows_cnt, chunk_size)
     return result
 end
 
--- luacheck: ignore memoize
-local function memoize(f)
-    local mem = {}
-    setmetatable(mem, { __mode = "kv" })
-    return function(x)
-        local r = mem[x]
-        if r == nil then
-            r = f(x)
-            mem[x] = r
-        end
-        return r
-    end
-end
-
 local function table_length(T)
     local count = 0
     for _ in pairs(T) do

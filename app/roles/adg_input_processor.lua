@@ -56,7 +56,6 @@ end
 local function validate_config(conf_new, conf_old)
     if type(box.cfg) ~= "function" and not box.cfg.read_only then
         local kafka_topics = yaml.decode(conf_new["kafka_topics.yml"] or [[]]) or {}
-        -- luacheck: max line length 180
         local kafka_consumers = yaml.decode(conf_new["kafka_consume.yml"] or [[]])
             or { ["topics"] = {}, ["properties"] = {}, ["custom_properties"] = {} }
 
@@ -93,61 +92,6 @@ local function apply_config(conf, opts) -- luacheck: no unused args
     error_repository.init_error_repo("en")
     success_repository.init_success_repo("en")
     return true
-end
-
-local function load_avro_lines(space_name, lines)
-    checks("string", "table")
-
-    if type(lines[1]) ~= "table" then
-        lines = { lines }
-    end
-
-    local space = schema_utils.get_schema_ddl().spaces[space_name]
-        or schema_utils.get_schema_ddl().spaces[string.upper(space_name)]
-
-    if space == nil then
-        return nil, errors.new("ERROR: no_such_space", "No such space: %s", space_name)
-    end
-
-    local tuples = {}
-
-    for _, line in ipairs(lines) do
-        local tuple, err_bucket = route_utils.set_bucket_id(space_name, line, vshard.router.bucket_count())
-
-        if tuple == nil then
-            return nil, err_bucket
-        end
-
-        table.insert(tuples, tuple)
-    end
-
-    local futures = {}
-
-    for server, per_server in pairs(route_utils.tuples_by_server(tuples, space_name, vshard.router.bucket_count())) do
-        local future = server:call("insert_tuples", { { [space_name] = per_server } }, { is_async = true })
-        table.insert(futures, future)
-    end
-
-    for _, future in ipairs(futures) do
-        future:wait_result(30)
-        local res, err = future:result()
-        if res == nil then
-            return nil,
-                error_repository.get_error_code("STORAGE_003", {
-                    func = "insert_tuples",
-                    space_name = space_name,
-                    error = err,
-                })
-        end
-
-        if res[1] == nil then
-            return nil, res[2]
-        else
-            metrics.kafka_messages_insert_rows_total_counter:inc(tonumber(res[1]))
-        end
-    end
-
-    return true, nil
 end
 
 local function load_csv_lines(space_name, lines)
@@ -253,30 +197,6 @@ local function parse_avro(schema, value)
         return false, error_repository.get_error_code("AVRO_SCHEMA_006", { error = data })
     end
     return true, data
-end
-
-local function prepare_kafka_message_for_insert(topic, data, parse_function)
-    -- luacheck: ignore result
-    local result = {}
-
-    local is_data_schema_ok, data_schema = avro_schema_utils.get_data_schema(topic)
-
-    if not is_data_schema_ok then
-        return false, data_schema
-    end
-
-    local ok, parsed = parse_function(data_schema, data)
-
-    if not ok then
-        return false, parsed --string
-    else
-        if type(parsed[1]) == "table" or type(parsed[1]) == "cdata" then
-            result = parsed[1]
-        else
-            result = parsed
-        end
-        return true, result
-    end
 end
 
 local function parse_binary_avro(value)
@@ -505,98 +425,6 @@ local function insert_message_from_kafka_async(
     end
 
     return { true, { amount = 1 } }
-end
-
--- luacheck: ignore insert_messages_from_kafka_old
-local function insert_messages_from_kafka_old(messages, parse_key_function_str, parse_value_function_str)
-    checks("table", "string", "string")
-
-    local parse_value_function = get_function_by_name(parse_value_function_str)
-
-    local parsing_result = {}
-    log.info("INFO: Getting " .. #messages .. " pairs to process")
-
-    for _, v in ipairs(messages) do --TODO refactor to map function and fiber? perfomance test
-        --extract msg info
-        local topic = v["topic"]
-        local partition = v["partition"]
-        local offset = v["offset"]
-        local key = v["key"]
-        local value = v["value"]
-
-        local space, err = route_utils.get_space_by_topic(topic)
-
-        if space == nil then
-            log.error(err)
-            parsing_result[topic .. ":" .. tostring(partition) .. ":" .. tostring(offset)] = {
-                topic = topic,
-                partition = partition,
-                offset = offset,
-                key = key,
-                result = false,
-                error = err,
-                space = "Unknown",
-                value = nil,
-            }
-            goto continue
-        end
-
-        local is_value_ok, parsed_value = prepare_kafka_message_for_insert(topic, value, parse_value_function)
-
-        if not is_value_ok then
-            parsing_result[topic .. ":" .. tostring(partition) .. ":" .. tostring(offset)] = {
-                topic = topic,
-                partition = partition,
-                offset = offset,
-                key = key,
-                result = false,
-                error = parsed_value,
-                space = space,
-                value = nil,
-            }
-            goto continue
-        end
-
-        parsing_result[topic .. ":" .. tostring(partition) .. ":" .. tostring(offset)] = {
-            topic = topic,
-            partition = partition,
-            offset = offset,
-            key = key,
-            result = true,
-            error = nil,
-            space = space,
-            value = parsed_value,
-        }
-    end
-
-    ::continue::
-
-    local valid_messages = fun.filter(
-        -- luacheck: ignore k
-        function(k, v)
-            return v["result"] == true
-        end,
-        parsing_result
-    )
-    --insert into storage
-    for k, v in pairs(fun.tomap(valid_messages)) do --TODO refactor to map function and fiber? perfomance test
-        local res, err = load_avro_lines(v["space"], v["value"])
-        if res ~= true then
-            parsing_result[k]["result"] = false
-            parsing_result[k]["error"] = error_repository.get_error_code(
-                "ADG_INPUT_PROCESSOR_002",
-                { error = err["err"] }
-            )
-        end
-    end
-
-    --remove not needed keys
-    for k, v in pairs(parsing_result) do
-        v["value"] = nil
-    end
-
-    --TODO What if input processor get down?
-    return parsing_result
 end
 
 local function get_metric()

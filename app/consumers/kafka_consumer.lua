@@ -19,7 +19,6 @@
 local checks = require("checks")
 local log = require("log")
 local tnt_kafka = require("kafka")
-local fiber = require("fiber")
 
 local deserialize_transform = require("app.handlers.callback.kafka_msg_deserialize_transformation")
 local insert_transform = require("app.handlers.callback.kafka_msg_insert_transformation")
@@ -30,18 +29,6 @@ local commit_transfrom = require("app.handlers.callback.kafka_msg_commit_transfo
 --- Consumer
 ---
 ---
-
--- luacheck: ignore readonlytable
-local function readonlytable(table)
-    return setmetatable({}, {
-        __index = table,
-        -- luacheck: ignore table key value
-        __newindex = function(table, key, value)
-            error("Attempt to modify read-only table")
-        end,
-        __type = "kafka_consumer",
-    })
-end
 
 local kafka_consumer = {}
 kafka_consumer.__index = kafka_consumer
@@ -194,53 +181,6 @@ function kafka_consumer.poll_messages(self, amount)
     end
 
     return true, { result = result, amount = msg_cnt }
-end
-
-function kafka_consumer.init_poll_msg_fiber(process_function, kafka_stat_space_name, kafka_stat_space_insert_function)
-    checks("function", "?string", "?function")
-
-    if kafka_stat_space_name ~= nil then
-        if box.space[kafka_stat_space_name] == nil then
-            return false, string.format("ERROR: %s space does not exists", kafka_stat_space_name)
-        end
-
-        if kafka_stat_space_insert_function == nil then
-            return false,
-                string.format(
-                    "ERROR: function %s not registered in adg_kafka_connector role.",
-                    kafka_stat_space_insert_function
-                )
-        end
-    end
-
-    -- luacheck: ignore self
-    local is_out_created, out = self:get_message_channel()
-
-    if not is_out_created then
-        return false, out
-    end
-
-    local poll_fiber = fiber.new(function()
-        while true do
-            if out.is_closed() then
-                return
-            end
-
-            local msg = out:get(0.5)
-            if msg ~= nil then
-                process_function(msg)
-                local topic_name = msg:topic()
-                local partition_name = msg:partition()
-
-                if kafka_stat_space_name ~= nil and kafka_stat_space_insert_function ~= nil then
-                    kafka_stat_space_insert_function(kafka_stat_space_name, topic_name, partition_name)
-                end
-
-                fiber.yield()
-            end
-        end
-    end)
-    poll_fiber:name("kafka_polling_fiber")
 end
 
 function kafka_consumer.init_poll_msg_fiber(self)

@@ -294,7 +294,6 @@ local function check_table_for_delta_fields(space_name, table_type)
     -- luacheck: ignore required_fields
     local required_fields = nil
     if table_type == "history" then
-        -- luacheck: max line length 180
         required_fields = set.Set({
             etl_config.get_date_field_end_nm(),
             etl_config.get_date_field_start_nm(),
@@ -384,11 +383,9 @@ local function check_tables_for_delta(actual_data_table_name, historical_data_ta
             )
     end
 
-    -- luacheck: max line length 180
     local actual_data_pk_fields = fun.map(function(x)
         return actual_data_fields[x.fieldno]
     end, box.space[actual_data_table_name].index[0].parts):totable()
-    -- luacheck: max line length 180
     local hist_data_pk_fields = fun.map(function(x)
         return hist_data_fields[x.fieldno]
     end, box.space[historical_data_table_name].index[0].parts):totable()
@@ -532,7 +529,6 @@ local function transfer_stage_data_to_scd_table(
     return true, nil
 end
 
--- luacheck: max line length 180
 local function reverse_history_in_scd_table(
     stage_data_table_name,
     actual_data_table_name,
