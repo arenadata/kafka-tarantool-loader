@@ -365,30 +365,27 @@ local function query(query, params)
         end
 
         local result = nil
-        local fibers_count = 0
-        local buffer = fiber.channel(#replicas)
+        local futures = {}
         for _, replica in pairs(replicas) do
-            fibers_count = fibers_count + 1
-            fiber.create(function()
-                -- function callro in vshard has internal timeout. if result is not
-                -- received at this timeout, will be return error and res=nil
-                local res, err = replica:callro("execute_sql", { query, params })
-
-                buffer:put({ data = res, err = err })
-            end)
+            local future, err = replica:callro("execute_sql", { query, params }, {is_async = true})
+            if err ~= nil then
+                return nil, err
+            end
+            table.insert(futures, future)
         end
 
-        for _ = 1, fibers_count do
-            local msg = buffer:get()
+        for _, future in ipairs(futures) do
+            future:wait_result(_G.api_timeouts:get_query_select_timeout())
+            local res = future:result()
 
-            if msg.data == nil then
-                return nil, msg.err
+            if res[1] == nil then
+                 return nil, res[2]
             end
 
             if result == nil then
-                result = msg.data
+                result = res[1]
             else
-                result.rows = misc_utils.append_table(result.rows, msg.data.rows)
+                result.rows = misc_utils.append_table(result.rows, res[1].rows)
             end
         end
 
