@@ -306,122 +306,151 @@ local function load_lines(space_name, lines)
     return true
 end
 
+local function executeComplexInsert(query, params)
+    local storages = cartridge.rpc_get_candidates("app.roles.adg_storage", { leader_only = true })
+    if #storages == 0 then
+        log.error("ERROR: storage to execute ddl not found")
+    end
+
+    for _, cand in ipairs(storages) do
+        log.debug("DEBUG: Storage for ddl execution " .. cand)
+
+        local conn, err = pool.connect(cand)
+        if conn == nil then
+            log.error(err)
+        else
+            local res, err = conn:call("execute_sql", { query, params }, { is_async = false })
+
+            if res == nil or res == false then
+                return nil, err
+            end
+        end
+    end
+
+    return true
+end
+
+local function executeSimpleInsert(query, params)
+    local sql_res, err = sql_insert.get_tuples(query, params, vshard.router.bucket_count())
+    if sql_res == nil then
+        return nil, err
+    end
+
+    local by_bucket_id = sql_insert.tuples_by_bucket_id(sql_res.inserted_tuples, vshard.router.bucket_count())
+
+    for bucket_id, tuples in pairs(by_bucket_id) do
+        local res, err = err_vshard_router:pcall(
+            vshard.router.call,
+            bucket_id,
+            "write",
+            "insert_tuples",
+            { tuples }
+        )
+
+        if res == nil then
+            return nil, err
+        end
+    end
+
+    return sql_res.sql_result
+end
+
+local function executeSelect(query, params)
+    local replicas, err = sql_select.get_replicas(query, params)
+
+    if replicas == nil then
+        return nil, err
+    end
+
+    local result = nil
+    local futures = {}
+    for _, replica in pairs(replicas) do
+        local future, err = replica:callro("execute_sql", { query, params }, {is_async = true})
+        if err ~= nil then
+            return nil, err
+        end
+        table.insert(futures, future)
+    end
+
+    for _, future in ipairs(futures) do
+        future:wait_result(_G.api_timeouts:get_query_select_timeout())
+        local res = future:result()
+
+        if res[1] == nil then
+             return nil, res[2]
+        end
+
+        if result == nil then
+            result = res[1]
+        else
+            result.rows = misc_utils.append_table(result.rows, res[1].rows)
+        end
+    end
+
+    return result
+end
+
+local function executeDDL(query, params)
+    local storages = cartridge.rpc_get_candidates("app.roles.adg_storage", { leader_only = true })
+    if #storages == 0 then
+        log.error("ERROR: storage to execute ddl not found")
+    end
+
+    for _, cand in ipairs(storages) do
+        log.debug("DEBUG: Storage for ddl execution " .. cand)
+
+        local conn, err = pool.connect(cand)
+        if conn == nil then
+            log.error(err)
+        else
+            local res, err = conn:call("execute_sql", { query, params }, { is_async = false })
+
+            if res == nil or res == false then
+                return nil, err
+            end
+        end
+    end
+
+    return true
+end
+
 --- store procedure is called by Prostore, then it runs SELECT query.
 --- When this procedure received sql query it sends this query to all storage instances.
 local function query(query, params)
     local lower_query = string.lower(query)
 
-    if string.match(lower_query, "^%s*insert%s+") then
-        local sql_res, err = sql_insert.get_tuples(query, params, vshard.router.bucket_count())
-
-        if sql_res == nil then
-            return nil, err
-        end
-
-        local by_bucket_id = sql_insert.tuples_by_bucket_id(sql_res.inserted_tuples, vshard.router.bucket_count())
-
-        for bucket_id, tuples in pairs(by_bucket_id) do
-            local res, err = err_vshard_router:pcall(
-                vshard.router.call,
-                bucket_id,
-                "write",
-                "insert_tuples",
-                { tuples }
-            )
-
-            if res == nil then
-                return nil, err
-            end
-        end
-
-        return sql_res.sql_result
-    elseif string.match(lower_query, "^%s*insert%s+into+%s+[%a%d_]+[(]*%a*[)]*%s+select+") then
-        local storages = cartridge.rpc_get_candidates("app.roles.adg_storage", { leader_only = true })
-        if #storages == 0 then
-            log.error("ERROR: storage to execute ddl not found")
-        end
-
-        for _, cand in ipairs(storages) do
-            log.info("INFO: Storage for ddl execution " .. cand)
-
-            local conn, err = pool.connect(cand)
-            if conn == nil then
-                log.error(err)
-            else
-                local res, err = conn:call("execute_sql", { query, params }, { is_async = false })
-
-                if res == nil or res == false then
-                    return nil, err
-                end
-            end
-        end
-
-        return true
-    elseif string.match(lower_query, "^%s*select%s+") then
-        local replicas, err = sql_select.get_replicas(query, params)
-
-        if replicas == nil then
-            return nil, err
-        end
-
-        local result = nil
-        local futures = {}
-        for _, replica in pairs(replicas) do
-            local future, err = replica:callro("execute_sql", { query, params }, {is_async = true})
-            if err ~= nil then
-                return nil, err
-            end
-            table.insert(futures, future)
-        end
-
-        for _, future in ipairs(futures) do
-            future:wait_result(_G.api_timeouts:get_query_select_timeout())
-            local res = future:result()
-
-            if res[1] == nil then
-                 return nil, res[2]
-            end
-
-            if result == nil then
-                result = res[1]
-            else
-                result.rows = misc_utils.append_table(result.rows, res[1].rows)
-            end
-        end
-
-        return result
-    elseif
-        string.match(lower_query, "^%s*create%s+")
-        or string.match(lower_query, "^%s*alter%s+")
-        or string.match(lower_query, "^%s*drop%s+")
-        or string.match(lower_query, "^%s*truncate%s+")
-    then
-        local storages = cartridge.rpc_get_candidates("app.roles.adg_storage", { leader_only = true })
-        if #storages == 0 then
-            log.error("ERROR: storage to execute ddl not found")
-        end
-
-        for _, cand in ipairs(storages) do
-            log.info("INFO: Storage for ddl execution " .. cand)
-
-            local conn, err = pool.connect(cand)
-            if conn == nil then
-                log.error(err)
-            else
-                local res, err = conn:call("execute_sql", { query, params }, { is_async = false })
-
-                if res == nil or res == false then
-                    return nil, err
-                end
-            end
-        end
-
-        return true
+    if string.startswith(lower_query, "select") then
+        return executeSelect(query, params)
     else
-        return nil, errors.new("Unknown query type")
+        if string.startswith(lower_query, "insert") then
+            local selectPosition, _ = string.find(lower_query, "select")
+            local fromPosition, _ = string.find(lower_query, "from")
+            local shouldExecuteComplexInsert = (selectPosition ~= nil and fromPosition ~= nil)
+            if shouldExecuteComplexInsert then
+                return executeComplexInsert(query, params)
+            else
+                return executeSimpleInsert(query, params)
+            end
+        end
     end
 
-    return true -- luacheck: ignore 511
+    if string.startswith(lower_query, "alter") then
+        return executeDDL(query, params)
+    end
+
+    if string.startswith(lower_query, "create") then
+        return executeDDL(query, params)
+    end
+
+    if string.startswith(lower_query, "drop") then
+        return executeDDL(query, params)
+    end
+
+    if string.startswith(lower_query, "truncate") then
+        return executeDDL(query, params)
+    end
+
+    return nil, errors.new("Unknown query type")
 end
 
 local function get_metric()

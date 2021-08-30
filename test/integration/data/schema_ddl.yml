@@ -871,3 +871,77 @@ spaces:
     engine: memtx
     sharding_key:
     - id
+  table_test_1:
+    engine: 'memtx'
+    is_local: false
+    temporary: false
+    format:
+      - name: 'id'
+        is_nullable: false
+        type: 'number'
+      - name: 'FIRST_NAME'
+        is_nullable: false
+        type: 'string'
+      - name: 'LAST_NAME'
+        is_nullable: false
+        type: 'string'
+      - name: 'EMAIL'
+        is_nullable: false
+        type: 'string'
+      - name: 'bucket_id'
+        is_nullable: true
+        type: 'unsigned'
+    indexes:
+      - type: 'TREE'
+        name: 'id'
+        unique: true
+        parts:
+          - path: 'id'
+            type: 'number'
+            is_nullable: false
+      - type: 'TREE'
+        name: 'bucket_id'
+        unique: false
+        parts:
+          - path: 'bucket_id'
+            type: 'unsigned'
+            is_nullable: true
+    sharding_key:
+      - id
+  table_test_2:
+    engine: 'memtx'
+    is_local: false
+    temporary: false
+    format:
+      - name: 'id'
+        is_nullable: false
+        type: 'number'
+      - name: 'FIRST_NAME'
+        is_nullable: false
+        type: 'string'
+      - name: 'LAST_NAME'
+        is_nullable: false
+        type: 'string'
+      - name: 'EMAIL'
+        is_nullable: false
+        type: 'string'
+      - name: 'bucket_id'
+        is_nullable: true
+        type: 'unsigned'
+    indexes:
+      - type: 'TREE'
+        name: 'id'
+        unique: true
+        parts:
+          - path: 'id'
+            type: 'number'
+            is_nullable: false
+      - type: 'TREE'
+        name: 'bucket_id'
+        unique: false
+        parts:
+          - path: 'bucket_id'
+            type: 'unsigned'
+            is_nullable: true
+    sharding_key:
+      - id

@@ -26,6 +26,7 @@ local g7 = t.group("api.get_scd_table_checksum")
 local g8 = t.group("api.truncate_space_on_cluster")
 local g9 = t.group("api.timeouts_config")
 local g10 = t.group("api.ddl_operations")
+local g11 = t.group("integration_api_sql")
 
 local checks = require("checks")
 local helper = require("test.helper.integration")
@@ -1016,4 +1017,23 @@ g10.test_timeout_error_ddl = function()
         body = { code = "API_DDL_QUEUE_004", message = "ERROR: ddl request timeout" },
         status = 500,
     })
+end
+
+g11.test_insert_select_query = function()
+    local net_box = cluster:server("api-1").net_box
+    local storage = cluster:server("master-1-1").net_box
+
+    local _, _ = storage:eval([[]])
+    storage.space.table_test_2:insert({1, 'John', 'Doe', 'johndoe@example.com', 1})
+
+    local res, err = net_box:call("query", { [[INSERT INTO "table_test_1"
+        ("id", FIRST_NAME, LAST_NAME, EMAIL, "bucket_id") SELECT * FROM "table_test_2" WHERE "id" = ?;]], { 1 } })
+
+    t.assert_equals(err, nil)
+    t.assert_equals(res, true)
+
+    local res, err = net_box:call("query", { [[SELECT * FROM "table_test_1";]], { } })
+
+    t.assert_equals(err, nil)
+    t.assert_equals(res.rows, { { 1, "John", "Doe", "johndoe@example.com", 1 } })
 end
