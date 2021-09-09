@@ -23,6 +23,7 @@ local g3 = t.group("storage_drop_space")
 local g4 = t.group("storage_delta_rollback")
 local g5 = t.group("storage_delete_scd_sql")
 local g6 = t.group("storage_delta_checksum")
+local g7 = t.group("storage.migration")
 local helper = require("test.helper.integration")
 local cluster = helper.cluster
 
@@ -712,28 +713,287 @@ g6.test_all_dtm_types_check_data_w_column = function()
         "c",
     })
 
-    local is_gen, res = storage:call(
-        "get_scd_table_checksum",
+    local is_gen, res = storage:call("get_scd_table_checksum", {
+        "orig__as2__all_types_table_actual",
+        "orig__as2__all_types_table_history",
+        0,
         {
-            "orig__as2__all_types_table_actual",
-            "orig__as2__all_types_table_history",
-            0,
-            {
-                "id",
-                "double_col",
-                "float_col",
-                "varchar_col",
-                "boolean_col",
-                "int_col",
-                "bigint_col",
-                "date_col",
-                "timestamp_col",
-                "time_col",
-                "uuid_col",
-                "char_col",
-            },
-        }
-    )
+            "id",
+            "double_col",
+            "float_col",
+            "varchar_col",
+            "boolean_col",
+            "int_col",
+            "bigint_col",
+            "date_col",
+            "timestamp_col",
+            "time_col",
+            "uuid_col",
+            "char_col",
+        },
+    })
     t.assert_equals(is_gen, true)
     t.assert_equals(res, 0)
+end
+
+g7.before_each(function()
+    local storage = cluster:server("master-1-1").net_box
+    storage:call("box.execute", { "truncate table EMPLOYEES_HOT" })
+end)
+
+g7.after_test("test_create_index", function()
+    local storage = cluster:server("master-1-1").net_box
+    storage:call("box.space.EMPLOYEES_HOT.index.test_idx:drop")
+end)
+
+g7.before_test("test_drop_index", function()
+    local storage = cluster:server("master-1-1").net_box
+    storage:call("box.space.EMPLOYEES_HOT:create_index", {
+        "test_idx",
+        {
+            type = "TREE",
+            unique = false,
+            parts = { { "name", "string", is_nullable = true }, { "department", "string", is_nullable = true } },
+        },
+    })
+end)
+
+g7.after_test("test_add_column", function()
+    local config = cluster:download_config()
+    local old_format = config.schema.spaces["EMPLOYEES_HOT"].format
+
+    local storage = cluster:server("master-1-1").net_box
+    storage:call("box.space.EMPLOYEES_HOT:alter", { { name = "EMPLOYEES_HOT", format = old_format } })
+end)
+
+g7.before_test("test_drop_column", function()
+    local config = cluster:download_config()
+    local format = config.schema.spaces["EMPLOYEES_HOT"].format
+    table.insert(format, { is_nullable = false, name = "test_col", type = "string" })
+
+    local storage = cluster:server("master-1-1").net_box
+    storage:call("box.space.EMPLOYEES_HOT:alter", { { name = "EMPLOYEES_HOT", format = format } })
+end)
+
+g7.before_test("test_drop_column_with_index", function()
+    local config = cluster:download_config()
+    local format = config.schema.spaces["EMPLOYEES_HOT"].format
+    table.insert(format, { is_nullable = false, name = "test_col", type = "string" })
+
+    local storage = cluster:server("master-1-1").net_box
+    storage:call("box.space.EMPLOYEES_HOT:alter", { { name = "EMPLOYEES_HOT", format = format } })
+
+    storage:call("box.space.EMPLOYEES_HOT:create_index", {
+        "test_idx",
+        {
+            type = "TREE",
+            unique = false,
+            parts = { { "name", "string", is_nullable = true }, { "test_col", "string", is_nullable = true } },
+        },
+    })
+end)
+
+g7.after_test("test_drop_column_with_index", function()
+    local config = cluster:download_config()
+    local format = config.schema.spaces["EMPLOYEES_HOT"].format
+
+    local storage = cluster:server("master-1-1").net_box
+    storage:call("box.space.EMPLOYEES_HOT.index.test_idx:drop")
+    storage:call("box.space.EMPLOYEES_HOT:alter", { { name = "EMPLOYEES_HOT", format = format } })
+end)
+
+
+g7.test_create_index = function()
+    local storage = cluster:server("master-1-1").net_box
+
+    local s, err = storage:call("index_create", {
+        "EMPLOYEES_HOT_12234343",
+        "test_idx",
+        {
+            type = "TREE",
+            unique = false,
+            fields = { "name", "department" },
+        },
+    })
+    t.assert_equals(s, nil)
+    t.assert_error(err)
+
+    s, err = storage:call("index_create", {
+        "EMPLOYEES_HOT",
+        "test_idx",
+        {
+            type = "TREE",
+            unique = false,
+        },
+    })
+    t.assert_equals(s, nil)
+    t.assert_error(err)
+
+    s, err = storage:call("index_create", {
+        "EMPLOYEES_HOT",
+        "test_idx",
+        {
+            type = "TREE",
+            fields = { "name", "department" },
+        },
+    })
+    t.assert_equals(s, nil)
+    t.assert_error(err)
+
+    s, err = storage:call("index_create", {
+        "EMPLOYEES_HOT",
+        "test_idx",
+        {
+            unique = false,
+            fields = { "name", "department" },
+        },
+    })
+    t.assert_equals(s, nil)
+    t.assert_error(err)
+
+    s, err = storage:call("index_create", {
+        "EMPLOYEES_HOT",
+        "test_idx",
+        {
+            type = "TREE",
+            unique = false,
+            fields = { "name", "department" },
+        },
+    })
+
+    t.assert_equals(err, nil)
+
+    local has_index = false
+    for _, rec in pairs(s.spaces.EMPLOYEES_HOT.indexes) do
+        if rec.name == "test_idx" then
+            has_index = true
+        end
+    end
+    t.assert_equals(has_index, true)
+end
+
+g7.test_drop_index = function()
+    local storage = cluster:server("master-1-1").net_box
+
+    local s, err = storage:call("index_drop", { "EMPLOYEES_HOT", "test_idx" })
+    t.assert_equals(err, nil)
+
+    local created_indexes = storage:eval("return box.space.EMPLOYEES_HOT.index")
+
+    local has_index = false
+    for _, rec in pairs(s.spaces.EMPLOYEES_HOT.indexes) do
+        if rec.name == "test_idx" then
+            has_index = true
+        end
+    end
+
+    for _, rec in pairs(created_indexes) do
+        if rec.name == "test_idx" then
+            has_index = true
+        end
+    end
+
+    t.assert_equals(has_index, false)
+end
+
+g7.test_add_column = function()
+    local storage = cluster:server("master-1-1").net_box
+
+    local s, err = storage:call(
+        "add_columns",
+        { "EMPLOYEES_HOT", { { name = "test_col", type = "string", is_nullable = false } } }
+    )
+    t.assert_equals(err, nil)
+
+    local space_fields = storage:eval("return box.space.EMPLOYEES_HOT:format()")
+
+    t.assert_equals(space_fields, {
+        { is_nullable = false, name = "id", type = "number" },
+        { is_nullable = false, name = "reqId", type = "number" },
+        { is_nullable = false, name = "name", type = "string" },
+        { is_nullable = false, name = "department", type = "string" },
+        { is_nullable = false, name = "manager", type = "string" },
+        { is_nullable = false, name = "salary", type = "number" },
+        { is_nullable = false, name = "sysOp", type = "number" },
+        { is_nullable = false, name = "bucket_id", type = "unsigned" },
+        { is_nullable = false, name = "test_col", type = "string" },
+    })
+
+    t.assert_equals(s.spaces.EMPLOYEES_HOT.format, {
+        { is_nullable = false, name = "id", type = "number" },
+        { is_nullable = false, name = "reqId", type = "number" },
+        { is_nullable = false, name = "name", type = "string" },
+        { is_nullable = false, name = "department", type = "string" },
+        { is_nullable = false, name = "manager", type = "string" },
+        { is_nullable = false, name = "salary", type = "number" },
+        { is_nullable = false, name = "sysOp", type = "number" },
+        { is_nullable = false, name = "bucket_id", type = "unsigned" },
+        { is_nullable = false, name = "test_col", type = "string" },
+    })
+end
+
+g7.test_drop_column = function()
+    local storage = cluster:server("master-1-1").net_box
+
+    local space_fields = storage:eval("return box.space.EMPLOYEES_HOT:format()")
+    t.assert_equals(space_fields, {
+        { is_nullable = false, name = "id", type = "number" },
+        { is_nullable = false, name = "reqId", type = "number" },
+        { is_nullable = false, name = "name", type = "string" },
+        { is_nullable = false, name = "department", type = "string" },
+        { is_nullable = false, name = "manager", type = "string" },
+        { is_nullable = false, name = "salary", type = "number" },
+        { is_nullable = false, name = "sysOp", type = "number" },
+        { is_nullable = false, name = "bucket_id", type = "unsigned" },
+        { is_nullable = false, name = "test_col", type = "string" },
+    })
+
+    local s, err = storage:call("drop_columns", { "EMPLOYEES_HOT", { "test_col" } })
+    t.assert_equals(err, nil)
+
+    space_fields = storage:eval("return box.space.EMPLOYEES_HOT:format()")
+
+    t.assert_equals(space_fields, {
+        { is_nullable = false, name = "id", type = "number" },
+        { is_nullable = false, name = "reqId", type = "number" },
+        { is_nullable = false, name = "name", type = "string" },
+        { is_nullable = false, name = "department", type = "string" },
+        { is_nullable = false, name = "manager", type = "string" },
+        { is_nullable = false, name = "salary", type = "number" },
+        { is_nullable = false, name = "sysOp", type = "number" },
+        { is_nullable = false, name = "bucket_id", type = "unsigned" },
+    })
+
+    t.assert_equals(s.spaces.EMPLOYEES_HOT.format, {
+        { is_nullable = false, name = "id", type = "number" },
+        { is_nullable = false, name = "reqId", type = "number" },
+        { is_nullable = false, name = "name", type = "string" },
+        { is_nullable = false, name = "department", type = "string" },
+        { is_nullable = false, name = "manager", type = "string" },
+        { is_nullable = false, name = "salary", type = "number" },
+        { is_nullable = false, name = "sysOp", type = "number" },
+        { is_nullable = false, name = "bucket_id", type = "unsigned" },
+    })
+end
+
+g7.test_drop_column_with_index = function()
+    local storage = cluster:server("master-1-1").net_box
+
+    local space_fields = storage:eval("return box.space.EMPLOYEES_HOT:format()")
+    t.assert_equals(space_fields, {
+        { is_nullable = false, name = "id", type = "number" },
+        { is_nullable = false, name = "reqId", type = "number" },
+        { is_nullable = false, name = "name", type = "string" },
+        { is_nullable = false, name = "department", type = "string" },
+        { is_nullable = false, name = "manager", type = "string" },
+        { is_nullable = false, name = "salary", type = "number" },
+        { is_nullable = false, name = "sysOp", type = "number" },
+        { is_nullable = false, name = "bucket_id", type = "unsigned" },
+        { is_nullable = false, name = "test_col", type = "string" },
+    })
+
+    local _, err = storage:call("drop_columns", { "EMPLOYEES_HOT", { "test_col" } })
+    t.assert_not_equals(err, nil)
+    t.assert_equals(err.str, "Storage error: field `test_col` used in index `test_idx`")
+
 end
