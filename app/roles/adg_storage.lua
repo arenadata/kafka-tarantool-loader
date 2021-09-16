@@ -60,6 +60,10 @@ _G.reverse_history_in_scd_table = nil
 _G.delete_data_from_scd_table_sql = nil
 _G.get_scd_table_checksum = nil
 _G.table_mutex_map = nil
+_G.index_create = nil
+_G.index_drop = nil
+_G.add_columns = nil
+_G.drop_columns = nil
 
 local err_storage = errors.new_class("Storage error")
 
@@ -865,6 +869,110 @@ local function get_scd_table_checksum(
     return true, result
 end
 
+---index_create - function creates index in space
+---@param space_name string - space name for creating index.
+---@param index_name string - index name.
+---@param params table - index params: type, unique and fields list.
+---@return boolean|table - true,nil if dropped | nil,error - otherwise.
+local function index_create(space_name, index_name, params)
+    checks("string", "string", "table")
+
+    if params.type == nil then
+        return nil, err_storage:new("type field must be in params")
+    end
+
+    if params.unique == nil then
+        return nil, err_storage:new("unique field must be in params")
+    end
+
+    local idx = {
+        type = params.type,
+        unique = params.unique,
+        parts = {}
+    }
+
+    return err_storage:pcall(function ()
+        local space_fields = box.space[space_name]:format()
+
+        for _, f in pairs(params.fields) do
+            for _, sf in pairs(space_fields) do
+                if sf.name == f then
+                    table.insert(idx.parts, { sf.name, sf.type, is_nullable = sf.is_nullable })
+                    break
+                end
+            end
+        end
+
+        box.space[space_name]:create_index(index_name, idx)
+        return get_storage_ddl(), nil
+    end)
+end
+
+---index_drop - function drops index in space
+---@param space_name string - space name for drop index.
+---@param index_name string - index name.
+---@return boolean|table - true,nil if dropped | nil,error - otherwise.
+local function index_drop(space_name, index_name)
+    checks("string", "string")
+
+    return err_storage:pcall(function ()
+        box.space[space_name].index[index_name]:drop()
+        return get_storage_ddl(), nil
+    end)
+end
+
+---add_columns - function adds new columns to space
+---@param space_name string - space name for apending column.
+---@param columns table - list of new columns.
+---@return boolean|table - true,nil if dropped | nil,error - otherwise.
+local function add_columns(space_name, columns)
+    checks("string", "table")
+    return err_storage:pcall(function ()
+        local new_schema = box.space[space_name]:format()
+
+        for _, c in pairs(columns) do
+            table.insert( new_schema, c )
+        end
+
+        box.space[space_name]:alter({ name = space_name, format = new_schema})
+        return get_storage_ddl(), nil
+    end)
+end
+
+---drop_columns - function adds new columns to space
+---@param space_name string - space name for apending column.
+---@param columns table - list of column names for removing.
+---@return boolean|table - true,nil if dropped | nil,error - otherwise.
+local function drop_columns(space_name, columns)
+    checks("string", "table")
+
+    return err_storage:pcall(function ()
+        local new_schema = box.space[space_name]:format()
+
+        for _, i in pairs(box.space[space_name].index) do
+            for _, j in pairs(i.parts) do
+                for _, c in pairs(columns) do
+                    if new_schema[j.fieldno].name == c then
+                        return nil, err_storage:new("field `"..c.."` used in index `"..i.name.."`")
+                    end
+                end
+            end
+        end
+
+        for i, c in pairs(new_schema) do
+            for _, rc in pairs(columns) do
+                if c.name == rc then
+                    table.remove( new_schema, i )
+                    break
+                end
+            end
+        end
+
+        box.space[space_name]:alter({ name = space_name, format = new_schema})
+        return get_storage_ddl(), nil
+    end)
+end
+
 local function init(opts) -- luacheck: no unused args
     _G.insert_tuples = insert_tuples
     _G.drop_space = drop_space
@@ -887,6 +995,11 @@ local function init(opts) -- luacheck: no unused args
     _G.delete_data_from_scd_table_sql = delete_data_from_scd_table_sql
     _G.get_scd_table_checksum = get_scd_table_checksum
     _G.table_mutex_map = mutex_map.get_mutex_map()
+    _G.index_create = index_create
+    _G.index_drop = index_drop
+    _G.add_columns = add_columns
+    _G.drop_columns = drop_columns
+
     query_dbg_opts = query_debug_config.get_query_prof_opts()
 
     garbage_fiber = fiber.create(function()
@@ -962,4 +1075,8 @@ return {
     prep_sql = prep_sql,
     execute_sql = execute_sql,
     set_schema_ddl = set_schema_ddl,
+    index_create = index_create,
+    index_drop = index_drop,
+    add_columns = add_columns,
+    drop_columns = drop_columns,
 }

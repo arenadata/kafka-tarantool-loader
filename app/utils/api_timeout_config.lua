@@ -24,6 +24,7 @@ local api_timeout_opts = {
         scd_table_checksum = 86400,
         ddl_operation = 20,
         query_select = 60,
+        migration_operation = 3600,
     },
 
     get_transfer_stage_data_to_scd_table_timeout = function(self)
@@ -42,12 +43,17 @@ local api_timeout_opts = {
         return self.timeouts.query_select
     end,
 
+    get_migration_operation_timeout = function(self)
+        return self.timeouts.migration_operation
+    end,
+
     clear = function(self)
         self.timeouts = {
             transfer_stage_data_to_scd_tbl = 86400,
             scd_table_checksum = 86400,
             ddl_operation = 20,
-            query = 60,
+            query_select = 60,
+            migration_operation = 3600,
         }
     end,
 }

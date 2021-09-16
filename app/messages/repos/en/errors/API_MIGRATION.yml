@@ -1,0 +1,19 @@
+---
+API_MIGRATION_EMPTY_TYPE:
+  code: API_MIGRATION_EMPTY_TYPE
+  message: 'ERROR: "operation_type" param not found in the query.'
+API_MIGRATION_EMPTY_NAME:
+  code: API_MIGRATION_EMPTY_NAME
+  message: 'ERROR: "name" param not found in the query.'
+API_MIGRATION_UNKNOWN_TYPE:
+  code: API_MIGRATION_UNKNOWN_TYPE
+  message: 'ERROR: unknown migration operation type.'
+API_MIGRATION_RPC_ERROR:
+  code: API_MIGRATION_RPC_ERROR
+  message: 'ERROR: rpc call error.'
+API_MIGRATION_APPLY_SCHEMA_ERROR:
+  code: API_MIGRATION_APPLY_SCHEMA_ERROR
+  message: 'ERROR: apply schema error.'
+API_MIGRATION_EMPTY_SPACE:
+  code: API_MIGRATION_EMPTY_SPACE
+  message: 'ERROR: space name not found in method.'

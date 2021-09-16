@@ -41,6 +41,7 @@ local truncate_space_handler = require("app.handlers.truncate_space_handler")
 local kafka_handler = require("app.handlers.kafka_handler")
 local ddl_handler = require("app.handlers.ddl_handler")
 local version_handler = require("app.handlers.version_handler")
+local migration_handler = require("app.handlers.migration_handler")
 
 local success_repository = require("app.messages.success_repository")
 local error_repository = require("app.messages.error_repository")
@@ -951,6 +952,8 @@ local function init(opts) -- luacheck: no unused args
         { method = "POST", path = "/api/v1/ddl/table/reverseHistoryTransfer" },
         etl_handler.reverse_history_in_scd_table
     )
+
+    httpd:route({ method = "POST", path = "api/v1/ddl/table/migrate/:tableName" }, migration_handler.migrate)
 
     httpd:route(
         { method = "GET", path = "api/etl/truncate_space_on_cluster" },

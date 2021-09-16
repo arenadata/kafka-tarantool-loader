@@ -1,5 +1,5 @@
 package = "memstorage"
-version = "0.8.2-1"
+version = "0.8.3-1"
 
 source = {
     branch = "master",

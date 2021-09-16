@@ -27,6 +27,7 @@ local g8 = t.group("api.truncate_space_on_cluster")
 local g9 = t.group("api.timeouts_config")
 local g10 = t.group("api.ddl_operations")
 local g11 = t.group("integration_api_sql")
+local g12 = t.group("api.migration")
 
 local checks = require("checks")
 local helper = require("test.helper.integration")
@@ -276,8 +277,7 @@ g2.test_rest_api_error_transfer_data_to_scd_table_on_cluster = function()
                 error = "ERROR: _delta_number param in query not found",
                 errorCode = "API_ETL_TRANSFER_DATA_TO_HISTORICAL_TABLE_003",
                 status = "error",
-            }
-,
+            },
             status = 400,
         }
     )
@@ -291,8 +291,7 @@ g2.test_rest_api_error_transfer_data_to_scd_table_on_cluster = function()
                 error = "ERROR: _stage_data_table_name param in query not found",
                 errorCode = "API_ETL_TRANSFER_DATA_TO_SCD_TABLE_001",
                 status = "error",
-            }
-,
+            },
             status = 400,
         }
     )
@@ -319,31 +318,21 @@ g2.test_rest_api_error_transfer_data_to_scd_table_on_cluster = function()
 end
 
 g4.test_subscription_api = function()
-    assert_http_json_request(
-        "POST",
-        "/api/v1/kafka/subscription",
-        { maxNumberOfMessagesPerPartition = 10000 },
-        {
-            body = {
-                code = "API_KAFKA_SUBSCRIPTION_001",
-                message = "ERROR: topicName param not found in the query.",
-            },
-            status = 400,
-        }
-    )
+    assert_http_json_request("POST", "/api/v1/kafka/subscription", { maxNumberOfMessagesPerPartition = 10000 }, {
+        body = {
+            code = "API_KAFKA_SUBSCRIPTION_001",
+            message = "ERROR: topicName param not found in the query.",
+        },
+        status = 400,
+    })
 
-    assert_http_json_request(
-        "POST",
-        "/api/v1/kafka/subscription",
-        { topicName = "123" },
-        {
-            body = {
-                code = "API_KAFKA_SUBSCRIPTION_002",
-                message = "ERROR: maxNumberOfMessagesPerPartition param not found in the query.",
-            },
-            status = 400,
-        }
-    )
+    assert_http_json_request("POST", "/api/v1/kafka/subscription", { topicName = "123" }, {
+        body = {
+            code = "API_KAFKA_SUBSCRIPTION_002",
+            message = "ERROR: maxNumberOfMessagesPerPartition param not found in the query.",
+        },
+        status = 400,
+    })
 
     assert_http_json_request("POST", "/api/v1/kafka/subscription", {
         topicName = "EMPLOYEES",
@@ -711,30 +700,26 @@ g7.test_get_scd_checksum_on_cluster_rest = function()
         { status = 200, body = { checksum = 2000 } }
     )
 
-    assert_http_json_request(
-        "POST",
-        "/api/etl/get_scd_table_checksum",
-        {
-            actualDataTableName = "EMPLOYEES_TRANSFER",
-            historicalDataTableName = "EMPLOYEES_TRANSFER_HIST",
-            columnList = { "id", "sysFrom" },
-            sysCn = 1,
-        },
-        { status = 200, body = { checksum = 2363892561778 } }
-    )
+    assert_http_json_request("POST", "/api/etl/get_scd_table_checksum", {
+        actualDataTableName = "EMPLOYEES_TRANSFER",
+        historicalDataTableName = "EMPLOYEES_TRANSFER_HIST",
+        columnList = { "id", "sysFrom" },
+        sysCn = 1,
+    }, {
+        status = 200,
+        body = { checksum = 2363892561778 },
+    })
 
-    assert_http_json_request(
-        "POST",
-        "/api/etl/get_scd_table_checksum",
-        {
-            actualDataTableName = "EMPLOYEES_TRANSFER",
-            historicalDataTableName = "EMPLOYEES_TRANSFER_HIST",
-            columnList = { "id", "sysFrom" },
-            sysCn = 1,
-            normalization = 2000000,
-        },
-        { status = 200, body = { checksum = 1180948 } }
-    )
+    assert_http_json_request("POST", "/api/etl/get_scd_table_checksum", {
+        actualDataTableName = "EMPLOYEES_TRANSFER",
+        historicalDataTableName = "EMPLOYEES_TRANSFER_HIST",
+        columnList = { "id", "sysFrom" },
+        sysCn = 1,
+        normalization = 2000000,
+    }, {
+        status = 200,
+        body = { checksum = 1180948 },
+    })
 end
 
 g8.test_truncate_existing_spaces_on_cluster = function()
@@ -853,32 +838,27 @@ g9.test_timeout_cfg = function()
     -- luacheck: max line length 210
     local url =
         "/api/etl/transfer_data_to_scd_table?_stage_data_table_name=EMPLOYEES_HOT&_actual_data_table_name=EMPLOYEES_TRANSFER&_historical_data_table_name=EMPLOYEES_TRANSFER_HIST&_delta_number=2"
-    assert_http_json_request(
-        "GET",
-        url,
-        nil,
-        {
-            body = {
+    assert_http_json_request("GET", url, nil, {
+        body = {
+            error = "ERROR: data modification error",
+            errorCode = "STORAGE_003",
+            opts = {
                 error = "ERROR: data modification error",
                 errorCode = "STORAGE_003",
                 opts = {
-                    error = "ERROR: data modification error",
-                    errorCode = "STORAGE_003",
-                    opts = {
-                        actual_data_table_name = "EMPLOYEES_TRANSFER",
-                        delta_number = 2,
-                        error = "Response is not ready",
-                        func = "transfer_stage_data_to_scd_table",
-                        historical_data_table_name = "EMPLOYEES_TRANSFER_HIST",
-                        stage_data_table_name = "EMPLOYEES_HOT",
-                    },
-                    status = "error",
+                    actual_data_table_name = "EMPLOYEES_TRANSFER",
+                    delta_number = 2,
+                    error = "Response is not ready",
+                    func = "transfer_stage_data_to_scd_table",
+                    historical_data_table_name = "EMPLOYEES_TRANSFER_HIST",
+                    stage_data_table_name = "EMPLOYEES_HOT",
                 },
                 status = "error",
             },
-            status = 400,
-        }
-    )
+            status = "error",
+        },
+        status = 400,
+    })
 end
 
 g10.before_test("test_timeout_error_ddl", function()
@@ -1024,16 +1004,140 @@ g11.test_insert_select_query = function()
     local storage = cluster:server("master-1-1").net_box
 
     local _, _ = storage:eval([[]])
-    storage.space.table_test_2:insert({1, 'John', 'Doe', 'johndoe@example.com', 1})
+    storage.space.table_test_2:insert({ 1, "John", "Doe", "johndoe@example.com", 1 })
 
-    local res, err = net_box:call("query", { [[INSERT INTO "table_test_1"
-        ("id", FIRST_NAME, LAST_NAME, EMAIL, "bucket_id") SELECT * FROM "table_test_2" WHERE "id" = ?;]], { 1 } })
+    local res, err = net_box:call(
+        "query",
+        {
+            [[INSERT INTO "table_test_1"
+        ("id", FIRST_NAME, LAST_NAME, EMAIL, "bucket_id") SELECT * FROM "table_test_2" WHERE "id" = ?;]],
+            { 1 },
+        }
+    )
 
     t.assert_equals(err, nil)
     t.assert_equals(res, true)
 
-    local res, err = net_box:call("query", { [[SELECT * FROM "table_test_1";]], { } })
+    local res, err = net_box:call("query", { [[SELECT * FROM "table_test_1";]], {} })
 
     t.assert_equals(err, nil)
     t.assert_equals(res.rows, { { 1, "John", "Doe", "johndoe@example.com", 1 } })
+end
+
+g12.test_incorrect_body_params = function()
+    assert_http_json_request("POST", "/api/v1/ddl/table/migrate/EMPLOYEES", {}, {
+        status = 500,
+        body = {
+            code = "API_MIGRATION_EMPTY_TYPE",
+            message = 'ERROR: "operation_type" param not found in the query.',
+        },
+    })
+
+    assert_http_json_request("POST", "/api/v1/ddl/table/migrate/EMPLOYEES", {
+        operation_type = "create_index",
+    }, {
+        status = 500,
+        body = {
+            code = "API_MIGRATION_EMPTY_NAME",
+            message = 'ERROR: "name" param not found in the query.',
+        },
+    })
+
+    assert_http_json_request("POST", "/api/v1/ddl/table/migrate/EMPLOYEES", {
+        operation_type = "adrt",
+        name = "test",
+    }, {
+        status = 500,
+        body = {
+            code = "API_MIGRATION_UNKNOWN_TYPE",
+            message = "ERROR: unknown migration operation type.",
+        },
+    })
+end
+
+g12.test_index_migration = function()
+    local config = cluster:download_config()
+    local old_schema = config.schema.spaces["EMPLOYEES"]
+
+    assert_http_json_request("POST", "/api/v1/ddl/table/migrate/EMPLOYEES", {
+        operation_type = "create_index",
+        name = "test_idx",
+        params = {
+            type = "TREE",
+            unique = false,
+            fields = { "FIRST_NAME", "LAST_NAME" },
+        },
+    }, {
+        status = 200,
+    })
+
+    config = cluster:download_config()
+    local new_schema = config.schema.spaces["EMPLOYEES"]
+    t.assert_not_equals(new_schema, old_schema)
+
+    local has_index = false
+    for _, rec in pairs(new_schema.indexes) do
+        if rec.name == "test_idx" then
+            has_index = true
+        end
+    end
+    t.assert_equals(has_index, true)
+
+    assert_http_json_request("POST", "/api/v1/ddl/table/migrate/EMPLOYEES", {
+        operation_type = "drop_index",
+        name = "test_idx",
+    }, {
+        status = 200,
+    })
+
+    config = cluster:download_config()
+    new_schema = config.schema.spaces["EMPLOYEES"]
+    t.assert_equals(old_schema, new_schema)
+end
+
+g12.test_column_migration = function()
+    local config = cluster:download_config()
+    local old_schema = config.schema.spaces["EMPLOYEES"]
+
+    assert_http_json_request("POST", "/api/v1/ddl/table/migrate/EMPLOYEES", {
+        operation_type = "add_column",
+        name = "test_col",
+        params = {
+            type = "string",
+            is_nullable = false,
+        },
+    }, {
+        status = 200,
+    })
+
+    config = cluster:download_config()
+    local new_schema = config.schema.spaces["EMPLOYEES"]
+    t.assert_not_equals(new_schema, old_schema)
+
+    local has_index = false
+    for _, rec in pairs(new_schema.format) do
+        if rec.name == "test_col" then
+            has_index = true
+        end
+    end
+    t.assert_equals(has_index, true)
+
+    assert_http_json_request("POST", "/api/v1/ddl/table/migrate/EMPLOYEES", {
+        operation_type = "drop_column",
+        name = "test_col",
+    }, {
+        status = 200,
+    })
+
+    config = cluster:download_config()
+    new_schema = config.schema.spaces["EMPLOYEES"]
+    t.assert_equals(new_schema, old_schema)
+
+    has_index = false
+    for _, rec in pairs(new_schema.format) do
+        if rec.name == "test_col" then
+            has_index = true
+        end
+    end
+    t.assert_equals(has_index, false)
 end
