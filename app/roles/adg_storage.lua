@@ -35,7 +35,7 @@ local set = require("app.entities.set")
 local metrics = require("app.metrics.metrics_storage")
 local role_name = "app.roles.adg_storage"
 local moonwalker = require("moonwalker")
-
+local sql_insert = require("app.utils.sql_insert")
 local success_repository = require("app.messages.success_repository")
 local error_repository = require("app.messages.error_repository")
 
@@ -64,6 +64,7 @@ _G.index_create = nil
 _G.index_drop = nil
 _G.add_columns = nil
 _G.drop_columns = nil
+_G.transform_query_to_tuple = nil
 
 local err_storage = errors.new_class("Storage error")
 
@@ -973,6 +974,16 @@ local function drop_columns(space_name, columns)
     end)
 end
 
+---transform_query_to_tuple - function transform sql insert query to tuple with values
+---@param query string - sql query.
+---@param params table - list of query params.
+---@param bucket_count number - count of vshard buckets.
+---@return boolean|table - true,nil if dropped | nil,error - otherwise.
+local function transform_query_to_tuple(query, params, bucket_count)
+    checks("string", "table", "number")
+    return sql_insert.get_tuples(query, params, bucket_count)
+end
+
 local function init(opts) -- luacheck: no unused args
     _G.insert_tuples = insert_tuples
     _G.drop_space = drop_space
@@ -999,6 +1010,7 @@ local function init(opts) -- luacheck: no unused args
     _G.index_drop = index_drop
     _G.add_columns = add_columns
     _G.drop_columns = drop_columns
+    _G.transform_query_to_tuple = transform_query_to_tuple
 
     query_dbg_opts = query_debug_config.get_query_prof_opts()
 
@@ -1051,6 +1063,8 @@ local function apply_config(conf, opts) -- luacheck: no unused args
         local res, err = set_schema_ddl()
         if res == nil then
             log.error(err)
+        else
+            sql_insert.install_triggers()
         end
     end
 
@@ -1079,4 +1093,5 @@ return {
     index_drop = index_drop,
     add_columns = add_columns,
     drop_columns = drop_columns,
+    transform_query_to_tuple = transform_query_to_tuple
 }
