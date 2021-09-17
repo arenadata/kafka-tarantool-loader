@@ -980,7 +980,7 @@ end
 ---@param bucket_count number - count of vshard buckets.
 ---@return boolean|table - true,nil if dropped | nil,error - otherwise.
 local function transform_query_to_tuple(query, params, bucket_count)
-    checks("string", "table", "number")
+    checks("string", "?table", "number")
     return sql_insert.get_tuples(query, params, bucket_count)
 end
 

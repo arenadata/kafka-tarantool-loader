@@ -999,6 +999,18 @@ g10.test_timeout_error_ddl = function()
     })
 end
 
+g11.after_all(function ()
+    local storage1 = cluster:server("master-1-1").net_box
+    local storage2 = cluster:server("master-2-1").net_box
+
+    storage1:call("box.execute", { [[truncate table "table_test_1"]] })
+    storage2:call("box.execute", { [[truncate table "table_test_1"]] })
+    storage1:call("box.execute", { [[truncate table "table_test_2"]] })
+    storage2:call("box.execute", { [[truncate table "table_test_2"]] })
+    storage1:call("box.execute", { [[truncate table "dev__sales__sales_staging"]] })
+    storage2:call("box.execute", { [[truncate table "dev__sales__sales_staging"]] })
+end)
+
 g11.test_insert_select_query = function()
     local net_box = cluster:server("api-1").net_box
 
@@ -1023,6 +1035,36 @@ g11.test_insert_select_query = function()
 
     t.assert_equals(err, nil)
     t.assert_equals(res.rows, { { 1, "John", "Doe", "johndoe@example.com", 7729 } })
+end
+
+g11.test_insert_dtm_query = function()
+    local net_box = cluster:server("api-1").net_box
+
+    local res, err = net_box:call("query", {
+        -- luacheck: max line length 210
+        [[insert into "dev__sales__sales_staging" ("identification_number", "transaction_date", "product_code", "product_units", "store_id", "description", "sys_op") values(?,?,?,?,?,?,?);]],
+        {1,0,'A',7,1234,'B', 0},
+    })
+
+    t.assert_equals(err, nil)
+    t.assert_equals(res.row_count, 1)
+
+    res, err = net_box:call("query", {
+        -- luacheck: max line length 220
+        [[insert into "dev__sales__sales_staging" ("identification_number", "transaction_date", "product_code", "product_units", "store_id", "description", "bucket_id", "sys_op") values(2,0,'A',7,1234,'B',null,0);]],
+    })
+    t.assert_equals(err, nil)
+    t.assert_equals(res.row_count, 1)
+
+    local res, err = net_box:call("query", {
+        -- luacheck: max line length 210
+        [[insert into "dev__sales__sales_staging" ("identification_number", "transaction_date", "product_code", "product_units", "store_id", "description", "sys_op") values (?,?,?,?,?,?,?), (?,?,?,?,?,?,?);]],
+        {3,0,'C',7,1235,'2', 0, 4,0,'D',7,1236,'1', 0},
+    })
+
+    t.assert_equals(err, nil)
+    t.assert_equals(res.row_count, 2)
+
 end
 
 g12.test_incorrect_body_params = function()
