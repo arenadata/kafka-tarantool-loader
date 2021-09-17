@@ -1001,19 +1001,20 @@ end
 
 g11.test_insert_select_query = function()
     local net_box = cluster:server("api-1").net_box
-    local storage = cluster:server("master-1-1").net_box
 
-    local _, _ = storage:eval([[]])
-    storage.space.table_test_2:insert({ 1, "John", "Doe", "johndoe@example.com", 1 })
+    local res, err = net_box:call("query", {
+        [[INSERT INTO "table_test_1"
+        ("id", FIRST_NAME, LAST_NAME, EMAIL) VALUES (?, ?, ?, ?);]],
+        { 1, "John", "Doe", "johndoe@example.com" },
+    })
+    t.assert_equals(err, nil)
+    t.assert_equals(res.row_count, 1)
 
-    local res, err = net_box:call(
-        "query",
-        {
-            [[INSERT INTO "table_test_1"
+    local res, err = net_box:call("query", {
+        [[INSERT INTO "table_test_1"
         ("id", FIRST_NAME, LAST_NAME, EMAIL, "bucket_id") SELECT * FROM "table_test_2" WHERE "id" = ?;]],
-            { 1 },
-        }
-    )
+        { 1 },
+    })
 
     t.assert_equals(err, nil)
     t.assert_equals(res, true)
@@ -1021,7 +1022,7 @@ g11.test_insert_select_query = function()
     local res, err = net_box:call("query", { [[SELECT * FROM "table_test_1";]], {} })
 
     t.assert_equals(err, nil)
-    t.assert_equals(res.rows, { { 1, "John", "Doe", "johndoe@example.com", 1 } })
+    t.assert_equals(res.rows, { { 1, "John", "Doe", "johndoe@example.com", 7729 } })
 end
 
 g12.test_incorrect_body_params = function()

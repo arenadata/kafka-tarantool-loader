@@ -332,9 +332,24 @@ local function executeComplexInsert(query, params)
 end
 
 local function executeSimpleInsert(query, params)
-    local sql_res, err = sql_insert.get_tuples(query, params, vshard.router.bucket_count())
-    if sql_res == nil then
+    local storages = cartridge.rpc_get_candidates("app.roles.adg_storage", { leader_only = true })
+    if #storages == 0 then
+        log.error("ERROR: storage to execute ddl not found")
+    end
+
+    -- get random storage that transform query to record tuple
+    local conn, err = pool.connect(storages[math.random( #storages )])
+    local sql_res
+    if conn == nil then
+        log.error(err)
         return nil, err
+    else
+        sql_res, err = conn:call("transform_query_to_tuple", { query, params, vshard.router.bucket_count() }, { is_async = false })
+
+        if sql_res == nil or sql_res == false then
+            log.error(err)
+            return nil, err
+        end
     end
 
     local by_bucket_id = sql_insert.tuples_by_bucket_id(sql_res.inserted_tuples, vshard.router.bucket_count())
