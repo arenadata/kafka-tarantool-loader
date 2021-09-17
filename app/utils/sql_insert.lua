@@ -48,7 +48,7 @@ end
 
 -- Get tuples that will be inserted by an sql statement
 local function get_tuples(sql_statement, params, bucket_count)
-    checks("string", "table", "number")
+    checks("string", "?table", "number")
 
     inserted_tuples = {}
 
