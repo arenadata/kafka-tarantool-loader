@@ -371,8 +371,14 @@ local function executeSimpleInsert(query, params)
     return sql_res.sql_result
 end
 
-local function executeSelect(query, params)
-    local replicas, err = sql_select.get_replicas(query, params)
+local function executeSelect(query, params, is_sharded)
+    local replicas, err
+
+    if is_sharded ~= nil and is_sharded == true then
+        replicas, err = sql_select.get_replicas(query, params)
+    else
+        replicas, err = vshard.router.routeall()
+    end
 
     if replicas == nil then
         return nil, err
@@ -432,11 +438,11 @@ end
 
 --- store procedure is called by Prostore, then it runs SELECT query.
 --- When this procedure received sql query it sends this query to all storage instances.
-local function query(query, params)
+local function query(query, params, is_sharded)
     local lower_query = string.lower(query)
 
     if string.startswith(lower_query, "select") then
-        return executeSelect(query, params)
+        return executeSelect(query, params, is_sharded)
     else
         if string.startswith(lower_query, "insert") then
             local selectPosition, _ = string.find(lower_query, "select")
