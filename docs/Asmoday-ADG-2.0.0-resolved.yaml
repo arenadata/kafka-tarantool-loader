@@ -10,7 +10,7 @@ info:
 servers:
   - url: https://virtserver.swaggerhub.com/Asmoday/ADG/1.0.0
     description: SwaggerHub API Auto Mocking
-  - url: http://example.domain/api/v1
+  - url: http://example.domain
     description: Example Server
 tags:
   - name: subscription
@@ -26,38 +26,417 @@ tags:
   - name: etl
     description: ETL functions
 paths:
-  /ddl/table/queuedDelete:
-    delete:
+  /versions:
+    get:
       tags:
-        - table
-      description: Delete phisical table (operator DROP TABLE)
-      operationId: delayed_delete_on_cluster
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/TableDropTask"
-            examples:
-              sample-table-drop-task:
-                summary: Example1
-                value:
-                  tableList:
-                    - space1
-                    - space2
+      - etl
+      summary: Versions Tarantool, Cartridge, Kafka connector
+      description: Versions Tarantool, Cartridge, Kafka connector
+      operationId: versions
+      parameters:
       responses:
         "200":
-          description: table deleted
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref:
         "500":
           description: unexpected error
           content:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-  /ddl/table/queuedCreate:
+  /api/get_config:
+    get:
+      tags:
+      - etl
+      summary: Cluster config
+      description: Cluster config
+      operationId: get_config
+      parameters:
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref:
+        "500":
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /metrics:
+      get:
+      tags:
+      - etl
+      summary: Metrics
+      description: Metrics
+      operationId: get_metrics
+      parameters:
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref:
+        "500":
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /api/metrics/get_all_metrics:
+      get:
+      tags:
+      - etl
+      summary: Metrics
+      description: Metrics
+      operationId: get_metrics
+      parameters:
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref:
+        "500":
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/v1/kafka/subscription:
+    post:
+      tags:
+        - subscription
+      summary: Create subscription
+      description: Create kafka subscription
+      operationId: kafka_subscribe_to_topic
+      requestBody:
+        description: Created subscription object
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Subscription"
+            examples:
+              sample-subscription3:
+                summary: Example
+                value:
+                  topicName: topic3
+                  spaceNames:
+                    - space3
+                  callbackFunction:
+                    callbackFunctionName: transfer_data_to_scd_table_on_cluster_cb
+                    callbackFunctionParams:
+                      _space: "space3"
+                      _stage_data_table_name: "space3"
+                      _actual_data_table_name: "space1"
+                      _historical_data_table_name: "space2"
+                      _delta_number: 3053
+                  maxNumberOfMessagesPerPartition: 200
+                  maxIdleSecondsBeforeCbCall: 100
+        required: true
+      responses:
+        "200":
+          description: successful operation
+        "500":
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /api/v1/kafka/subscription/{topicName}:
+    delete:
+      tags:
+        - subscription
+      description: unsubscribe from kafka topic based on the name supplied
+      operationId: kafka_unsubscribe_to_topic
+      parameters:
+        - name: topicName
+          in: path
+          description: Name of topic
+          required: true
+          style: simple
+          explode: false
+          schema:
+            maxLength: 255
+            type: string
+      responses:
+        "200":
+          description: resource deleted successfully
+        "404":
+          description: topic not found error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /api/v1/kafka/dataload:
+    post:
+      tags:
+        - dataload
+      summary: Downloading data from kafka
+      description: Downloading data from kafka topic to tarantool space
+      operationId: kafka_load_data_from_topic
+      requestBody:
+        description: Created data load object
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DataLoadTask"
+            examples:
+              sample-dataload-task1:
+                summary: Example1
+                value:
+                  topicName: topic1
+                  spaces:
+                    - topic1
+              sample-dataload-task2:
+                summary: Example2
+                value:
+                  topicName: topic2
+                  spaces:
+                    - space1
+                    - space2
+                  maxNumberOfMessagesPerPartition: 10000
+                  avroSchema:
+                    type: long
+        required: true
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataLoadSuccess"
+        "404":
+          description: topic not found error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: data load error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/DataLoadError"
+  /api/v1/kafka/dataunload/query:
+    post:
+      tags:
+        - dataunload
+      summary: Create data unload query task
+      description: Create kafka data unload query task
+      operationId: kafka_unload_query_to_topic
+      requestBody:
+        description: Create data unload query object
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DataUnloadQueryTask"
+            examples:
+              sample-dataunload-query-task1:
+                summary: Example1
+                value:
+                  query: select * from space1 where id = '5'
+                  topicName: topic1
+                  avroSchema:
+                    type: long
+              sample-dataunload-query-task2:
+                summary: Example2
+                value:
+                  query: select * from space1 where id = '5'
+                  topicName: topic1
+                  maxNumberOfRowsPerMessage: 1000
+                  avroSchema:
+                    type: long
+        required: true
+      responses:
+        "200":
+          description: successful operation
+        "500":
+          description: data unload error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /api/v1/kafka/dataunload/table:
+    post:
+      tags:
+        - dataunload
+      summary: Create data unload table task
+      description: Create kafka data unload table task
+      operationId: kafka_unload_table_to_topic
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DataUnloadTableTask"
+            examples:
+              sample-dataunload-table-task1:
+                summary: Example1
+                value:
+                  tableName: space1
+                  topicName: topic1
+                  avroSchema:
+                    type: long
+              sample-dataunload-table-task2:
+                summary: Example2
+                value:
+                  tableName: space1
+                  topicName: topic1
+                  filter: id = '5'
+                  maxNumberOfRowsPerMessage: 1000
+                  avroSchema:
+                    type: long
+      responses:
+        "200":
+          description: successful operation
+        "500":
+          description: data unload error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /api/v1/kafka/callback:
+    post:
+      tags:
+        - callback
+      summary: Register callback function
+      description: Register kafka callback function
+      operationId: register_kafka_callback_function
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CallbackRegisterTask"
+            examples:
+              sample-register-task1:
+                summary: Example1
+                value:
+                  callbackFunctionName: transfer_data_to_scd_table_on_cluster_cb
+                  callbackFunctionDesc: sample description
+                  callbackFunctionParamSchema:
+                    name: CallbackRegister
+                    type: array
+                    namespace: io.arenadata.avro
+                    items:
+                      name: CallbackRegister_record
+                      type: record
+                      fields:
+                        - name: space
+                          type: string
+                        - name: _stage_data_table_name
+                          type: string
+                        - name: _actual_data_table_name
+                          type: string
+                        - name: _historical_data_table_name
+                          type: string
+                        - name: _delta_number
+                          type: int
+      responses:
+        "200":
+          description: successful operation
+        "500":
+          description: register error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /api/v1/kafka/callback/{callbackFunctionName}:
+    delete:
+      tags:
+        - callback
+      description: delete callback function from repository
+      operationId: delete_kafka_callback_function
+      parameters:
+        - name: callbackFunctionName
+          in: path
+          description: Name of callback function to delete
+          required: true
+          style: simple
+          explode: false
+          schema:
+            type: string
+      responses:
+        "200":
+          description: successful operation
+        "500":
+          description: delete callback function error error
+  /api/v1/kafka/callbacks:
+    get:
+      tags:
+        - callback
+      summary: Get all callback functions
+      description: Get all callback functions
+      operationId: get_kafka_callback_functions
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CallbackFunctions"
+        "500":
+          description: error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+
+  /api/v1/ddl/table/{tableName}:
+    delete:
+      tags:
+        - table
+      description: drop table from tnt based on the name supplied
+      operationId: drop_space
+      parameters:
+        - name: tableName
+          in: path
+          description: Name of table
+          required: true
+          style: simple
+          explode: false
+          schema:
+            maxLength: 255
+            type: string
+        - name: batchId
+          in: query
+          description: Name delete batch ID
+          required: false
+          style: form
+          explode: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: table marked for drop successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TableDropBatch"
+        "500":
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /api/v1/ddl/table/queuedCreate:
     post:
       tags:
         - table
-      description: Create phisical table (operator CREATE TABLE)
+      description: Create physical table (operator CREATE TABLE)
       operationId: delayed_create_on_cluster
       requestBody:
         content:
@@ -119,7 +498,122 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-  /ddl/table/migrate/{tableName}:
+  /api/v1/ddl/table/queuedDelete:
+    delete:
+      tags:
+        - table
+      description: Delete physical table (operator DROP TABLE)
+      operationId: delayed_delete_on_cluster
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/TableDropTask"
+            examples:
+              sample-table-drop-task:
+                summary: Example1
+                value:
+                  tableList:
+                    - space1
+                    - space2
+      responses:
+        "200":
+          description: table deleted
+        "500":
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /api/v1/ddl/table/queuedDelete/prefix/{tablePrefix}:
+    delete:
+      tags:
+        - table
+      description: drop database
+      operationId: drop_table_prefix
+      parameters:
+        - name: tablePrefix
+          in: path
+          description: prefix to drop
+          required: true
+          style: simple
+          explode: false
+          schema:
+            maxLength: 255
+            type: string
+      responses:
+        "200":
+          description: resources deleted successfully
+        "500":
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /api/v1/ddl/table/schema:
+    post:
+      tags:
+        - table
+      summary: Get table schema YAML
+      description: Return table schema in YAML format
+      operationId: get_storage_space_schema
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CallbackRegisterTask"
+      responses:
+        "200":
+          description: successful operation
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TableDropSuccess"
+        "400":
+          description: Empty spaces parameter
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TableDropSuccess"
+        "500":
+          description: Internal server error
+  /api/v1/ddl/table/reverseHistoryTransfer:
+    post:
+      tags:
+        - etl
+      summary: Reverse data
+      description: Reverse data in table
+      operationId: reverse_history_in_scd_table
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/Reverse"
+            examples:
+              sample-reverse1:
+                summary: Example1
+                value:
+                  stagingTableName: orig__mtk__transactions5_staging
+                  actualTableName: orig__mtk__transactions5_actual
+                  historyTableName: orig__mtk__transactions5_history
+                  sysCn: 2
+                  eraseOperationBatchSize: 300
+      responses:
+        "200":
+          description: successful operation
+        "400":
+          description: wrong input parameters
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+        "500":
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /api/v1/ddl/table/migrate/{tableName}:
     post:
       tags:
         - table
@@ -177,69 +671,9 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-  /ddl/table/queuedDelete/prefix/{tablePrefix}:
-    delete:
-      tags:
-        - table
-      description: drop database
-      operationId: drop_table_prefix
-      parameters:
-        - name: tablePrefix
-          in: path
-          description: prefix to drop
-          required: true
-          style: simple
-          explode: false
-          schema:
-            maxLength: 255
-            type: string
-      responses:
-        "200":
-          description: resources deleted successfully
-        "500":
-          description: unexpected error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-  /ddl/table/reverseHistoryTransfer:
-    post:
-      tags:
-        - etl
-      summary: Reverse data
-      description: Reverse data in table
-      operationId: reverse_history_in_scd_table
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Reverse"
-            examples:
-              sample-reverse1:
-                summary: Example1
-                value:
-                  stagingTableName: orig__mtk__transactions5_staging
-                  actualTableName: orig__mtk__transactions5_actual
-                  historyTableName: orig__mtk__transactions5_history
-                  sysCn: 2
-                  eraseOperationBatchSize: 300
-      responses:
-        "200":
-          description: successful operation
-        "400":
-          description: wrong input parameters
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "500":
-          description: unexpected error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-  /etl/transfer_data_to_scd_table:
-    post:
+
+  /api/etl/transfer_data_to_scd_table:
+    get:
       tags:
         - etl
       summary: Transfer staging table data
@@ -279,7 +713,30 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-  /etl/truncate_space_on_cluster:
+  /api/etl/truncate_space_on_cluster:
+    get:
+      tags:
+        - etl
+      summary: Truncate space on cluster
+      description: Truncate space on cluster
+      operationId: truncate_space_on_cluster
+      parameters:
+        - in: query
+          name: _space_name
+          schema:
+            type: string
+          required: true
+          description: Space name
+      responses:
+        "200":
+          description: successful operation
+        "500":
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /api/etl/truncate_space_on_cluster:
     post:
       tags:
         - etl
@@ -302,7 +759,30 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Error"
-  /etl/get_scd_table_checksum:
+  /api/etl/delete_data_from_scd_table:
+    post:
+      tags:
+        - etl
+      summary: 
+      description: 
+      operationId: 
+      parameters:
+        - in: query
+          name: _space_name
+          schema:
+            type: string
+          required: true
+          description: Space name
+      responses:
+        "200":
+          description: successful operation
+        "500":
+          description: unexpected error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+  /api/etl/get_scd_table_checksum:
     post:
       tags:
         - etl
@@ -335,421 +815,6 @@ paths:
               schema:
                 $ref: "#/components/schemas/Error"
 
-  /kafka/subscription:
-    post:
-      tags:
-        - subscription
-      summary: Create subscription
-      description: Create kafka subscription
-      operationId: kafka_subscribe_to_topic
-      requestBody:
-        description: Created subscription object
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/Subscription"
-            examples:
-              sample-subscription3:
-                summary: Example
-                value:
-                  topicName: topic3
-                  spaceNames:
-                    - space3
-                  callbackFunction:
-                    callbackFunctionName: transfer_data_to_scd_table_on_cluster_cb
-                    callbackFunctionParams:
-                      _space: "space3"
-                      _stage_data_table_name: "space3"
-                      _actual_data_table_name: "space1"
-                      _historical_data_table_name: "space2"
-                      _delta_number: 3053
-                  maxNumberOfMessagesPerPartition: 200
-                  maxIdleSecondsBeforeCbCall: 100
-        required: true
-      responses:
-        "200":
-          description: successful operation
-        "500":
-          description: unexpected error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-  /kafka/subscription/{topicName}:
-    delete:
-      tags:
-        - subscription
-      description: unsubscribe from kafka topic based on the name supplied
-      operationId: kafka_unsubscribe_to_topic
-      parameters:
-        - name: topicName
-          in: path
-          description: Name of topic
-          required: true
-          style: simple
-          explode: false
-          schema:
-            maxLength: 255
-            type: string
-      responses:
-        "200":
-          description: resource deleted successfully
-        "404":
-          description: topic not found error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "500":
-          description: unexpected error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-  /kafka/dataload:
-    post:
-      tags:
-        - dataload
-      summary: Downloading data from kafka
-      description: Downloading data from kafka topic to tarantool space
-      operationId: kafka_load_data_from_topic
-      requestBody:
-        description: Created data load object
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/DataLoadTask"
-            examples:
-              sample-dataload-task1:
-                summary: Example1
-                value:
-                  topicName: topic1
-                  spaces:
-                    - topic1
-              sample-dataload-task2:
-                summary: Example2
-                value:
-                  topicName: topic2
-                  spaces:
-                    - space1
-                    - space2
-                  maxNumberOfMessagesPerPartition: 10000
-                  avroSchema:
-                    type: long
-        required: true
-      responses:
-        "200":
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/DataLoadSuccess"
-        "404":
-          description: topic not found error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-        "500":
-          description: data load error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/DataLoadError"
-  /kafka/dataunload/query:
-    post:
-      tags:
-        - dataunload
-      summary: Create data unload query task
-      description: Create kafka data unload query task
-      operationId: kafka_unload_query_to_topic
-      requestBody:
-        description: Create data unload query object
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/DataUnloadQueryTask"
-            examples:
-              sample-dataunload-query-task1:
-                summary: Example1
-                value:
-                  query: select * from space1 where id = '5'
-                  topicName: topic1
-                  avroSchema:
-                    type: long
-              sample-dataunload-query-task2:
-                summary: Example2
-                value:
-                  query: select * from space1 where id = '5'
-                  topicName: topic1
-                  maxNumberOfRowsPerMessage: 1000
-                  avroSchema:
-                    type: long
-        required: true
-      responses:
-        "200":
-          description: successful operation
-        "500":
-          description: data unload error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-  /kafka/dataunload/table:
-    post:
-      tags:
-        - dataunload
-      summary: Create data unload table task
-      description: Create kafka data unload table task
-      operationId: kafka_unload_table_to_topic
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/DataUnloadTableTask"
-            examples:
-              sample-dataunload-table-task1:
-                summary: Example1
-                value:
-                  tableName: space1
-                  topicName: topic1
-                  avroSchema:
-                    type: long
-              sample-dataunload-table-task2:
-                summary: Example2
-                value:
-                  tableName: space1
-                  topicName: topic1
-                  filter: id = '5'
-                  maxNumberOfRowsPerMessage: 1000
-                  avroSchema:
-                    type: long
-      responses:
-        "200":
-          description: successful operation
-        "500":
-          description: data unload error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-  /ddl/table/{tableName}:
-    delete:
-      tags:
-        - table
-      description: drop table from tnt based on the name supplied
-      operationId: drop_space
-      parameters:
-        - name: tableName
-          in: path
-          description: Name of table
-          required: true
-          style: simple
-          explode: false
-          schema:
-            maxLength: 255
-            type: string
-        - name: batchId
-          in: query
-          description: Name delete batch ID
-          required: false
-          style: form
-          explode: true
-          schema:
-            type: string
-      responses:
-        "200":
-          description: table marked for drop successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/TableDropBatch"
-        "500":
-          description: unexpected error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-  /ddl/table/batchDelete:
-    put:
-      tags:
-        - table
-      description: drop tables from tnt based on array of names supplied
-      operationId: drop_spaces
-      parameters:
-        - name: batchId
-          in: query
-          description: Name delete batch ID
-          required: false
-          style: form
-          explode: true
-          schema:
-            type: string
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/TableDropTask"
-            examples:
-              sample-table-drop-task:
-                summary: Example1
-                value:
-                  tableList:
-                    - space1
-                    - space2
-      responses:
-        "200":
-          description: tables marked for drop successfully
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/TableDropBatch"
-        "500":
-          description: unexpected error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-  /ddl/table/batchDelete/{batchId}:
-    delete:
-      tags:
-        - table
-      description: drop all spaces in drop batch
-      operationId: drop_spaces_from_batch
-      parameters:
-        - name: batchId
-          in: path
-          description: Name of batch delete ID
-          required: true
-          style: simple
-          explode: false
-          schema:
-            type: string
-      responses:
-        "200":
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/TableDropSuccess"
-        "500":
-          description: drop tables error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/TableDropError"
-  /ddl/table/schema:
-    post:
-      tags:
-        - table
-      summary: Get table schema YAML
-      description: Return table schema in YAML format
-      operationId: get_storage_space_schema
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CallbackRegisterTask"
-      responses:
-        "200":
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/TableDropSuccess"
-        "400":
-          description: Empty spaces parameter
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/TableDropSuccess"
-        "500":
-          description: Internal server error
-  /kafka/callback:
-    post:
-      tags:
-        - callback
-      summary: Register callback function
-      description: Register kafka callback function
-      operationId: register_kafka_callback_function
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CallbackRegisterTask"
-            examples:
-              sample-register-task1:
-                summary: Example1
-                value:
-                  callbackFunctionName: transfer_data_to_scd_table_on_cluster_cb
-                  callbackFunctionDesc: sample description
-                  callbackFunctionParamSchema:
-                    name: CallbackRegister
-                    type: array
-                    namespace: io.arenadata.avro
-                    items:
-                      name: CallbackRegister_record
-                      type: record
-                      fields:
-                        - name: space
-                          type: string
-                        - name: _stage_data_table_name
-                          type: string
-                        - name: _actual_data_table_name
-                          type: string
-                        - name: _historical_data_table_name
-                          type: string
-                        - name: _delta_number
-                          type: int
-      responses:
-        "200":
-          description: successful operation
-        "500":
-          description: register error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
-  /kafka/callback/{callbackFunctionName}:
-    delete:
-      tags:
-        - callback
-      description: delete callback function from repository
-      operationId: delete_kafka_callback_function
-      parameters:
-        - name: callbackFunctionName
-          in: path
-          description: Name of callback function to delete
-          required: true
-          style: simple
-          explode: false
-          schema:
-            type: string
-      responses:
-        "200":
-          description: successful operation
-        "500":
-          description: delete callback function error error
-  /kafka/callbacks:
-    get:
-      tags:
-        - callback
-      summary: Get all callback functions
-      description: Get all callback functions
-      operationId: get_kafka_callback_functions
-      responses:
-        "200":
-          description: successful operation
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/CallbackFunctions"
-        "500":
-          description: error
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/Error"
 components:
   schemas:
     Reverse:
