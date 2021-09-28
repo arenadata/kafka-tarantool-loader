@@ -27,14 +27,15 @@
     
     kafka_topics:
       TEST:
-            target_table: 'adb__adg_test__env_test_staging'
+            target_table: 'VEHICLE'
             schema_key: 'adb_upload_request'
-            schema_data: 'adb__adg_test__env_test_staging'
+            schema_data: 'VEHICLE'
             error_topic: 'err'
             success_topic: 'suss'             
 
     api_timeout:
       transfer_stage_data_to_scd_tbl: 1
       scd_table_checksum: 1
+      ddl_operation: 20
 
     scheduler_tasks:

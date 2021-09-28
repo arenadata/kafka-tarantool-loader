@@ -991,3 +991,41 @@ spaces:
         type: "TREE"
     sharding_key:
       - identification_number
+  hash_testing:
+    is_local: false
+    temporary: false
+    engine: "memtx"
+    format:
+      - name: "identification_number"
+        type: "integer"
+        is_nullable: false
+      - name: "product_code"
+        type: "string"
+        is_nullable: false
+      - name: "product_units"
+        type: "integer"
+        is_nullable: false
+      - name: "sys_op"
+        type: "number"
+        is_nullable: false
+      - name: "bucket_id"
+        type: "unsigned"
+        is_nullable: true
+    indexes:
+      - name: "id"
+        unique: true
+        type: "TREE"
+        parts:
+          - path: "identification_number"
+            is_nullable: false
+            type: "integer"
+      - name: bucket_id
+        unique: false
+        parts:
+          - path: "bucket_id"
+            is_nullable: true
+            type: "unsigned"
+        type: "TREE"
+    sharding_key:
+      - identification_number
+      - product_code

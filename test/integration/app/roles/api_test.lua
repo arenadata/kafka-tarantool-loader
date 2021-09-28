@@ -91,6 +91,20 @@ g7.before_each(function()
     storage2:call("box.execute", { "truncate table EMPLOYEES_TRANSFER" })
 end)
 
+g.after_all(function()
+    local storage1 = cluster:server("master-1-1").net_box
+    storage1:call("box.execute", { "truncate table USER1" })
+    storage1:call("box.execute", { "truncate table EMPLOYEES_TRANSFER" })
+end)
+
+g.before_test("test_simple_select_query", function()
+    local api = cluster:server("api-1").net_box
+
+    local r, err = api:call("insert_record", { "EMPLOYEES_TRANSFER", { 1, 1, 1, 1, "123", "123", "123", 100 } })
+    t.assert_equals(err, nil)
+    t.assert_equals(r, 1)
+end)
+
 g.test_set_ddl = function()
     local net_box = cluster:server("api-1").net_box
     local _, err = net_box:call("set_ddl", { schema })
@@ -104,11 +118,11 @@ end
 
 g.test_simple_select_query = function()
     local net_box = cluster:server("api-1").net_box
-    local res, err = net_box:call("query", { "select * from USER1 where id = ?", { 1 } })
+    local res, err = net_box:call("query", { [[select * from EMPLOYEES_TRANSFER where "id" = 1]] })
 
     t.assert_equals(err, nil)
 
-    t.assert_equals(res.rows, { { 1, "John", "Doe", "johndoe@example.com", 7729 } })
+    t.assert_equals(res.rows, { { 1, 1, 1, 1, "123", "123", "123", 100, 3939 } })
 end
 
 g.test_cluster_schema_update = function()
@@ -1035,10 +1049,10 @@ g11.test_insert_select_query = function()
     t.assert_equals(err, nil)
     t.assert_equals(res, true)
 
-    local res, err = net_box:call("query", { [[SELECT * FROM "table_test_1";]], {} })
+    local res, err = net_box:call("query", { [[SELECT * FROM "table_test_1" WHERE "id" = 1]], {} })
 
     t.assert_equals(err, nil)
-    t.assert_equals(res.rows, { { 1, "John", "Doe", "johndoe@example.com", 7729 } })
+    t.assert_equals(res.rows, { { 1, "John", "Doe", "johndoe@example.com", 3939 } })
 end
 
 g11.test_insert_dtm_query = function()

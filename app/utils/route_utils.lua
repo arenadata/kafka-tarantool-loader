@@ -45,7 +45,7 @@ local function get_bucket_id(space_name, tuple, bucket_count, is_record_type)
     checks("string", "cdata|table", "number", "?boolean")
     is_record_type = is_record_type or false
 
-    local c = digest.murmur.new()
+    local c = digest.murmur.new({seed = 0})
 
     local fields = schema_utils.get_bucket_id_fields(space_name, is_record_type)
 
@@ -53,7 +53,7 @@ local function get_bucket_id(space_name, tuple, bucket_count, is_record_type)
         c:update(tostring(tuple[key]))
     end
 
-    return digest.guava(c:result(), bucket_count - 1) + 1
+    return math.fmod(c:result(), bucket_count)
 end
 
 local function set_bucket_id(space_name, tuple, bucket_count, is_record_type)
