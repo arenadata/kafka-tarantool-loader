@@ -65,6 +65,7 @@ _G.index_drop = nil
 _G.add_columns = nil
 _G.drop_columns = nil
 _G.transform_query_to_tuple = nil
+_G.remove_spaces_from_bucket_id_cache = nil
 
 local err_storage = errors.new_class("Storage error")
 
@@ -984,6 +985,12 @@ local function transform_query_to_tuple(query, params, bucket_count)
     return sql_insert.get_tuples(query, params, bucket_count)
 end
 
+local function remove_spaces_from_bucket_id_cache(space_names)
+    for _, space_name in ipairs(space_names) do
+        schema_utils.clean_bucket_id_cache_by_space(space_name)
+    end
+end
+
 local function init(opts) -- luacheck: no unused args
     _G.insert_tuples = insert_tuples
     _G.drop_space = drop_space
@@ -1011,6 +1018,7 @@ local function init(opts) -- luacheck: no unused args
     _G.add_columns = add_columns
     _G.drop_columns = drop_columns
     _G.transform_query_to_tuple = transform_query_to_tuple
+    _G.remove_spaces_from_bucket_id_cache = remove_spaces_from_bucket_id_cache
 
     query_dbg_opts = query_debug_config.get_query_prof_opts()
 
@@ -1093,5 +1101,6 @@ return {
     index_drop = index_drop,
     add_columns = add_columns,
     drop_columns = drop_columns,
-    transform_query_to_tuple = transform_query_to_tuple
+    transform_query_to_tuple = transform_query_to_tuple,
+    remove_spaces_from_bucket_id_cache = remove_spaces_from_bucket_id_cache,
 }

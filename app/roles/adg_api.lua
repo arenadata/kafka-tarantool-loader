@@ -70,6 +70,34 @@ _G.api_timeouts = nil
 
 local err_vshard_router = errors.new_class("Vshard routing error")
 
+local function purge_bucket_id_caches_by_name(dropped_spaces)
+    local _, err = cartridge.rpc_call(
+        "app.roles.adg_input_processor",
+        "remove_spaces_from_bucket_id_cache",
+        { dropped_spaces }
+    )
+    if err == nil then
+        return errors.new("ERROR: purge on adg_input_processor bucked_id cache failed")
+    end
+
+    local storages = cartridge.rpc_get_candidates("app.roles.adg_storage", { leader_only = true })
+    for _, cand in ipairs(storages) do
+        local conn, err = pool.connect(cand)
+        if conn == nil then
+            return err
+        else
+            local _, err = conn:call(
+                "remove_spaces_from_bucket_id_cache",
+                { dropped_spaces }
+            )
+            if err == nil then
+                return errors.new("ERROR: purge on adg_storage bucked_id cache failed")
+            end
+        end
+    end
+    return nil
+end
+
 local function set_ddl(ddl)
     checks("string")
 
@@ -220,6 +248,12 @@ local function drop_spaces_on_cluster(spaces, prefix, schema_ddl_correction)
             end
         end
     end
+
+    local err = purge_bucket_id_caches_by_name(dropped_spaces)
+    if err ~= nil then
+        return dropped_spaces, err
+    end
+
     return dropped_spaces, nil
 end
 

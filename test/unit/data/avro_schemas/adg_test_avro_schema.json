@@ -1,0 +1,18 @@
+{
+  "type": "record",
+  "name": "employees",
+  "fields": [
+    {
+      "name": "id",
+      "type": "long"
+    },
+    {
+      "name": "int_col",
+      "type": "long"
+    },
+    {
+      "name": "sys_op",
+      "type": "int"
+    }
+  ]
+}
