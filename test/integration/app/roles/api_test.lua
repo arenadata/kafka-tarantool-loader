@@ -1016,11 +1016,10 @@ g11.after_all(function ()
 end)
 
 g11.test_insert_select_query = function()
-    t.skip("manually tested")
     local net_box = cluster:server("api-1").net_box
 
     local res, err = net_box:call("query", {
-        [[INSERT INTO "table_test_1"
+        [[INSERT INTO "table_test_2"
         ("id", FIRST_NAME, LAST_NAME, EMAIL) VALUES (?, ?, ?, ?);]],
         { 1, "John", "Doe", "johndoe@example.com" },
     })
@@ -1043,7 +1042,6 @@ g11.test_insert_select_query = function()
 end
 
 g11.test_insert_dtm_query = function()
-    t.skip("manually tested")
     local net_box = cluster:server("api-1").net_box
 
     local res, err = net_box:call("query", {

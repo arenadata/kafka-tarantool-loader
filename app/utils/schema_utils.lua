@@ -17,6 +17,8 @@ local ddl = require("ddl")
 local errors = require("errors")
 local checks = require("checks")
 
+local cartridge = require("cartridge")
+
 local schema_ddl = {}
 
 local err_ddl = errors.new_class("Schema_utils error")
@@ -31,6 +33,7 @@ local function init_schema_ddl()
 end
 
 local function get_schema_ddl()
+    schema_ddl = cartridge.config_get_deepcopy().schema
     return schema_ddl
 end
 
@@ -63,17 +66,12 @@ local function set_schema(s)
     return res
 end
 
----get_current_schema_ddl
 local function get_current_schema_ddl()
-    if next(ddl.get_schema().spaces) == nil then
-        return get_schema_ddl()
-    else
-        return ddl.get_schema()
-    end
+    return ddl.get_schema()
 end
 
-local function get_field_by_name(space, field_name)
-    for id, field in ipairs(get_current_schema_ddl().spaces[space].format) do
+local function get_field_by_name(space, field_name) -- called on the api role and need to apply the cluster schema
+    for id, field in ipairs(get_schema_ddl().spaces[space].format) do
         if field.name == field_name then
             return id
         end
@@ -82,7 +80,7 @@ local function get_field_by_name(space, field_name)
     return nil
 end
 
-local function get_bucket_id_fields(space_name, is_record_type)
+local function get_bucket_id_fields(space_name, is_record_type) -- called on the api role and need to apply the cluster schema
     local cache = bucket_id_fields_cache[space_name]
 
     if cache ~= nil then
@@ -90,8 +88,7 @@ local function get_bucket_id_fields(space_name, is_record_type)
     end
 
     cache = {}
-
-    for _, key in ipairs(get_current_schema_ddl().spaces[space_name].sharding_key) do
+    for _, key in ipairs(get_schema_ddl().spaces[space_name].sharding_key) do
         if not is_record_type then
             table.insert(cache, get_field_by_name(space_name, key))
         else
