@@ -1,5 +1,6 @@
 .vscode
-.rocks
+.rocks*
 tmp
 kafka
 luacov.stats.out
+app/sql_parser/target

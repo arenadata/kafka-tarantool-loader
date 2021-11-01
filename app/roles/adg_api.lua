@@ -21,7 +21,6 @@ local yaml = require("yaml")
 local log = require("log")
 local errors = require("errors")
 local vshard = require("vshard")
-local sql_select = require("app.utils.sql_select")
 local fiber = require("fiber")
 local pool = require("cartridge.pool")
 local metrics = require("app.metrics.metrics_storage")
@@ -49,6 +48,7 @@ local error_repository = require("app.messages.error_repository")
 local fun = require("fun")
 
 _G.set_ddl = nil
+_G.insert_record = nil
 _G.get_ddl = nil
 _G.query = nil
 _G.truncate_space_on_cluster = nil
@@ -125,6 +125,27 @@ local function set_ddl(ddl)
     end
 
     return true
+end
+
+local function insert_record(space_name, values)
+    local bucket_id = route_utils.get_bucket_id(space_name, values, vshard.router.bucket_count())
+    table.insert(values, bucket_id)
+
+    local insert_tuples = {}
+    insert_tuples[space_name] = { values }
+    local res, err = err_vshard_router:pcall(
+            vshard.router.call,
+            bucket_id,
+            "write",
+            "insert_tuples",
+            { insert_tuples }
+    )
+
+    if res == nil then
+        return nil, err
+    end
+
+    return res
 end
 
 ---sync_ddl_schema_with_storage
@@ -405,35 +426,40 @@ local function executeSimpleInsert(query, params)
     return sql_res.sql_result
 end
 
+-- luacheck: no unused args
 local function executeSelect(query, params)
-    local replicas, err = sql_select.get_replicas(query, params)
+    local schema = cartridge.get_schema()
+    local has_err, parser_res = pcall(
+            function()
+                return box.func["sql_parser.parse_sql"]:call({ query, schema, vshard.router.bucket_count() })
+            end
+    )
 
-    if replicas == nil then
-        return nil, err
+    if has_err == false then
+        return nil, parser_res
     end
 
     local result = nil
-    local futures = {}
-    for _, replica in pairs(replicas) do
-        local future, err = replica:callro("execute_sql", { query, params }, {is_async = true})
+    for _, rec in pairs(parser_res) do
+        local bucket_id = rec[1]
+        local shard_query = rec[2]
+
+        local res, err = err_vshard_router:pcall(
+                vshard.router.call,
+                bucket_id,
+                "read",
+                "execute_sql",
+                { shard_query }
+        )
+
         if err ~= nil then
             return nil, err
         end
-        table.insert(futures, future)
-    end
-
-    for _, future in ipairs(futures) do
-        future:wait_result(_G.api_timeouts:get_query_select_timeout())
-        local res = future:result()
-
-        if res[1] == nil then
-             return nil, res[2]
-        end
 
         if result == nil then
-            result = res[1]
+            result = res
         else
-            result.rows = misc_utils.append_table(result.rows, res[1].rows)
+            result.rows = misc_utils.append_table(result.rows, res.rows)
         end
     end
 
@@ -663,7 +689,7 @@ local function prepare_plan_for_massive_select(query, batch_size)
         return false, error_repository.get_error_code("ADG_OUTPUT_PROCESSOR_003", { query = query })
     end
 
-    local replicas, err = sql_select.get_replicas(query, {})
+    local replicas, err = vshard.router.routeall()
 
     if err ~= nil then
         return false, error_repository.get_error_code("VROUTER_REPLICA_GET_001", { query = query, desc = err })
@@ -917,25 +943,25 @@ local function init_kafka_routes()
 
     httpd:route({ method = "POST", path = "api/v1/kafka/subscription" }, kafka_handler.subscribe_to_topic_on_cluster)
     httpd:route(
-        { method = "DELETE", path = "api/v1/kafka/subscription/:topicName" },
-        kafka_handler.unsubscribe_from_topic_on_cluster
+            { method = "DELETE", path = "api/v1/kafka/subscription/:topicName" },
+            kafka_handler.unsubscribe_from_topic_on_cluster
     )
     httpd:route({ method = "POST", path = "api/v1/kafka/dataload" }, kafka_handler.dataload_from_topic_on_cluster)
 
     httpd:route(
-        { method = "POST", path = "api/v1/kafka/dataunload/query" },
-        kafka_handler.dataunload_query_to_topic_on_cluster
+            { method = "POST", path = "api/v1/kafka/dataunload/query" },
+            kafka_handler.dataunload_query_to_topic_on_cluster
     )
     httpd:route(
-        { method = "POST", path = "api/v1/kafka/dataunload/table" },
-        kafka_handler.dataunload_table_to_topic_on_cluster
+            { method = "POST", path = "api/v1/kafka/dataunload/table" },
+            kafka_handler.dataunload_table_to_topic_on_cluster
     )
 
     httpd:route({ method = "POST", path = "api/v1/kafka/callback" }, kafka_handler.register_kafka_callback_function)
     httpd:route({ method = "GET", path = "api/v1/kafka/callbacks" }, kafka_handler.get_kafka_callback_functions)
     httpd:route(
-        { method = "DELETE", path = "api/v1/kafka/callback/:callbackFunctionName" },
-        kafka_handler.delete_kafka_callback_function
+            { method = "DELETE", path = "api/v1/kafka/callback/:callbackFunctionName" },
+            kafka_handler.delete_kafka_callback_function
     )
 end
 
@@ -945,8 +971,8 @@ local function init_ddl_routes()
     httpd:route({ method = "DELETE", path = "api/v1/ddl/table/queuedDelete" }, ddl_handler.queued_tables_delete)
     httpd:route({ method = "POST", path = "api/v1/ddl/table/queuedCreate" }, ddl_handler.queued_tables_create)
     httpd:route(
-        { method = "DELETE", path = "api/v1/ddl/table/queuedDelete/prefix/:tablePrefix" },
-        ddl_handler.queued_prefix_delete
+            { method = "DELETE", path = "api/v1/ddl/table/queuedDelete/prefix/:tablePrefix" },
+            ddl_handler.queued_prefix_delete
     )
     httpd:route({ method = "POST", path = "api/v1/ddl/table/schema" }, ddl_handler.get_storage_space_schema)
 end
@@ -957,11 +983,13 @@ local function get_schema()
     end
 end
 
-local function init(opts) -- luacheck: no unused args
+local function init(opts)
+    -- luacheck: no unused args
     rawset(_G, "ddl", { get_schema = get_schema })
 
     _G.set_ddl = set_ddl
     _G.get_ddl = get_ddl
+    _G.insert_record = insert_record
     _G.query = query
     _G.truncate_space_on_cluster = truncate_space_on_cluster
     _G.drop_all = drop_all
@@ -998,25 +1026,25 @@ local function init(opts) -- luacheck: no unused args
     httpd:route({ method = "GET", path = "api/etl/transfer_data_to_scd_table" }, etl_handler.transfer_data_to_scd_table)
 
     httpd:route(
-        { method = "POST", path = "/api/v1/ddl/table/reverseHistoryTransfer" },
-        etl_handler.reverse_history_in_scd_table
+            { method = "POST", path = "/api/v1/ddl/table/reverseHistoryTransfer" },
+            etl_handler.reverse_history_in_scd_table
     )
 
     httpd:route({ method = "POST", path = "api/v1/ddl/table/migrate/:tableName" }, migration_handler.migrate)
 
     httpd:route(
-        { method = "GET", path = "api/etl/truncate_space_on_cluster" },
-        truncate_space_handler.truncate_space_on_cluster
+            { method = "GET", path = "api/etl/truncate_space_on_cluster" },
+            truncate_space_handler.truncate_space_on_cluster
     )
 
     httpd:route(
-        { method = "POST", path = "api/etl/truncate_space_on_cluster" },
-        truncate_space_handler.truncate_space_on_cluster_post
+            { method = "POST", path = "api/etl/truncate_space_on_cluster" },
+            truncate_space_handler.truncate_space_on_cluster_post
     )
 
     httpd:route(
-        { method = "POST", path = "api/etl/delete_data_from_scd_table" },
-        etl_handler.delete_data_from_scd_table_sql
+            { method = "POST", path = "api/etl/delete_data_from_scd_table" },
+            etl_handler.delete_data_from_scd_table_sql
     )
 
     httpd:route({ method = "POST", path = "api/etl/get_scd_table_checksum" }, etl_handler.get_scd_table_checksum)
@@ -1025,6 +1053,10 @@ local function init(opts) -- luacheck: no unused args
 
     init_kafka_routes()
     init_ddl_routes()
+
+    if opts.is_master then
+        box.schema.func.create('sql_parser.parse_sql', { if_not_exists = true, language = 'C' })
+    end
 
     return true
 end
@@ -1035,13 +1067,16 @@ local function stop()
     return true
 end
 
-local function validate_config(conf_new, conf_old) -- luacheck: no unused args
-    if type(box.cfg) ~= "function" and not box.cfg.read_only then -- luacheck: ignore 542
+local function validate_config(conf_new, conf_old)
+    -- luacheck: no unused args
+    -- luacheck: ignore 542
+    if type(box.cfg) ~= "function" and not box.cfg.read_only then
     end
     return true
 end
 
-local function apply_config(conf, opts) -- luacheck: no unused args
+local function apply_config(conf, opts)
+    -- luacheck: no unused args
     _G.api_timeouts = api_timeout_config.get_api_timeout_opts()
 
     schema_utils.init_schema_ddl()
@@ -1050,7 +1085,6 @@ local function apply_config(conf, opts) -- luacheck: no unused args
     if opts.is_master and pcall(vshard.storage.info) == false then
         schema_utils.drop_all()
         if conf.schema ~= nil then
-            sql_select.clear_cache()
             sql_insert.install_triggers()
         end
     end

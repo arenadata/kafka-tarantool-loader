@@ -17,7 +17,6 @@ memstorage.adg_storage:
   workdir: ./tmp/db_3304
   http_port: 8084
   advertise_uri: "localhost:3304"
-  memtx_memory: 1500000000
 
 memstorage.adg_kafka_con:
   workdir: ./tmp/db_3305
@@ -33,4 +32,8 @@ memstorage.adg_output_proc:
   workdir: ./tmp/db_3307
   http_port: 8087
   advertise_uri: "localhost:3307"
-  memtx_memory: 1500000000
+
+memstorage.adg_storage_2:
+  workdir: ./tmp/db_3308
+  http_port: 8088
+  advertise_uri: "localhost:3308"
