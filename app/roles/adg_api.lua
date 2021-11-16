@@ -428,10 +428,9 @@ end
 
 -- luacheck: no unused args
 local function executeSelect(query, params)
-    local schema = cartridge.get_schema()
     local has_err, parser_res = pcall(
             function()
-                return box.func["sql_parser.parse_sql"]:call({ query, schema, vshard.router.bucket_count() })
+                return box.func["sql_parser.parse_sql"]:call({ query, vshard.router.bucket_count() })
             end
     )
 
@@ -1056,6 +1055,7 @@ local function init(opts)
 
     if opts.is_master then
         box.schema.func.create('sql_parser.parse_sql', { if_not_exists = true, language = 'C' })
+        box.schema.func.create('sql_parser.invalidate_caching_schema', { if_not_exists = true, language = 'C' })
     end
 
     return true
@@ -1083,11 +1083,14 @@ local function apply_config(conf, opts)
     error_repository.init_error_repo("en")
     success_repository.init_success_repo("en")
     if opts.is_master and pcall(vshard.storage.info) == false then
+
         schema_utils.drop_all()
         if conf.schema ~= nil then
             sql_insert.install_triggers()
         end
     end
+
+    box.func["sql_parser.invalidate_caching_schema"]:call({})
     return true
 end
 

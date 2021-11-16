@@ -1,3 +1,13 @@
 #!/bin/sh
 
 cp /kafka/kafka/tntkafka.so ./.rocks/lib/tarantool/kafka/tntkafka.so
+
+BUILD_DIR=$(pwd)
+
+cd /sbroad/
+git pull
+cargo build
+cd $BUILD_DIR
+
+
+cp /sbroad/target/debug/libsbroad.so ./.rocks/lib/tarantool/sql_parser.so
