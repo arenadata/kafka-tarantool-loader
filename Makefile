@@ -20,7 +20,7 @@ run:
 
 stop:
 	docker exec memstorage cartridge stop
-	
+
 release:
 	$(CMD) cartridge pack rpm . --version=$(shell find . -path '*.rockspec' -maxdepth 1 | sed -En 's/\.\/[a-z]*-(.*)\.[a-z]*/\1/p')
 
